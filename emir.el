@@ -29,6 +29,7 @@
 ;;; Code:
 
 (require 'borg)
+(require 'cl-lib)
 (require 'closql)
 (require 'dash)
 (require 'dash-functional)
@@ -43,6 +44,10 @@
 
 (defvar finder-no-scan-regexp)
 (defvar finder--builtins-alist)
+
+(cl-pushnew (expand-file-name
+             "bin" (file-name-directory (or load-file-name buffer-file-name)))
+            exec-path :test #'equal)
 
 ;;; Options
 
