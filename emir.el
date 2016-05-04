@@ -55,10 +55,10 @@
   "Maintain the Emacsmirror."
   :group 'local)
 
-(defcustom emir-emacs-repository "~/Repos/emacs/25.0.92/"
+(defcustom emir-emacs-repository nil
   "The Emacs repository used to extract builtin packages."
   :group 'emir
-  :type 'directory)
+  :type '(choice directory (const nil)))
 
 (defcustom emir-ignored-dependencies nil
   "List of dependencies that are ignored in all packages."
