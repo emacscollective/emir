@@ -900,6 +900,48 @@ has fixed known outstanding issues."
 
 ;;; Utilities
 
+(defun emir-describe-package (package)
+  "Display the full documentation of PACKAGE.
+Show all slots instead of honoring `epkg-describe-package-slots'."
+  (interactive
+   (list (epkg-read-package "Describe package: "
+                            (or (tabulated-list-get-id)
+                                (--when-let (symbol-at-point)
+                                  (symbol-name it))))))
+  (help-setup-xref (list #'emir-describe-package package)
+                   (called-interactively-p 'interactive))
+  (with-help-window (help-buffer)
+    (with-current-buffer standard-output
+      (epkg-describe-package-1
+       (epkg package)
+       '(type
+         hash
+         url
+         mirror-url
+         mirror-name
+         upstream-user
+         upstream-name
+         upstream-branch
+         upstream-tree
+         library
+         epkg-insert-repopage
+         epkg-insert-homepage
+         epkg-insert-mirrorpage
+         epkg-insert-wikipage
+         license
+         created
+         updated
+         summary
+         libraries
+         provided
+         required
+         epkg-insert-keywords
+         epkg-insert-authors
+         epkg-insert-maintainers
+         epkg-insert-commentary
+         epkg-insert-dependencies
+         epkg-insert-reverse-dependencies)))))
+
 (defvar emir-url-history nil)
 
 (defun emir-read-url (prompt)
