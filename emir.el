@@ -614,7 +614,7 @@ has fixed known outstanding issues."
       (magit-git "remote" "rename" "origin" "mirror")
       (magit-git "remote" "add" "import"
                  (concat "../../import/"
-                         (if (epkg-wiki-package-p pkg) "wiki" "elpa")))
+                         (if (epkg-wiki-package-p pkg) "wiki" "gelpa")))
       (magit-git "config" "remote.import.fetch"
                  (format "refs/heads/%s%s:refs/remotes/import/master"
                          (pcase (eieio-object-class pkg)
