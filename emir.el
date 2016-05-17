@@ -463,8 +463,8 @@ has fixed known outstanding issues."
 
 (defun emir-update-elpa-branch-packages (&optional from)
   (interactive (emir-update-read-args))
-  (emir-pull   'epkg-elpa-package)
-  (emir-update-packages 'epkg-elpa-package from)
+  (emir-pull   'epkg-elpa-branch-package)
+  (emir-update-packages 'epkg-elpa-branch-package from)
   (emir--commit "update %n elpa-branch %p"))
 
 (defun emir-update-read-args ()
