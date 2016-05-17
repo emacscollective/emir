@@ -688,7 +688,6 @@ has fixed known outstanding issues."
 
 (cl-defmethod emir-push ((pkg epkg-subset-package))
   (with-slots (name mirror-name mirror-url) pkg
-    (ghub-post (format "/orgs/emacsmirror/%s" mirror-name))
     (let ((class (eieio-object-class pkg)))
       (with-epkg-repository class
         (magit-git "push" mirror-url
