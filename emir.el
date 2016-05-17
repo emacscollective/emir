@@ -658,10 +658,12 @@ has fixed known outstanding issues."
           (with-temp-buffer
             (insert-file-contents mainlib)
             (let ((maintainer (car (elx-maintainers))))
-              (setenv "GIT_AUTHOR_NAME"  (or (car maintainer) "unknown"))
-              (setenv "GIT_AUTHOR_EMAIL" (or (cdr maintainer) "unknown"))))
-          (setenv "GIT_COMMITTER_NAME"  "Emacsmirror")
-          (setenv "GIT_COMMITTER_EMAIL" "import@emacsmirror.org")
+              (push (concat "GIT_AUTHOR_NAME="  (or (car maintainer) "unknown"))
+                    process-environment)
+              (push (concat "GIT_AUTHOR_EMAIL=" (or (cdr maintainer) "unknown"))
+                    process-environment)))
+          (push "GIT_COMMITTER_NAME=Emacsmirror" process-environment)
+          (push "GIT_COMMITTER_EMAIL=import@emacsmirror.org" process-environment)
           (magit-git "commit" "-m" "updates"))))))
 
 (cl-defmethod emir-pull ((pkg epkg-subtree-package))
