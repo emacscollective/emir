@@ -164,19 +164,39 @@
 ;;;; Emacsmirror vs. Gelpa
 
 (defun  emir-gelpa-shadowed ()
-  (emir-with-org-header ("Package" "Type" "Gelpa" "Reason" "Link")
-    (let ((branches (emir--list-packages 'epkg-elpa-branch-package)))
-      (mapcar (lambda (name)
-                (-let* ((pkg (epkg name))
-                        ((source reason)
-                         (or (cdr (assoc name emir-preferred-upstreams))
-                             '("" ""))))
-                  (list name
-                        source
-                        (if (member name branches) "branch" "subtree")
-                        reason
-                        (emir-org-link pkg))))
-              (emir-gelpa-only 'upstream)))))
+  (emir-with-org-header ("Package" "Type" "Gelpa" "Squash" "Reason" "Link")
+    (let ((branches (emir--list-packages 'epkg-elpa-branch-package))
+          (externals-list
+           (with-temp-buffer
+             (insert-file-contents
+              (expand-file-name "externals-list"
+                                (epkg-repository 'epkg-elpa-package)))
+             (read (current-buffer)))))
+      (mapcar
+       (lambda (name)
+         (-let ((pkg (epkg name))
+                (dir (expand-file-name
+                      (concat "packages/" name)
+                      (epkg-repository 'epkg-elpa-package))))
+           (list name
+                 (and pkg (epkg-type pkg))
+                 (cond ((cadr (assoc name externals-list)))
+                       ((member name branches) "?external")
+                       ((file-exists-p dir)    "?subtree")
+                       (t                      ""))
+                 (if (file-exists-p dir)
+                     (if (with-epkg-repository 'epkg-elpa-branch-package
+                           (--any-p (string-match-p "^[^ ]+ Merge commit" it)
+                                    (magit-git-lines "log" "--oneline" "--"
+                                                     (concat "packages/" name))))
+                         "yes"
+                       (if (member name '("loccur" "undo-tree"))
+                           "YES"
+                         "no"))
+                   "")
+                 (or (car (cddr (assoc name emir-preferred-upstreams))) "")
+                 (emir-org-link pkg))))
+       (emir-gelpa-only 'upstream)))))
 
 (defvar emir-gelpa-only nil)
 (defun  emir-gelpa-only (&optional type nocache)
