@@ -240,13 +240,19 @@
 
 (defvar emir-melpa-missing nil)
 (defun  emir-melpa-missing (&optional type nocache)
-  (emir-archives-compare 'emir-melpa-missing type nocache
-    (lambda ()
-      (cl-set-difference (epkgs 'name)
-                         (emir-melpa-packages)
-                         :test #'equal))
-    (lambda (package)
-      (epkg-type (epkg package)))))
+  (let ((elpa (nconc (emir--list-packages 'epkg-elpa-package)
+                     (emir--list-packages 'epkg-elpa-package))))
+    (emir-archives-compare 'emir-melpa-missing type nocache
+      (lambda ()
+        (cl-set-difference (epkgs 'name)
+                           (emir-melpa-packages)
+                           :test #'equal))
+      (lambda (package)
+        (let ((type (epkg-type (epkg package))))
+          (if (and (not (memq type '(builtin elpa elpa-branch)))
+                   (member package elpa))
+              'elpa/upstream
+            type))))))
 
 ;;; Issues
 
