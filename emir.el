@@ -540,7 +540,9 @@ has fixed known outstanding issues."
       (magit-git "mv"
                  (concat "mirror/" name)
                  (concat "attic/" name)))
-    (emir-init (setq pkg (epkg-shelved-package :name name)) t)
+    (closql-delete (epkg-db) pkg)
+    (setq pkg (epkg-shelved-package :name name))
+    (emir-init pkg)
     (with-slots (mirror-url) pkg
       (with-epkg-repository t
         (magit-git "config" "-f" ".gitmodules"
