@@ -679,6 +679,11 @@ has fixed known outstanding issues."
   (with-epkg-repository pkg
     (magit-git "pull" "--ff-only" "import")))
 
+(cl-defmethod emir-pull ((pkg epkg-elpa-branch-package))
+  (with-epkg-repository pkg
+    (magit-git "pull" "--ff-only" "import"
+               (concat "externals/" (oref pkg name)))))
+
 (cl-defmethod emir-pull ((class (subclass epkg-subset-package)))
   (with-epkg-repository class
     (magit-git "checkout" "master")
