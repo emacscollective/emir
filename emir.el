@@ -924,35 +924,36 @@ Show all slots instead of honoring `epkg-describe-package-slots'."
                    (called-interactively-p 'interactive))
   (with-help-window (help-buffer)
     (with-current-buffer standard-output
-      (epkg-describe-package-1
-       (epkg package)
-       '(type
-         hash
-         url
-         mirror-url
-         mirror-name
-         upstream-user
-         upstream-name
-         upstream-branch
-         upstream-tree
-         library
-         epkg-insert-repopage
-         epkg-insert-homepage
-         epkg-insert-mirrorpage
-         epkg-insert-wikipage
-         license
-         created
-         updated
-         summary
-         libraries
-         provided
-         required
-         epkg-insert-keywords
-         epkg-insert-authors
-         epkg-insert-maintainers
-         epkg-insert-commentary
-         epkg-insert-dependencies
-         epkg-insert-reverse-dependencies)))))
+      (let ((epkg-describe-package-slots-width 14))
+        (epkg-describe-package-1
+         (epkg package)
+         '(type
+           hash
+           url
+           mirror-url
+           mirror-name
+           upstream-user
+           upstream-name
+           upstream-branch
+           upstream-tree
+           library
+           epkg-insert-repopage
+           epkg-insert-homepage
+           epkg-insert-mirrorpage
+           epkg-insert-wikipage
+           license
+           created
+           updated
+           summary
+           libraries
+           provided
+           required
+           epkg-insert-keywords
+           epkg-insert-authors
+           epkg-insert-maintainers
+           epkg-insert-commentary
+           epkg-insert-dependencies
+           epkg-insert-reverse-dependencies))))))
 
 (defvar emir-url-history nil)
 
