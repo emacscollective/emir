@@ -256,25 +256,35 @@
 
 ;;; Issues
 
-(defun emir-feature-conflicts ()
-  (emir-with-org-header ("Feature" "Package")
-    (let (alist)
-      (dolist (name (epkgs 'name '(epkg-mirrored-package--eieio-childp
-                                   epkg-builtin-package-p)))
-        (dolist (feature (epkg-sql [:select feature :from provided
-                                    :where (and (= package $s1)
-                                                (isnull drop))]
-                                   name))
-          (setq feature (car feature))
-          (-if-let (elt (assq feature alist))
-              (push name (cdr elt))
-            (cl-pushnew (list feature name) alist))))
-      (-mapcat (-lambda ((feature . providers))
-                 (and (> (length providers) 1)
-                      (list (list feature providers))
-                      (--map (list feature it)
-                             (sort providers #'string<))))
-               (cl-sort alist #'string< :key #'car)))))
+(defun emir-feature-conflicts (&optional shelved)
+  (let (alist body)
+    (dolist (name (if shelved
+                      (epkgs 'name)
+                    (epkgs 'name '(epkg-mirrored-package--eieio-childp
+                                   epkg-builtin-package-p))))
+      (dolist (feature (epkg-sql [:select feature :from provided
+                                  :where (and (= package $s1)
+                                              (isnull drop))]
+                                 name))
+        (setq feature (car feature))
+        (-if-let (elt (assq feature alist))
+            (push name (cdr elt))
+          (cl-pushnew (list feature name) alist))))
+    (setq body
+          (-mapcat (-lambda ((feature . providers))
+                     (and (> (length providers) 1)
+                          (list (list feature providers))
+                          (--map (list feature it)
+                                 (sort providers #'string<))))
+                   (cl-sort alist #'string< :key #'car)))
+    (if shelved
+        (emir-with-org-header ("Feature" "Package" "Shelved")
+          (mapcar (-lambda ((feature package))
+                    (list feature package
+                          (or (epkg-shelved-package-p (epkg package)) "")))
+                  body))
+      (emir-with-org-header ("Feature" "Package")
+        body))))
 
 (defun emir-unsatisfied-hard-dependencies ()
   (emir-with-org-header ("Package" "Type" "Melpa" "Feature")
