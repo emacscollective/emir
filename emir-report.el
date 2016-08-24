@@ -32,6 +32,8 @@
 (require 'emir)
 (require 'org)
 
+(declare-function org-publish 'ox-publish)
+
 ;;; Variables
 
 (defvar emir-report-src "~/Repos/pages/emacsmirror.net/stats/")
