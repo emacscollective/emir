@@ -197,7 +197,9 @@ has fixed known outstanding issues."
 (cl-defmethod emir-init ((pkg epkg-package) &optional recreate)
   (unless recreate
     (closql-insert (epkg-db) pkg))
-  (with-slots (url mirror-url upstream-name mirror-name name mirrorpage) pkg
+  (with-slots
+      (url mirror-url upstream-user upstream-name mirror-name name mirrorpage)
+      pkg
     (when url
       (emir--set-url pkg url))
     (unless url
@@ -208,6 +210,8 @@ has fixed known outstanding issues."
       (setf mirror-url (emir--format-url pkg 'mirror-url-format)))
     (unless upstream-name
       (setf upstream-name name))
+    (when (epkg-orphaned-package-p pkg)
+      (setf upstream-user "emacsorphanage"))
     (setf mirrorpage (format "https://github.com/%s/%s"
                              (if (epkg-shelved-package-p pkg)
                                  "emacsattic"
