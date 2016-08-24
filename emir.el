@@ -838,18 +838,18 @@ has fixed known outstanding issues."
       (ghub-delete (format "/repos/%s/%s/subscription" org name)))))
 
 (cl-defmethod emir-gh-update ((pkg epkg-package))
-  (with-demoted-errors
-      (format "Failed to update metadata for %s/%s: %%S"
-              (if (epkg-shelved-package-p pkg) "emacsattic" "emacsmirror")
-              (oref pkg mirror-name))
-    (ghub-patch (format "/repos/emacsmirror/%s" (oref pkg mirror-name))
-                nil `((name           . ,(oref pkg mirror-name))
-                      (description    . ,(oref pkg summary))
-                      (homepage       . ,(oref pkg homepage))
-                      (has_issues     . nil)
-                      (has_wiki       . nil)
-                      (has_downloads  . nil)
-                      (default_branch . "master")))))
+  (let ((org (if (epkg-shelved-package-p pkg) "emacsattic" "emacsmirror")))
+    (with-demoted-errors
+        (format "Failed to update metadata for %s/%s: %%S" org
+                (oref pkg mirror-name))
+      (ghub-patch (format "/repos/%s/%s" org (oref pkg mirror-name))
+                  nil `((name           . ,(oref pkg mirror-name))
+                        (description    . ,(oref pkg summary))
+                        (homepage       . ,(oref pkg homepage))
+                        (has_issues     . nil)
+                        (has_wiki       . nil)
+                        (has_downloads  . nil)
+                        (default_branch . "master"))))))
 
 (cl-defmethod emir-gh-prune ((pkg epkg-github-package))
   (with-epkg-repository pkg
