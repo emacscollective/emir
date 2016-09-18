@@ -101,24 +101,26 @@
 
 (defun emir-archives-summary ()
   (require 'finder-inf)
-  (let ((ret `((builtin     0 0
-                            ,(length package--builtins)
-                            ,(length (epkg-sql [:select * :from gelpa-packages
-                                                :where (= type ':core)]))
-                            0)
-               (elpa        0 0 0
-                            ,(length (epkg-sql [:select * :from gelpa-packages
-                                                :where type :in $v1
-                                                :and (isnull unreleased)]
-                                               [:dir :subtree]))
-                            0)
-               (elpa-branch 0 0 0
-                            ,(length (epkg-sql [:select * :from gelpa-packages
-                                                :where (= type ':external)]))
-                            0)
-               (shelved     0
-                            ,(length (epkgs 'class 'epkg-shelved-package-p))
-                            0 0 0))))
+  (let* ((included-builtin (length (epkgs nil 'epkg-builtin-package-p)))
+         (ret `((builtin     ,included-builtin
+                             0
+                             ,(length package--builtins)
+                             ,(length (epkg-sql [:select * :from gelpa-packages
+                                                         :where (= type ':core)]))
+                             0)
+                (elpa        0 0 0
+                             ,(length (epkg-sql [:select * :from gelpa-packages
+                                                         :where type :in $v1
+                                                         :and (isnull unreleased)]
+                                                [:dir :subtree]))
+                             0)
+                (elpa-branch 0 0 0
+                             ,(length (epkg-sql [:select * :from gelpa-packages
+                                                         :where (= type ':external)]))
+                             0)
+                (shelved     0
+                             ,(length (epkgs 'class 'epkg-shelved-package-p))
+                             0 0 0))))
     (dolist (class (epkgs 'class 'epkg-mirrored-package--eieio-childp))
       (--if-let (assq class ret)
           (cl-incf (nth 1 it))
@@ -131,13 +133,16 @@
     (emir-with-org-header ("Type" "Mirror" "Attic" "Emacs" "Gelpa" "Melpa")
       (append (cl-sort (copy-sequence ret) #'> :key #'cadr)
               (list 'hline
-                    (append (--reduce (list 'total
-                                            (+ (nth 1 acc) (nth 1 it))
-                                            (+ (nth 2 acc) (nth 2 it))
-                                            (+ (nth 3 acc) (nth 3 it))
-                                            (+ (nth 4 acc) (nth 4 it))
-                                            (+ (nth 5 acc) (nth 5 it)))
-                                      ret)))))))
+                    (list "- builtin" (- included-builtin) "" "" "" "")
+                    (append
+                     (--reduce (list "= total"
+                                     (+ (nth 1 acc) (nth 1 it))
+                                     (+ (nth 2 acc) (nth 2 it))
+                                     (+ (nth 3 acc) (nth 3 it))
+                                     (+ (nth 4 acc) (nth 4 it))
+                                     (+ (nth 5 acc) (nth 5 it)))
+                               (cons (list nil (- included-builtin) 0 0 0 0)
+                                     ret))))))))
 
 (defun emir-archives-compare (symbol type nocache get-diff get-type)
   (declare (indent 3))
