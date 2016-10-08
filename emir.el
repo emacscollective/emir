@@ -862,6 +862,65 @@ has fixed known outstanding issues."
 
 ;;; Import
 
+;;;###autoload
+(defun emir-import-melpa-recipes ()
+  (interactive)
+  (let ((default-directory (expand-file-name "import/melpa/" epkg-repository)))
+    (magit-git "checkout" "master")
+    (magit-git "clean" "-fdx" "recipes")
+    (magit-git "pull" "--ff-only" "origin")
+    (emacsql-with-transaction (epkg-db)
+      (epkg-sql [:drop-table-if-exists melpa-recipes])
+      (epkg-sql [:create-table melpa-recipes $S1]
+                '([(fetcher :not-null)
+                   (name    :not-null)
+                   (url     :not-null)
+                   repo
+                   repopage
+                   files
+                   branch
+                   commit
+                   module
+                   old-names
+                   version-regexp]
+                  (:primary-key [name url])))
+      (dolist (file (directory-files
+                     (expand-file-name "recipes/" default-directory)
+                     t "^[^.]"))
+        (when (file-regular-p file)
+          (-let* (((name . plist)
+                   (with-temp-buffer
+                     (insert-file-contents file)
+                     (read (current-buffer))))
+                  (fetcher (plist-get plist :fetcher))
+                  (repo    (plist-get plist :repo)))
+            (message "Importing melpa recipe %s..." name)
+            (epkg-sql
+             [:insert-into melpa-recipes :values $v1]
+             (vector fetcher (symbol-name name)
+                     (or (plist-get plist :url)
+                         (pcase fetcher
+                           ('github (format "git@github.com:%s.git" repo))
+                           ('gitlab (format "git@gitlab.com:%s.git" repo))
+                           ('bitbucket
+                            (format "hg::ssh://hg@bitbucket.org/%s" repo))
+                           ('wiki
+                            (format "https://www.emacswiki.org/emacs/download/%s.el"
+                                    name))))
+                     repo
+                     (or (plist-get plist :repopage)
+                         (pcase fetcher
+                           ('github    (format "https://github.com/%s"    repo))
+                           ('gitlab    (format "https://gitlab.com/%s"    repo))
+                           ('bitbucket (format "https://bitbucket.org/%s" repo))))
+                     (plist-get plist :files)
+                     (plist-get plist :branch)
+                     (plist-get plist :commit)
+                     (plist-get plist :module)
+                     (plist-get plist :old-names)
+                     (plist-get plist :version-regexp)))
+            (message "Importing melpa recipe %s...done" name)))))))
+
 (defun emir-import-wiki-packages ()
   (interactive)
   (emir-pull   'epkg-wiki-package)
