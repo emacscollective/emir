@@ -936,6 +936,31 @@ has fixed known outstanding issues."
     (setf (nth 1 elt) t)
     (oset pkg provided val)))
 
+(defun emir-drop-require (package feature)
+  (interactive
+   (let  ((package (epkg-read-package "Package: ")))
+     (list package (intern (completing-read "Drop require: "
+                                            (oref (epkg package) required)
+                                            nil t)))))
+  (let* ((pkg (epkg package))
+         (val (oref pkg required))
+         (elt (assq feature val)))
+    (setf (nth 3 elt) t)
+    (oset pkg required val)))
+
+(defun emir-soften-require (package feature)
+  (interactive
+   (let  ((package (epkg-read-package "Package: ")))
+     (list package (intern (completing-read "Soften require: "
+                                            (oref (epkg package) required)
+                                            nil t)))))
+  (let* ((pkg (epkg package))
+         (val (oref pkg required))
+         (elt (assq feature val)))
+    (setf (nth 1 elt) nil)
+    (setf (nth 2 elt) t)
+    (oset pkg required val)))
+
 ;;; Utilities
 
 (defun emir-describe-package (package)
