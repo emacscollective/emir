@@ -1022,6 +1022,15 @@ has fixed known outstanding issues."
 
 ;;; Utilities
 
+;;;###autoload
+(defun emir-find-org-file (name)
+  (interactive (list (completing-read "Find org file: "
+                                      '("emir" "config" "compare" "issues"))))
+  (find-file-other-frame
+   (if (equal name "emir")
+       "~/.emacs.d/lib/emir/emir.org"
+     (format "~/Repos/pages/emacsmirror.net/stats/%s.org" name))))
+
 (defun emir-describe-package (package)
   "Display the full documentation of PACKAGE.
 Show all slots instead of honoring `epkg-describe-package-slots'."
