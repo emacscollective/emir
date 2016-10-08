@@ -910,6 +910,32 @@ has fixed known outstanding issues."
          (with-epkg-repository class
            (magit-list-refnames "refs/heads/externals"))))
 
+;;; Patch
+
+(defun emir-join-provided (package feature)
+  (interactive
+   (let  ((package (epkg-read-package "Package: ")))
+     (list package (intern (completing-read "Join provide "
+                                            (oref (epkg package) provided)
+                                            nil t)))))
+  (let* ((pkg (epkg package))
+         (val (oref pkg provided))
+         (elt (assq feature val)))
+    (setf (nth 1 elt) t)
+    (oset pkg provided val)))
+
+(defun emir-drop-provided (package feature)
+  (interactive
+   (let  ((package (epkg-read-package "Package: ")))
+     (list package (intern (completing-read "Drop provide "
+                                            (oref (epkg package) provided)
+                                            nil t)))))
+  (let* ((pkg (epkg package))
+         (val (oref pkg provided))
+         (elt (assq feature val)))
+    (setf (nth 1 elt) t)
+    (oset pkg provided val)))
+
 ;;; Utilities
 
 (defun emir-describe-package (package)
