@@ -441,16 +441,19 @@ has fixed known outstanding issues."
   (emir-update-packages 'epkg-git-package--eieio-childp from)
   (emir--commit "update %n git %p"))
 
+;;;###autoload
 (defun emir-update-hg-packages (&optional from)
   (interactive (emir-update-read-args))
   (emir-update-packages 'epkg-hg-package--eieio-childp from)
   (emir--commit "update %n hg %p"))
 
+;;;###autoload
 (defun emir-update-file-packages (&optional from)
   (interactive (emir-update-read-args))
   (emir-update-packages 'epkg-file-package from)
   (emir--commit "update %n file %p"))
 
+;;;###autoload
 (defun emir-update-wiki-packages (&optional from)
   (interactive (emir-update-read-args))
   (if (y-or-n-p "Did you run `emir-import-wiki-packages' before this? ")
@@ -458,6 +461,7 @@ has fixed known outstanding issues."
              (emir--commit "update %n wiki %p"))
     (user-error "Well, then do that now")))
 
+;;;###autoload
 (defun emir-update-elpa-packages (&optional from)
   (interactive (emir-update-read-args))
   (emir-pull   'epkg-elpa-package)
@@ -465,6 +469,7 @@ has fixed known outstanding issues."
   (emir-update-packages 'epkg-elpa-package from)
   (emir--commit "update %n elpa %p"))
 
+;;;###autoload
 (defun emir-update-elpa-branch-packages (&optional from)
   (interactive (emir-update-read-args))
   (emir-pull   'epkg-elpa-branch-package)
