@@ -979,14 +979,14 @@ has fixed known outstanding issues."
 (defun emir-join-provided (package feature)
   (interactive
    (let  ((package (epkg-read-package "Package: ")))
-     (list package (intern (completing-read "Join provide "
-                                            (oref (epkg package) provided)
-                                            nil t)))))
+     (list package (intern (read-string "Join provide: ")))))
   (let* ((pkg (epkg package))
          (val (oref pkg provided))
          (elt (assq feature val)))
-    (setf (nth 1 elt) t)
-    (oset pkg provided val)))
+    (if elt
+        (user-error "%s is already provided" feature)
+      (oset pkg provided
+            (cons (list feature nil t) val)))))
 
 (defun emir-drop-provided (package feature)
   (interactive
