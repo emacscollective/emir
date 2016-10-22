@@ -991,7 +991,7 @@ has fixed known outstanding issues."
 (defun emir-drop-provided (package feature)
   (interactive
    (let  ((package (epkg-read-package "Package: ")))
-     (list package (intern (completing-read "Drop provide "
+     (list package (intern (completing-read "Drop provide: "
                                             (oref (epkg package) provided)
                                             nil t)))))
   (let* ((pkg (epkg package))
