@@ -281,6 +281,7 @@ has fixed known outstanding issues."
 
 ;;;; Add Packages
 
+;;;###autoload
 (defun emir-add-elpa-packages (&optional dry-run)
   (interactive "P")
   (emir-pull 'epkg-elpa-package)
@@ -298,6 +299,7 @@ has fixed known outstanding issues."
   (unless dry-run
     (emir--commit "add %n elpa %p")))
 
+;;;###autoload
 (defun emir-add-elpa-branch-packages (&optional dry-run)
   (interactive "P")
   (emir-pull 'epkg-elpa-package)
@@ -313,6 +315,7 @@ has fixed known outstanding issues."
   (unless dry-run
     (emir--commit "add %n elpa-branch %p")))
 
+;;;###autoload
 (defun emir-add-builtin-packages (&optional dry-run)
   (interactive "P")
   (dolist (name (epkg-sql [:select :distinct name :from builtin-packages
@@ -327,6 +330,7 @@ has fixed known outstanding issues."
           (emir--commit "add %n builtin %p"))
         (message "Adding %s...done" name)))))
 
+;;;###autoload
 (defun emir-add-melpa-packages (&optional dry-run)
   (interactive "P")
   (let ((mirrored (epkgs 'url)))
@@ -355,6 +359,7 @@ has fixed known outstanding issues."
 
 (defvar emir-failed-updates nil)
 
+;;;###autoload
 (defun emir-update-package (package &optional force)
   (interactive (list (epkg-read-package "Update package: ")
                      current-prefix-arg))
@@ -419,6 +424,7 @@ has fixed known outstanding issues."
 
 ;;;; Update Packages
 
+;;;###autoload
 (defun emir-update-packages (&optional predicate from message)
   (interactive (list nil (car (emir-update-read-args)) "update %n %p"))
   (dolist (pkg (epkgs nil (or predicate 'epkg-mirrored-package)))
@@ -482,6 +488,7 @@ has fixed known outstanding issues."
 
 ;;; Recreate
 
+;;;###autoload
 (defun emir-recreate-package (package)
   (interactive (list (epkg-read-package "Recreate package: ")))
   (let ((pkg (epkg package)))
@@ -490,6 +497,7 @@ has fixed known outstanding issues."
         (emir-init pkg t))
       (emir-update pkg))))
 
+;;;###autoload
 (defun emir-recreate-packages (&optional filter from)
   (interactive (cons nil (emir-update-read-args)))
   (dolist (pkg (epkgs nil filter))
@@ -499,6 +507,7 @@ has fixed known outstanding issues."
         (emir-recreate-package name)
         (message "Recreating package %s...done" name)))))
 
+;;;###autoload
 (defun emir-recalculate-features (&optional filter)
   (interactive)
   (let ((pkgs (epkgs nil filter)))
@@ -508,12 +517,14 @@ has fixed known outstanding issues."
         (emir--set-features pkg)
         (message "Recalculating features for %s...done" name)))))
 
+;;;###autoload
 (defun emir-recalculate-builtin-features ()
   (interactive)
   (emir-recalculate-features 'epkg-builtin-package))
 
 ;;; Remove
 
+;;;###autoload
 (defun emir-remove-package (name)
   (interactive (list (epkg-read-package "Remove package: " t)))
   (let ((pkg (epkg name)))
@@ -541,6 +552,7 @@ has fixed known outstanding issues."
 
 ;;; Shelve
 
+;;;###autoload
 (defun emir-shelve-package (name)
   (interactive (list (epkg-read-package "Shelve package: " t)))
   (let ((pkg (epkg name)))
@@ -566,6 +578,7 @@ has fixed known outstanding issues."
 
 ;;; Migrate
 
+;;;###autoload
 (defun emir-migrate-github-package (name url)
   (interactive (list (epkg-read-package "Migrate: ")
                      (emir-read-url "Url")))
@@ -926,6 +939,7 @@ has fixed known outstanding issues."
                      (plist-get plist :version-regexp)))
             (message "Importing melpa recipe %s...done" name)))))))
 
+;;;###autoload
 (defun emir-import-wiki-packages ()
   (interactive)
   (emir-pull   'epkg-wiki-package)
@@ -976,6 +990,7 @@ has fixed known outstanding issues."
 
 ;;; Patch
 
+;;;###autoload
 (defun emir-join-provided (package feature)
   (interactive
    (let  ((package (epkg-read-package "Package: ")))
@@ -988,6 +1003,7 @@ has fixed known outstanding issues."
       (oset pkg provided
             (cons (list feature nil t) val)))))
 
+;;;###autoload
 (defun emir-drop-provided (package feature)
   (interactive
    (let  ((package (epkg-read-package "Package: ")))
@@ -1000,6 +1016,7 @@ has fixed known outstanding issues."
     (setf (nth 1 elt) t)
     (oset pkg provided val)))
 
+;;;###autoload
 (defun emir-drop-require (package feature)
   (interactive
    (let  ((package (epkg-read-package "Package: ")))
@@ -1012,6 +1029,7 @@ has fixed known outstanding issues."
     (setf (nth 3 elt) t)
     (oset pkg required val)))
 
+;;;###autoload
 (defun emir-soften-require (package feature)
   (interactive
    (let  ((package (epkg-read-package "Package: ")))
@@ -1064,6 +1082,7 @@ has fixed known outstanding issues."
        "~/.emacs.d/lib/emir/emir.org"
      (format "~/Repos/pages/emacsmirror.net/stats/%s.org" name))))
 
+;;;###autoload
 (defun emir-describe-package (package)
   "Display the full documentation of PACKAGE.
 Show all slots instead of honoring `epkg-describe-package-slots'."
