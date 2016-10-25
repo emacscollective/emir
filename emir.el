@@ -788,10 +788,12 @@ has fixed known outstanding issues."
     (concat "http://emacswiki.org/" it)))
 
 (defun emir--authors ()
-  (--map (list (car it) (cdr it)) (elx-authors)))
+  (cl-delete-duplicates (--map (list (car it) (cdr it)) (elx-authors))
+                        :test #'equal :key #'car))
 
 (defun emir--maintainers ()
-  (--map (list (car it) (cdr it)) (elx-maintainers)))
+  (cl-delete-duplicates (--map (list (car it) (cdr it)) (elx-maintainers))
+                        :test #'equal :key #'car))
 
 ;;; Features
 
