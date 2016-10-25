@@ -564,9 +564,7 @@ has fixed known outstanding issues."
       (magit-git "mv"
                  (concat "mirror/" name)
                  (concat "attic/" name)))
-    (closql-delete (epkg-db) pkg)
-    (setq pkg (epkg-shelved-package :name name))
-    (emir-init pkg)
+    (closql--set-object-class (epkg-db) pkg 'epkg-shelved-package)
     (with-slots (mirror-url) pkg
       (with-epkg-repository t
         (magit-git "config" "-f" ".gitmodules"
@@ -575,9 +573,23 @@ has fixed known outstanding issues."
       (with-epkg-repository pkg
         (magit-git "remote" "rm" "mirror")
         (magit-git "remote" "add" "attic" mirror-url)))
+    (emir-init    pkg t)
     (emir-update  pkg)
     (emir-gh-init pkg)
     (emir-push    pkg)))
+
+(cl-defmethod closql--set-object-class ((db epkg-database) obj class)
+  (let* ((primary-table (closql--oref-default db 'primary-table))
+         (primary-key   (closql--oref-default db 'primary-key))
+         (object-id (closql--oref obj primary-key)))
+    (aset obj 0 (closql--public-to-class db class))
+    (emacsql db [:update $i1 :set (= class $s2) :where (= $i3 $s4)]
+             primary-table
+             (closql--class-to-sql db class)
+             primary-key object-id)))
+
+(cl-defmethod closql--public-to-class ((_db epkg-database) value)
+  (intern (format "eieio-class-tag--%s" value)))
 
 ;;; Migrate
 
