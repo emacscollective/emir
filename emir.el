@@ -556,7 +556,10 @@ has fixed known outstanding issues."
 (defun emir-shelve-package (name)
   (interactive (list (epkg-read-package "Shelve package: " t)))
   (let ((pkg (epkg name)))
-    (ghub-delete (format "/repos/emacsmirror/%s" (oref pkg mirror-name)))
+    (with-demoted-errors "Error: %S"
+      (ghub-delete (format "/repos/emacsmirror/%s" (oref pkg mirror-name))))
+    (with-epkg-repository pkg
+      (magit-git "reset" "--hard" "HEAD"))
     (with-epkg-repository t
       (magit-git "mv"
                  (concat "mirror/" name)
