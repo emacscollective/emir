@@ -810,16 +810,13 @@ has fixed known outstanding issues."
       (emacsql-with-transaction (epkg-db)
         (let ((drop (emir--lookup-feature 'provided 'drop t name))
               (join (emir--lookup-feature 'provided 'join t name)))
-          (epkg-sql [:delete-from provided :where (= package $s1)] name)
-          (dolist (feature provided)
-            (epkg-sql [:insert-into provided [package feature drop join]
-                       :values $v1]
-              (vector name feature (and (memq feature drop) t) nil)))
-          (dolist (feature (-difference join provided))
-            (push feature provided)
-            (epkg-sql [:insert-into provided [package feature drop join]
-                       :values $v1]
-              (vector name feature nil t))))
+          (oset pkg provided
+                (nconc
+                 (--map (list it (and (memq it drop) t) nil)
+                        provided)
+                 (--map (progn (push it provided)
+                               (list it nil t))
+                        (-difference join provided)))))
         (let ((drop (emir--lookup-feature 'required 'drop t name))
               (ease (emir--lookup-feature 'required 'ease t name)))
           (setq hard (-difference   hard provided))
@@ -828,20 +825,18 @@ has fixed known outstanding issues."
           (setq ease (-intersection ease hard))
           (setq soft (-union        soft ease))
           (setq hard (-difference   hard ease))
-          (epkg-sql [:delete-from required :where (= package $s1)] name)
-          (dolist (feature hard)
-            (epkg-sql [:insert-into required [package feature hard ease drop]
-                       :values $v1]
-              (vector name feature t nil
-                      (or (and (assq feature emir-ignored-dependencies) 'global)
-                          (and (memq feature drop) t)))))
-          (dolist (feature soft)
-            (epkg-sql [:insert-into required [package feature hard ease drop]
-                       :values $v1]
-              (vector name feature nil
-                      (and (memq feature ease) t)
-                      (or (and (assq feature emir-ignored-dependencies) 'global)
-                          (and (memq feature drop) t))))))))))
+          (oset pkg required
+                (nconc
+                 (--map (list it t nil
+                              (or (and (assq it emir-ignored-dependencies) 'global)
+                                  (and (memq it drop) t)))
+                        hard)
+                 (--map (list it nil
+                              (and (memq it ease) t)
+                              (or (and (assq it emir-ignored-dependencies) 'global)
+                                  (and (memq it drop) t)))
+                        soft))))
+        ))))
 
 (defun emir--lookup-feature (table column value name)
   (sort (mapcar #'car (epkg-sql [:select [feature] :from $i1
