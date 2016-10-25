@@ -409,8 +409,8 @@ has fixed known outstanding issues."
             (oset pkg license     (elx-license))
             (oset pkg created     (elx-created))
             (oset pkg updated     (emir--updated pkg))
-            (oset pkg authors     (--map (list (car it) (cdr it)) (elx-authors)))
-            (oset pkg maintainers (--map (list (car it) (cdr it)) (elx-maintainers)))
+            (oset pkg authors     (emir--authors))
+            (oset pkg maintainers (emir--maintainers))
             (oset pkg commentary  (elx-commentary nil t))
             (oset pkg repopage    (emir--repopage pkg))
             (oset pkg homepage    (emir--homepage pkg))
@@ -786,6 +786,12 @@ has fixed known outstanding issues."
                                     (substring name 0 -4)
                                   (concat name "mode")))))))
     (concat "http://emacswiki.org/" it)))
+
+(defun emir--authors ()
+  (--map (list (car it) (cdr it)) (elx-authors)))
+
+(defun emir--maintainers ()
+  (--map (list (car it) (cdr it)) (elx-maintainers)))
 
 ;;; Features
 
