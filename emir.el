@@ -749,7 +749,7 @@ has fixed known outstanding issues."
 
 ;;; Extract
 
-(cl-defmethod emir--updated ((_pkg epkg-mirrored-package))
+(cl-defmethod emir--updated ((_pkg epkg-package))
   (replace-regexp-in-string
    "-" "" (substring (magit-rev-format "%ci" "HEAD") 0 10)))
 
@@ -757,7 +757,7 @@ has fixed known outstanding issues."
   (or (elx-updated)
       (cl-call-next-method)))
 
-(cl-defmethod emir--updated ((_pkg epkg-mocking-package)))
+(cl-defmethod emir--updated ((_pkg epkg-builtin-package)))
 
 (cl-defmethod emir--repopage ((pkg epkg-package))
   (emir--format-url pkg 'repopage-format))
