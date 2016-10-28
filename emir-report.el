@@ -94,7 +94,8 @@
 
 (defmacro emir-with-org-header (header &rest body)
   (declare (indent defun))
-  `(append '((,@header) hline) ,@body))
+  `(--when-let (progn ,@body)
+     (append '((,@header) hline) it)))
 
 ;;; Compare
 ;;;; Summary
