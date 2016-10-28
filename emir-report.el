@@ -238,7 +238,6 @@
                               package))]
           (cond ((assoc package emir-pending-packages)      'pending)
                 ((assoc package emir-ignored-packages)      'ignored)
-                ((string-match-p "theme" package)           'theme)
                 ((eq fetcher 'wiki)                         'wiki)
                 ((memq fetcher '(bzr cvs darcs fossil svn)) 'old-vc)
                 ((assoc package emir-minority-packages)     'minority)

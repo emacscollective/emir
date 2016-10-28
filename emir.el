@@ -343,8 +343,7 @@ has fixed known outstanding issues."
                     (member url mirrored)
                     (assoc name emir-minority-packages)
                     (assoc name emir-pending-packages)
-                    (assoc name emir-ignored-packages)
-                    (string-match "themes?" name))
+                    (assoc name emir-ignored-packages))
           (if branch ; Probably okay, but needs special attention.
               (user-error "Melpa imports %s from branch %s" name branch)
             (message "Adding %s..." name)
