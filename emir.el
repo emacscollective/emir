@@ -1022,7 +1022,7 @@ has fixed known outstanding issues."
     (oset pkg provided val)))
 
 ;;;###autoload
-(defun emir-drop-require (package feature)
+(defun emir-drop-required (package feature)
   (interactive
    (let  ((package (epkg-read-package "Package: ")))
      (list package (intern (completing-read "Drop require: "
@@ -1035,7 +1035,7 @@ has fixed known outstanding issues."
     (oset pkg required val)))
 
 ;;;###autoload
-(defun emir-soften-require (package feature)
+(defun emir-soften-required (package feature)
   (interactive
    (let  ((package (epkg-read-package "Package: ")))
      (list package (intern (completing-read "Soften require: "
