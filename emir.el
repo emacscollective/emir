@@ -74,15 +74,6 @@ These packages should not be imported for a variety of reasons. "
                        (string :tag "Type")
                        (string :tag "Reason"))))
 
-(defcustom emir-minority-packages nil
-  "List of packages that should not be imported.
-These packages should not be imported because their libraries are
-part of repositories that contain much more than just Emacs lisp."
-  :group 'emir
-  :type '(repeat (list (string :tag "Name")
-                       (string :tag "Type")
-                       (string :tag "Reason"))))
-
 (defcustom emir-pending-packages nil
   "List of packages that might eventually be imported.
 These package only will be imported if and when upstream
@@ -266,9 +257,7 @@ has fixed known outstanding issues."
         (epkg-builtin-package (user-error "Package %s is already built-in" name))
         (epkg-shelved-package (user-error "Package %s is already shelved"  name))
         (t                    (user-error "Package %s is already mirrored" name)))
-    (cond ((assoc name emir-minority-packages)
-           (user-error "Package %s is a minority" name))
-          ((assoc name emir-pending-packages)
+    (cond ((assoc name emir-pending-packages)
            (user-error "Package %s is pending" name))
           ((assoc name emir-ignored-packages)
            (user-error "Package %s is a ignored" name))))
@@ -341,7 +330,6 @@ has fixed known outstanding issues."
                     ;; (not url)
                     (memq fetcher '(bzr cvs darcs fossil svn))
                     (member url mirrored)
-                    (assoc name emir-minority-packages)
                     (assoc name emir-pending-packages)
                     (assoc name emir-ignored-packages))
           (if branch ; Probably okay, but needs special attention.

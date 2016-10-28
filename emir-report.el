@@ -240,7 +240,6 @@
                 ((assoc package emir-ignored-packages)      'ignored)
                 ((eq fetcher 'wiki)                         'wiki)
                 ((memq fetcher '(bzr cvs darcs fossil svn)) 'old-vc)
-                ((assoc package emir-minority-packages)     'minority)
                 ((member url urls)                          'partial)
                 (t                                          'new)))))))
 
