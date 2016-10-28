@@ -632,7 +632,7 @@ has fixed known outstanding issues."
       (magit-git "init" (concat "mirror/" name)))
     (emir-pull pkg t)
     (with-epkg-repository t
-      (magit-git "submodule" "add" "--name" name "-b" "master"
+      (magit-git "submodule" "add" "--name" name
                  mirror-url (concat "mirror/" name)))
     (with-epkg-repository pkg
       (magit-git "remote" "add" "mirror" mirror-url)
