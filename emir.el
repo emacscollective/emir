@@ -106,6 +106,13 @@ a different repository."
                        (string :tag "Type")
                        (string :tag "Reason"))))
 
+(defcustom emir-renamed-files nil
+  "Alist of files that have to be renamed after fetching with curl.
+This variable should only be used as a last resort."
+  :group 'emir
+  :type '(repeat (list (string :tag "Name")
+                       (string :tag "Filename"))))
+
 ;;; Repository
 
 (defmacro with-epkg-repository (arg &rest body)
@@ -681,26 +688,29 @@ a different repository."
 
 (cl-defmethod emir-pull ((pkg epkg-file-package) &optional force)
   (with-epkg-repository pkg
-    (let ((magit-process-raise-error t))
-      (magit-call-process "curl" "-O" (oref pkg url)))
-    (when (or (magit-anything-unstaged-p) force)
-      (magit-git "add" ".")
-      (let ((process-environment process-environment)
-            (mainlib (or (oref pkg library)
-                         (ignore-errors
-                           (packed-main-library default-directory
-                                                (oref pkg name) t t)))))
-        (when mainlib
-          (with-temp-buffer
-            (insert-file-contents mainlib)
-            (let ((maintainer (car (elx-maintainers))))
-              (push (concat "GIT_AUTHOR_NAME="  (or (car maintainer) "unknown"))
-                    process-environment)
-              (push (concat "GIT_AUTHOR_EMAIL=" (or (cdr maintainer) "unknown"))
-                    process-environment)))
-          (push "GIT_COMMITTER_NAME=Emacsmirror" process-environment)
-          (push "GIT_COMMITTER_EMAIL=import@emacsmirror.org" process-environment)
-          (magit-git "commit" "-m" "updates"))))))
+    (let ((name (oref pkg name)))
+      (let ((magit-process-raise-error t))
+        (magit-call-process "curl" "-O" (oref pkg url))
+        (--when-let (cadr (assoc name emir-renamed-files))
+          (rename-file it (concat name ".el") t)))
+      (when (or (magit-anything-unstaged-p) force)
+        (magit-git "add" ".")
+        (let ((process-environment process-environment)
+              (mainlib (or (oref pkg library)
+                           (ignore-errors
+                             (packed-main-library
+                              default-directory name t t)))))
+          (when mainlib
+            (with-temp-buffer
+              (insert-file-contents mainlib)
+              (let ((maintainer (car (elx-maintainers))))
+                (push (concat "GIT_AUTHOR_NAME="  (or (car maintainer) "unknown"))
+                      process-environment)
+                (push (concat "GIT_AUTHOR_EMAIL=" (or (cdr maintainer) "unknown"))
+                      process-environment)))
+            (push "GIT_COMMITTER_NAME=Emacsmirror" process-environment)
+            (push "GIT_COMMITTER_EMAIL=import@emacsmirror.org" process-environment)
+            (magit-git "commit" "-m" "updates")))))))
 
 (cl-defmethod emir-pull ((pkg epkg-subtree-package))
   (with-epkg-repository pkg
