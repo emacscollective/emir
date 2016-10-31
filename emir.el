@@ -430,7 +430,7 @@ This variable should only be used as a last resort."
   (dolist (pkg (epkgs nil (or predicate 'epkg-mirrored-package)))
     (with-slots (name) pkg
       (when (or (not from) (string< from name))
-        (if (member name emir-suspended-packages)
+        (if (assoc name emir-suspended-packages)
             (message "Skipping suspended %s" name)
           (condition-case err
               (progn (message "Updating %s..." name)
