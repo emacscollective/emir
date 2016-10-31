@@ -63,7 +63,7 @@
 (defcustom emir-ignored-dependencies nil
   "List of dependencies that are ignored in all packages."
   :group 'emir
-  :type '(repeat (list (string :tag "Name")
+  :type '(repeat (list (symbol :tag "Name")
                        (string :tag "Reason"))))
 
 (defcustom emir-ignored-packages nil
