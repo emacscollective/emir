@@ -1201,9 +1201,19 @@ Show all slots instead of honoring `epkg-describe-package-slots'."
     (replace-regexp-in-string "-" "")
     downcase))
 
+(defmacro emir--with-org-header (header &rest body)
+  (declare (indent defun))
+  `(--when-let (progn ,@body)
+     (append '((,@header) hline) it)))
+
+(defun emir--melpa-get (name select)
+  (let ((val (car (epkg-sql [:select $i1 :from melpa-recipes
+                             :where (= name $s2)]
+                            select name))))
+    (if (vectorp select) val (car val))))
+
 ;;; emir.el ends soon
 (provide 'emir)
-(require 'emir-report)
 ;; Local Variables:
 ;; indent-tabs-mode: nil
 ;; End:
