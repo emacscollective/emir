@@ -83,6 +83,15 @@ has fixed known outstanding issues."
                        (string :tag "Type")
                        (string :tag "Reason"))))
 
+(defcustom emir-secondary-packages nil
+  "List of packages that share a repository with another package.
+In most cases this is detected automatically.  This variable
+should only be used if the Emacsmirror and Melpa import from
+a different repository."
+  :group 'emir
+  :type '(repeat (list (string :tag "Secondary package")
+                       (string :tag "Primary package"))))
+
 (defcustom emir-suspended-packages nil
   "List of packages which are temporarily not being updated."
   :group 'emir
@@ -331,7 +340,8 @@ has fixed known outstanding issues."
                     (memq fetcher '(bzr cvs darcs fossil svn))
                     (member url mirrored)
                     (assoc name emir-pending-packages)
-                    (assoc name emir-ignored-packages))
+                    (assoc name emir-ignored-packages)
+                    (assoc name emir-secondary-packages))
           (if branch ; Probably okay, but needs special attention.
               (user-error "Melpa imports %s from branch %s" name branch)
             (message "Adding %s..." name)
