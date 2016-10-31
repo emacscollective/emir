@@ -68,10 +68,9 @@
 
 (defcustom emir-ignored-packages nil
   "List of packages that should not be imported.
-These packages should not be imported for a variety of reasons. "
+These packages should not be imported for a variety of reasons."
   :group 'emir
   :type '(repeat (list (string :tag "Name")
-                       (string :tag "Type")
                        (string :tag "Reason"))))
 
 (defcustom emir-pending-packages nil
@@ -80,7 +79,6 @@ These package only will be imported if and when upstream
 has fixed known outstanding issues."
   :group 'emir
   :type '(repeat (list (string :tag "Name")
-                       (string :tag "Type")
                        (string :tag "Reason"))))
 
 (defcustom emir-secondary-packages nil
@@ -96,14 +94,12 @@ a different repository."
   "List of packages which are temporarily not being updated."
   :group 'emir
   :type '(repeat (list (string :tag "Name")
-                       (string :tag "Type")
                        (string :tag "Reason"))))
 
 (defcustom emir-preferred-upstreams nil
   "List of packages with multiple potential upstreams."
   :group 'emir
   :type '(repeat (list (string :tag "Name")
-                       (string :tag "Type")
                        (string :tag "Reason"))))
 
 (defcustom emir-renamed-files nil
