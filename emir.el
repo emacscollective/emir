@@ -1151,6 +1151,22 @@ Show all slots instead of honoring `epkg-describe-package-slots'."
            epkg-insert-dependencies
            epkg-insert-reverse-dependencies))))))
 
+
+(declare-function org-publish 'ox-publish)
+(defvar emir-report-src "~/Repos/pages/emacsmirror.net/stats/")
+(defvar emir-report-dst "~/Repos/pages/emacsmirror.net/_site/stats/")
+
+(defun emir-generate-reports ()
+  (interactive)
+  (let ((org-confirm-babel-evaluate nil))
+    (org-publish
+     `("emir"
+       :base-extension       "org"
+       :base-directory       ,emir-report-src
+       :publishing-directory ,emir-report-dst
+       :publishing-function  org-html-publish-to-html)
+     t)))
+
 (defvar emir-url-history nil)
 
 (defun emir-read-url (prompt)
