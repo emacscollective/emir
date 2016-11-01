@@ -417,8 +417,10 @@ This variable should only be used as a last resort."
             (oset pkg wikipage    (emir--wikipage pkg)))
         (unless (or (epkg-shelved-package-p pkg)
                     (equal name "emacs"))
-          (error "Cannot determine main library")))))
-  (emir--set-features pkg))
+          (error "Cannot determine main library"))))
+    (emir--set-features pkg)
+    (--when-let (magit-mode-get-buffer 'magit-process-mode)
+      (kill-buffer it))))
 
 (define-error 'epg-error "GPG error")
 
