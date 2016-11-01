@@ -891,12 +891,15 @@ This variable should only be used as a last resort."
       (magit-git "push" "mirror" (--map (concat ":" it) it)))))
 
 ;;; Import
+;;;; Wiki
 
 ;;;###autoload
 (defun emir-import-wiki-packages ()
   (interactive)
   (emir-pull   'epkg-wiki-package)
   (emir-import 'epkg-wiki-package))
+
+;;;; Melpa
 
 ;;;###autoload
 (defun emir-import-melpa-recipes ()
@@ -956,6 +959,8 @@ This variable should only be used as a last resort."
                      (plist-get plist :old-names)
                      (plist-get plist :version-regexp)))
             (message "Importing melpa recipe %s...done" name)))))))
+
+;;;; Utilities
 
 (cl-defmethod emir-import ((class (subclass epkg-wiki-package)))
   (message "Importing wiki packages...")
@@ -1055,7 +1060,7 @@ This variable should only be used as a last resort."
     (setf (nth 2 elt) t)
     (oset pkg required val)))
 
-;;; Utilities
+;;; Find
 
 ;;;###autoload
 (defun emir-find-file (filename &optional wildcards)
@@ -1093,6 +1098,8 @@ This variable should only be used as a last resort."
    (if (equal name "emir")
        "~/.emacs.d/lib/emir/emir.org"
      (format "~/Repos/pages/emacsmirror.net/stats/%s.org" name))))
+
+;;; Utilities
 
 ;;;###autoload
 (defun emir-describe-package (package)
