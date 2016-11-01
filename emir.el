@@ -66,13 +66,6 @@
   :type '(repeat (list (symbol :tag "Name")
                        (string :tag "Reason"))))
 
-(defcustom emir-ignored-packages nil
-  "List of packages that should not be imported.
-These packages should not be imported for a variety of reasons."
-  :group 'emir
-  :type '(repeat (list (string :tag "Name")
-                       (string :tag "Reason"))))
-
 (defcustom emir-pending-packages nil
   "List of packages that might eventually be imported.
 These package only will be imported if and when upstream
@@ -269,10 +262,8 @@ This variable should only be used as a last resort."
         (epkg-builtin-package (user-error "Package %s is already built-in" name))
         (epkg-shelved-package (user-error "Package %s is already shelved"  name))
         (t                    (user-error "Package %s is already mirrored" name)))
-    (cond ((assoc name emir-pending-packages)
-           (user-error "Package %s is pending" name))
-          ((assoc name emir-ignored-packages)
-           (user-error "Package %s is a ignored" name))))
+    (when (assoc name emir-pending-packages)
+      (user-error "Package %s is pending" name)))
   (--when-let (and url (cadr (assoc url (epkgs [url name]))))
     (user-error "Another package, %s, is already mirrored from %s" it url))
   (let ((repo (expand-file-name (concat ".git/modules/" name) epkg-repository)))
@@ -289,7 +280,6 @@ This variable should only be used as a last resort."
   (dolist (name (emir--list-packages 'epkg-elpa-package))
     (unless (epkg name)
       (--if-let (or (assoc name emir-pending-packages)
-                    (assoc name emir-ignored-packages)
                     (and (string-match "theme" name) (list nil "theme")))
           (message "Skipping %s (%s)...done" name (cadr it))
         (message "Adding %s..." name)
@@ -306,7 +296,7 @@ This variable should only be used as a last resort."
   (emir-pull 'epkg-elpa-package)
   (dolist (name (emir--list-packages 'epkg-elpa-branch-package))
     (unless (epkg name)
-      (--if-let (assoc name emir-ignored-packages)
+      (--if-let (assoc name emir-pending-packages)
           (message "Skipping %s (%s)...done" name (cadr it))
         (message "Adding %s..." name)
         (emir--assert-unknown name nil)
@@ -323,7 +313,7 @@ This variable should only be used as a last resort."
                            :order-by (asc name)]))
     (setq  name (car name))
     (unless (epkg name)
-      (--if-let (assoc name emir-ignored-packages)
+      (--if-let (assoc name emir-pending-packages)
           (message "Skipping %s (%s)...done" name (cadr it))
         (message "Adding %s..." name)
         (unless dry-run
@@ -343,7 +333,6 @@ This variable should only be used as a last resort."
                     (memq fetcher '(bzr cvs darcs fossil svn))
                     (member url mirrored)
                     (assoc name emir-pending-packages)
-                    (assoc name emir-ignored-packages)
                     (assoc name emir-secondary-packages))
           (if branch ; Probably okay, but needs special attention.
               (user-error "Melpa imports %s from branch %s" name branch)
