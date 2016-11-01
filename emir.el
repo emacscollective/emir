@@ -893,6 +893,12 @@ This variable should only be used as a last resort."
 ;;; Import
 
 ;;;###autoload
+(defun emir-import-wiki-packages ()
+  (interactive)
+  (emir-pull   'epkg-wiki-package)
+  (emir-import 'epkg-wiki-package))
+
+;;;###autoload
 (defun emir-import-melpa-recipes ()
   (interactive)
   (let ((default-directory (expand-file-name "import/melpa/" epkg-repository)))
@@ -950,12 +956,6 @@ This variable should only be used as a last resort."
                      (plist-get plist :old-names)
                      (plist-get plist :version-regexp)))
             (message "Importing melpa recipe %s...done" name)))))))
-
-;;;###autoload
-(defun emir-import-wiki-packages ()
-  (interactive)
-  (emir-pull   'epkg-wiki-package)
-  (emir-import 'epkg-wiki-package))
 
 (cl-defmethod emir-import ((class (subclass epkg-wiki-package)))
   (message "Importing wiki packages...")
