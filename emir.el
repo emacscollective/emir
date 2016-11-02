@@ -246,8 +246,9 @@ This variable should only be used as a last resort."
                            (?u . upstream-user))))
               slots)
         (replace-match "\\([^/]+\\)" t t))
-      (when (string-match (concat "^" (buffer-string) (unless lax "$")) url)
-        (nreverse slots)))))
+      ;; The side-effect and the return value.
+      (and (string-match (concat "^" (buffer-string) (unless lax "$")) url)
+           (nreverse slots)))))
 
 (defun emir--url-to-class (url)
   (--first (ignore-errors (emir--match-url (oref-default it url-format) url))
@@ -283,7 +284,7 @@ This variable should only be used as a last resort."
   (dolist (name (emir--list-packages 'epkg-elpa-package))
     (unless (epkg name)
       (--if-let (or (assoc name emir-pending-packages)
-                    (and (string-match "theme" name) (list nil "theme")))
+                    (and (string-match-p "theme" name) (list nil "theme")))
           (message "Skipping %s (%s)...done" name (cadr it))
         (message "Adding %s..." name)
         (emir--assert-unknown name nil)
@@ -779,7 +780,7 @@ This variable should only be used as a last resort."
                                          :where (= normalized $s1)] name))
                         (caar (epkg-sql [:select [page] :from raw-wikipages
                                          :where (= normalized $s1)]
-                                (if (string-match "mode$" name)
+                                (if (string-match-p "mode$" name)
                                     (substring name 0 -4)
                                   (concat name "mode")))))))
     (concat "http://emacswiki.org/" it)))
