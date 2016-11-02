@@ -489,58 +489,6 @@
           (epkg-sql [:insert-into raw-wikipages :values $v1]
                     (vector page (emir--normalize-wikipage page)))))))
 #+END_SRC
-* recreate ~builtin-packages~ table
-#+BEGIN_SRC emacs-lisp :results silent
-  (require 'finder)
-  (let ((default-directory emir-emacs-repository))
-    (emacsql-with-transaction (epkg-db)
-      (epkg-sql [:drop-table-if-exists builtin-packages])
-      (epkg-sql [:create-table builtin-packages $S1]
-                '([name library feature]))
-      (dolist (file (magit-git-items "ls-tree" "-z" "-r" "--name-only"
-                                     "HEAD" "lisp/"))
-        (when (and (string-match-p "\\.el$" file)
-                   (not (string-equal file "lisp/gnus/.dir-locals.el"))
-                   (not (string-match-p finder-no-scan-regexp file))
-                   (not (member file
-                                '(;; Old versions:
-                                  "lisp/obsolete/old-emacs-lock.el"
-                                  "lisp/obsolete/old-whitespace.el"
-                                  "lisp/obsolete/otodo-mode.el"
-                                  ;; Moved to GNU Elpa:
-                                  "lisp/obsolete/crisp.el"
-                                  "lisp/obsolete/landmark.el"))))
-          (magit-with-blob "HEAD" file
-            (with-syntax-table emacs-lisp-mode-syntax-table
-              (let ((features (packed-provided)))
-                (epkg-sql
-                 [:insert-into builtin-packages :values $v1]
-                 (vector (cond ((not features) "emacs")
-                               ((string-prefix-p "lisp/term/"     file) "emacs")
-                               ((string-prefix-p "lisp/leim/"     file) "emacs")
-                               ((string-prefix-p "lisp/obsolete/" file) "emacs")
-                               ((lm-header "Package"))
-                               ((--when-let (assoc (-> file
-                                                       file-name-directory
-                                                       directory-file-name
-                                                       file-name-nondirectory)
-                                                   finder--builtins-alist)
-                                  (symbol-name (cdr it))))
-                               ((-> file
-                                    file-name-nondirectory
-                                    file-name-sans-extension)))
-                         file
-                         (if (> (length features) 1)
-                             features
-                           (car features)))))))))))
-  ;; (nconc
-  ;;  (list (list "Name" "Library" "Feature(s)") 'hline)
-  ;;  (-map (-lambda ((name library feature))
-  ;;          (list name library (or feature "")))
-  ;;        (epkg-sql [:select * :from builtin-packages
-  ;;                   :order-by [(asc name) (asc library)]])))
-#+END_SRC
-
 * set variable ~epkg-db-version~
 #+BEGIN_SRC emacs-lisp :results silent
   (setq epkg-db-version 1)

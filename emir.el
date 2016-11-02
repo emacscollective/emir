@@ -37,6 +37,7 @@
 (require 'elx)
 (require 'emacsql-sqlite)
 (require 'epkg)
+(require 'finder)
 (require 'ghub)
 (require 'magit)
 (require 'org)
@@ -900,6 +901,64 @@ This variable should only be used as a last resort."
   (interactive)
   (emir-pull   'epkg-wiki-package)
   (emir-import 'epkg-wiki-package))
+
+;;;; Emacs
+
+;;;###autoload
+(defun emir-import-builtin-libraries ()
+  (interactive)
+  (message "Importing builtin libraries...")
+  (let ((recipes (make-hash-table :test #'equal :size 500)))
+    (dolist (file (emir--list-builtin-libraries))
+      (message "Importing %s..." file)
+      (pcase-dolist (`(,epkg-name . ,recipe)
+                     (emir-emacs--libraries file))
+        (push recipe (gethash epkg-name recipes)))
+      (message "Importing %s...done" file))
+    (message "Importing builtin libraries...")
+    (emir--insert-recipes 'builtin-libraries recipes)
+    (message "Importing builtin libraries...done")))
+
+(defun emir-emacs--libraries (file)
+  (with-temp-buffer
+    (insert-file-contents (expand-file-name file emir-emacs-repository))
+    (let* ((features (packed-provided))
+           (name (cond ((not features) "emacs")
+                       ((string-prefix-p "lisp/term/"     file) "emacs")
+                       ((string-prefix-p "lisp/leim/"     file) "emacs")
+                       ((string-prefix-p "lisp/obsolete/" file) "emacs")
+                       ((lm-header "Package"))
+                       ((--when-let (assoc (-> file
+                                               file-name-directory
+                                               directory-file-name
+                                               file-name-nondirectory)
+                                           finder--builtins-alist)
+                          (symbol-name (cdr it))))
+                       ((-> file
+                            file-name-nondirectory
+                            file-name-sans-extension))))
+           (epkg (epkg name)))
+      (mapcar (lambda (feature)
+                (list (if epkg name emir--dummy-package)
+                      file feature name))
+             (or features (list nil))))))
+
+(defun emir--list-builtin-libraries ()
+  (let ((default-directory emir-emacs-repository))
+    (-filter (lambda (file)
+               (and (string-match-p "\\.el$" file)
+                    (not (string-match-p finder-no-scan-regexp file))
+                    (not (member file
+                                 '("lisp/gnus/.dir-locals.el"
+                                   ;; Old versions:
+                                   "lisp/obsolete/old-emacs-lock.el"
+                                   "lisp/obsolete/old-whitespace.el"
+                                   "lisp/obsolete/otodo-mode.el"
+                                   ;; Moved to GNU Elpa:
+                                   "lisp/obsolete/crisp.el"
+                                   "lisp/obsolete/landmark.el")))))
+             (magit-git-items "ls-tree" "-z" "-r" "--name-only"
+                              "HEAD" "lisp/"))))
 
 ;;;; Melpa
 
