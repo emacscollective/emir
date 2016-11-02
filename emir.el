@@ -978,12 +978,12 @@ This variable should only be used as a last resort."
                    t "^[^.]"))
       (-let [(epkg-name . recipe)
              (emir-melpa--recipe file)]
-        (message "Importing %s..." name)
+        (message "Importing %s..." epkg-name)
         (push recipe (gethash epkg-name recipes))
-        (message "Importing %s...done" name)))
-    (message "Importing Melpa recipes..."))
+        (message "Importing %s...done" epkg-name)))
+    (message "Importing Melpa recipes...")
     (emir--insert-recipes 'melpa-recipes recipes)
-    (message "Importing Melpa recipes...done"))
+    (message "Importing Melpa recipes...done")))
 
 (defun emir-melpa--recipe (file)
   (-let* (((name . plist)
