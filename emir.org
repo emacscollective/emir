@@ -584,18 +584,6 @@
   ;;        (epkg-sql [:select * :from gelpa-packages :order-by (asc name)])))
 #+END_SRC
 
-* recreate ~melpa-recipes~ table
-#+BEGIN_SRC emacs-lisp :results silent
-  (emir-import-melpa-recipes)
-  ;; (nconc
-  ;;  (list (list "Name" "Mirror" "Melpa") 'hline)
-  ;;  (-map (-lambda ((name type))
-  ;;          (list name
-  ;;             (--when-let (epkg name) (epkg-type it))
-  ;;                type))
-  ;;        (epkg-sql [:select [name fetcher] :from melpa-recipes :order-by (asc name)])))
-#+END_SRC
-
 * set variable ~epkg-db-version~
 #+BEGIN_SRC emacs-lisp :results silent
   (setq epkg-db-version 1)

@@ -45,6 +45,8 @@
 (defvar finder-no-scan-regexp)
 (defvar finder--builtins-alist)
 
+(defconst emir--dummy-package "emir--dummy-package")
+
 (cl-pushnew (expand-file-name
              "bin" (file-name-directory (or load-file-name buffer-file-name)))
             exec-path :test #'equal)
@@ -904,63 +906,85 @@ This variable should only be used as a last resort."
 ;;;###autoload
 (defun emir-import-melpa-recipes ()
   (interactive)
-  (let ((default-directory (expand-file-name "import/melpa/" epkg-repository)))
-    (magit-git "checkout" "master")
-    (magit-git "clean" "-fdx" "recipes")
-    (magit-git "pull" "--ff-only" "origin")
-    (emacsql-with-transaction (epkg-db)
-      (epkg-sql [:drop-table-if-exists melpa-recipes])
-      (epkg-sql [:create-table melpa-recipes $S1]
-                '([(fetcher :not-null)
-                   (name    :not-null)
-                   (url     :not-null)
-                   repo
-                   repopage
-                   files
-                   branch
-                   commit
-                   module
-                   old-names
-                   version-regexp]
-                  (:primary-key [name url])))
-      (dolist (file (directory-files
-                     (expand-file-name "recipes/" default-directory)
-                     t "^[^.]"))
-        (when (file-regular-p file)
-          (-let* (((name . plist)
-                   (with-temp-buffer
-                     (insert-file-contents file)
-                     (read (current-buffer))))
-                  (fetcher (plist-get plist :fetcher))
-                  (repo    (plist-get plist :repo)))
-            (message "Importing melpa recipe %s..." name)
-            (epkg-sql
-             [:insert-into melpa-recipes :values $v1]
-             (vector fetcher (symbol-name name)
-                     (or (plist-get plist :url)
-                         (pcase fetcher
-                           ('github (format "git@github.com:%s.git" repo))
-                           ('gitlab (format "git@gitlab.com:%s.git" repo))
-                           ('bitbucket
-                            (format "hg::ssh://hg@bitbucket.org/%s" repo))
-                           ('wiki
-                            (format "https://www.emacswiki.org/emacs/download/%s.el"
-                                    name))))
-                     repo
-                     (or (plist-get plist :repopage)
-                         (pcase fetcher
-                           ('github    (format "https://github.com/%s"    repo))
-                           ('gitlab    (format "https://gitlab.com/%s"    repo))
-                           ('bitbucket (format "https://bitbucket.org/%s" repo))))
-                     (plist-get plist :files)
-                     (plist-get plist :branch)
-                     (plist-get plist :commit)
-                     (plist-get plist :module)
-                     (plist-get plist :old-names)
-                     (plist-get plist :version-regexp)))
-            (message "Importing melpa recipe %s...done" name)))))))
+  (message "Fetching Melpa recipes...")
+  (magit-git "checkout" "master")
+  (magit-git "clean" "-fdx" "recipes")
+  (magit-git "pull" "--ff-only" "origin")
+  (message "Fetching Melpa recipes...done")
+  (message "Importing Melpa recipes...")
+  (let ((default-directory (expand-file-name "import/melpa/" epkg-repository))
+        (recipes (make-hash-table :test #'equal :size 6000)))
+    (dolist (file (directory-files
+                   (expand-file-name "recipes/" default-directory)
+                   t "^[^.]"))
+      (-let [(epkg-name . recipe)
+             (emir-melpa--recipe file)]
+        (message "Importing %s..." name)
+        (push recipe (gethash epkg-name recipes))
+        (message "Importing %s...done" name)))
+    (message "Importing Melpa recipes..."))
+    (emir--insert-recipes 'melpa-recipes recipes)
+    (message "Importing Melpa recipes...done"))
+
+(defun emir-melpa--recipe (file)
+  (-let* (((name . plist)
+           (with-temp-buffer
+             (insert-file-contents file)
+             (read (current-buffer))))
+          (name (symbol-name name))
+          (repo (plist-get plist :repo)))
+    (pcase (plist-get plist :fetcher)
+      ('github
+       (plist-put plist :url      (format "git@github.com:%s.git" repo))
+       (plist-put plist :repopage (format "https://github.com/%s" repo)))
+      ('gitlab
+       (plist-put plist :url      (format "git@gitlab.com:%s.git" repo))
+       (plist-put plist :repopage (format "https://gitlab.com/%s" repo)))
+      ('bitbucket
+       (plist-put plist :url      (format "hg::ssh://hg@bitbucket.org/%s" repo))
+       (plist-put plist :repopage (format "https://bitbucket.org/%s" repo)))
+      ('wiki
+       (plist-put plist :repopage
+                  (format "https://www.emacswiki.org/emacs/download/%s.el"
+                          name))))
+    (plist-put plist :name name)
+    (plist-put plist :closql-id emir--dummy-package)
+    (cond ((epkg name)
+           (plist-put plist :closql-id name))
+          ((assoc name emir-pending-packages)
+           (plist-put plist :status 'pending))
+          (t (--if-let (or (emir--lookup-url (plist-get plist :url))
+                           (cadr (assoc name emir-secondary-packages)))
+                 (progn (plist-put plist :closql-id it)
+                        (plist-put plist :status 'partial))
+               (plist-put plist :status 'new))))
+    (mapcar (lambda (row)
+              (plist-get plist (intern (format ":%s" row))))
+            (cl-coerce (closql--slot-get 'epkg-package 'melpa-recipes :columns)
+                       'list))))
 
 ;;;; Utilities
+
+(defun emir--insert-recipes (slot recipes)
+  (let ((dummy-epkg (epkg-orphaned-package :name emir--dummy-package))
+        (db (epkg-db)))
+    (emacsql-with-transaction db
+      (closql-insert db dummy-epkg)
+      (epkg-sql [:update melpa-recipes
+                 :set    (= closql-id $s1)
+                 :where  (isnull closql-id)]
+                emir--dummy-package nil)
+      (maphash (lambda (key val)
+                 (eieio-oset (epkg key) slot val))
+               recipes)
+      (epkg-sql [:update melpa-recipes
+                 :set    (= closql-id $s1)
+                 :where  (= closql-id $s2)]
+                nil emir--dummy-package)
+      (closql-delete db dummy-epkg))))
+
+(defun emir--lookup-url (url)
+  (caar (epkg-sql [:select [name] :from packages :where (= url $s1)] url)))
 
 (cl-defmethod emir-import ((class (subclass epkg-wiki-package)))
   (message "Importing wiki packages...")
