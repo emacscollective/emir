@@ -345,6 +345,7 @@ This variable should only be used as a last resort."
               (emir-add-package name url
                                 (intern (format "epkg-%s-package" fetcher))))
             (message "Adding %s...done" name))))
+    (emir-import-melpa-recipes)
     (emir--commit "add %n %p")))
 
 ;;; Update
@@ -964,13 +965,14 @@ This variable should only be used as a last resort."
 ;;;; Melpa
 
 ;;;###autoload
-(defun emir-import-melpa-recipes ()
-  (interactive)
-  (message "Fetching Melpa recipes...")
-  (magit-git "checkout" "master")
-  (magit-git "clean" "-fdx" "recipes")
-  (magit-git "pull" "--ff-only" "origin")
-  (message "Fetching Melpa recipes...done")
+(defun emir-import-melpa-recipes (&optional fetch)
+  (interactive (list t))
+  (when fetch
+    (message "Fetching Melpa recipes...")
+    (magit-git "checkout" "master")
+    (magit-git "clean" "-fdx" "recipes")
+    (magit-git "pull" "--ff-only" "origin")
+    (message "Fetching Melpa recipes...done"))
   (message "Importing Melpa recipes...")
   (let ((default-directory (expand-file-name "import/melpa/" epkg-repository))
         (recipes (make-hash-table :test #'equal :size 6000)))
