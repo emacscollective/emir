@@ -963,6 +963,80 @@ This variable should only be used as a last resort."
             (cl-coerce (closql--slot-get 'epkg-package 'melpa-recipes :columns)
                        'list))))
 
+;;;; Gelpa
+
+;;;###autoload
+(defun emir-import-gelpa-recipes ()
+  (interactive)
+  (message "Fetching Gelpa recipes...")
+  (emir-pull 'epkg-elpa-package)
+  (message "Fetching Felpa recipes...done")
+  (message "Importing Gelpa recipes...")
+  (let ((default-directory (epkg-repository 'epkg-elpa-package))
+	(recipes (make-hash-table :test #'equal :size 300)))
+    (push (list "org" :core nil nil t "git://orgmode.org/org-mode.git")
+          (gethash "org" recipes))
+    (pcase-dolist (`(,name ,type ,url) (emir-gelpa--externals))
+      (message "Importing %s..." name)
+      (push (emir-gelpa--recipe name type url)
+            (gethash (and (epkg name) name) recipes))
+      (message "Importing %s...done" name))
+    (dolist (dir (directory-files "packages/" t "^[^.]"))
+      (when (file-directory-p dir)
+	(let* ((name (file-name-nondirectory dir))
+               (epkg (epkg name)))
+	  (unless (gethash name recipes)
+            (message "Importing %s..." name)
+            (push (emir-gelpa--recipe name)
+                  (gethash (and epkg name) recipes))
+                    (message "Importing %s...done" name)))))
+    (message "Importing Gelpa recipes...")
+    (emir--insert-recipes 'gelpa-recipes recipes)
+    (message "Importing Gelpa recipes...done")))
+
+(defun emir-gelpa--recipe (name &optional type url)
+  (list name
+        (cond (type)
+              ((cadr (assoc name (emir-gelpa--externals))))
+              ((member name (emir--list-packages 'epkg-elpa-branch-package))
+               :external!)
+              ((member name (emir--list-packages 'epkg-elpa-package))
+               :subtree!))
+        (cond ((epkg name) nil)
+              ((assoc name emir-pending-packages) 'pending)
+              (t 'new))
+        (cond ((member name (emir--list-packages 'epkg-elpa-branch-package))
+               nil)
+              ((with-epkg-repository 'epkg-elpa-package
+                 (--any-p (string-match-p "^[^ ]+ Merge commit" it)
+                          (magit-git-lines "log" "--oneline" "--"
+                                           (concat "packages/" name))))
+               :squash)
+              ((member name '("loccur" "undo-tree"))
+               :squash!)
+              (t
+               :merge))
+        (let ((file (expand-file-name (format "packages/%s/%s.el" name name)
+                                      (epkg-repository 'epkg-elpa-package))))
+          (if (not (file-exists-p file))
+              t ; assume all externals are released
+            (not (equal (with-temp-buffer
+                          (insert-file-contents file)
+                          (goto-char (point-min))
+                          (or (lm-header "package-version")
+                              (lm-header "version")))
+                        "0"))))
+        (or url
+            (--when-let (epkg name)
+              (oref it url)))))
+
+(defun emir-gelpa--externals ()
+  (with-temp-buffer
+    (insert-file-contents
+     (expand-file-name "externals-list"
+                       (epkg-repository 'epkg-elpa-package)))
+    (read (current-buffer))))
+
 ;;;; Utilities
 
 (defun emir--insert-recipes (slot recipes)

@@ -541,49 +541,6 @@
   ;;                   :order-by [(asc name) (asc library)]])))
 #+END_SRC
 
-* recreate ~gelpa-packages~ table
-#+BEGIN_SRC emacs-lisp :results silent
-  (with-epkg-repository 'epkg-elpa-package
-    (emacsql-with-transaction (epkg-db)
-      (epkg-sql [:drop-table-if-exists gelpa-packages])
-      (epkg-sql [:create-table gelpa-packages $S1]
-                '([name type unreleased url]))
-      (epkg-sql [:insert-into gelpa-packages
-                 :values ["org" :core nil nil]])
-      (with-temp-buffer
-        (insert-file-contents
-         (expand-file-name "externals-list"
-                           (epkg-repository 'epkg-elpa-package)))
-        (pcase-dolist (`(,name ,type ,url) (read (current-buffer)))
-          (epkg-sql [:insert-into gelpa-packages :values $v1]
-                    (vector name type nil url))))
-      (dolist (dir (directory-files "packages/" t "^[^.]"))
-        (when (file-directory-p dir)
-          (let ((name (file-name-nondirectory dir)))
-            (unless (epkg-sql [:select * :from gelpa-packages :where (= name $s1)]
-                              name)
-              (epkg-sql
-               [:insert-into gelpa-packages :values $v1]
-               (vector name :dir
-                       (equal (with-temp-buffer
-                                (insert-file-contents
-                                 (expand-file-name (concat name ".el") dir))
-                                (goto-char (point-min))
-                                (or (lm-header "package-version")
-                                    (lm-header "version")))
-                              "0")
-                       nil))))))))
-  ;; (nconc
-  ;;  (list (list "Name" "Mirror" "Gelpa" "U" "Url") 'hline)
-  ;;  (-map (-lambda ((name type unreleased url))
-  ;;          (list name
-  ;;                (--when-let (epkg name) (epkg-type it))
-  ;;                type
-  ;;                (or unreleased "")
-  ;;                (or url "")))
-  ;;        (epkg-sql [:select * :from gelpa-packages :order-by (asc name)])))
-#+END_SRC
-
 * set variable ~epkg-db-version~
 #+BEGIN_SRC emacs-lisp :results silent
   (setq epkg-db-version 1)
