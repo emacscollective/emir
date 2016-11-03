@@ -205,12 +205,11 @@ This variable should only be used as a last resort."
       (setf url (emir--format-url pkg 'url-format)))
     (when (or (not mirror-name) (string-match-p "\\+" mirror-name))
       (setf mirror-name (replace-regexp-in-string "\\+" "-plus" name)))
-    (unless mirror-url
-      (setf mirror-url (emir--format-url pkg 'mirror-url-format)))
     (unless upstream-name
       (setf upstream-name name))
     (when (epkg-orphaned-package-p pkg)
       (setf upstream-user "emacsorphanage"))
+    (setf mirror-url (emir--format-url pkg 'mirror-url-format))
     (setf mirrorpage (format "https://github.com/%s/%s"
                              (if (epkg-shelved-package-p pkg)
                                  "emacsattic"
@@ -562,6 +561,7 @@ This variable should only be used as a last resort."
                  (concat "mirror/" name)
                  (concat "attic/" name)))
     (closql--set-object-class (epkg-db) pkg 'epkg-shelved-package)
+    (emir-init pkg t)
     (with-slots (mirror-url) pkg
       (with-epkg-repository t
         (magit-git "config" "-f" ".gitmodules"
@@ -570,7 +570,6 @@ This variable should only be used as a last resort."
       (with-epkg-repository pkg
         (magit-git "remote" "rm" "mirror")
         (magit-git "remote" "add" "attic" mirror-url)))
-    (emir-init    pkg t)
     (emir-update  pkg)
     (emir-gh-init pkg)
     (emir-push    pkg)))
