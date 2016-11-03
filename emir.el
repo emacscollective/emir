@@ -331,7 +331,8 @@ This variable should only be used as a last resort."
   (let ((mirrored (epkgs 'url)))
     (pcase-dolist (`(,name ,fetcher ,url ,branch)
                    (epkg-sql [:select [name fetcher url branch]
-                              :from melpa-recipes]))
+                              :from melpa-recipes
+                              :order-by [(asc name)]]))
         (unless (or (epkg name)
                     ;; (not url)
                     (memq fetcher '(bzr cvs darcs fossil svn))
