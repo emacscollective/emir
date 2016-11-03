@@ -662,9 +662,7 @@ This variable should only be used as a last resort."
       (magit-git "config" "--remove-section" "branch.master")
       (magit-git "branch" "--set-upstream-to=import/master"))))
 
-(cl-defmethod emir-clone ((pkg epkg-file-package))    (emir--clone-mirror pkg))
-(cl-defmethod emir-clone ((pkg epkg-mocking-package)) (emir--clone-mirror pkg))
-(defun emir--clone-mirror (pkg)
+(cl-defmethod emir-clone ((pkg epkg-mocking-package))
   (with-slots (name mirror-url) pkg
     (let ((archive (if (epkg-shelved-package-p pkg) "attic" "mirror")))
       (with-epkg-repository t
