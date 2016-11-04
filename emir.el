@@ -1103,6 +1103,10 @@ This variable should only be used as a last resort."
   (let ((dummy-epkg (epkg-orphaned-package :name emir--dummy-package))
         (db (epkg-db)))
     (emacsql-with-transaction db
+      (unless (gethash emir--dummy-package recipes)
+        (epkg-sql [:delete-from $i1
+                   :where (isnull closql-id)]
+                  slot))
       (closql-insert db dummy-epkg)
       (epkg-sql [:update $i1
                  :set    (= closql-id $s2)
