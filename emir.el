@@ -964,7 +964,7 @@ This variable should only be used as a last resort."
 
 ;;;###autoload
 (defun emir-import-melpa-recipes (&optional fetch)
-  (interactive (list t))
+  (interactive (list (not current-prefix-arg)))
   (when fetch
     (message "Fetching Melpa recipes...")
     (magit-git "checkout" "master")
