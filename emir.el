@@ -1104,17 +1104,17 @@ This variable should only be used as a last resort."
         (db (epkg-db)))
     (emacsql-with-transaction db
       (closql-insert db dummy-epkg)
-      (epkg-sql [:update melpa-recipes
-                 :set    (= closql-id $s1)
+      (epkg-sql [:update $i1
+                 :set    (= closql-id $s2)
                  :where  (isnull closql-id)]
-                emir--dummy-package nil)
+                slot emir--dummy-package nil)
       (maphash (lambda (key val)
                  (eieio-oset (epkg key) slot val))
                recipes)
-      (epkg-sql [:update melpa-recipes
-                 :set    (= closql-id $s1)
-                 :where  (= closql-id $s2)]
-                nil emir--dummy-package)
+      (epkg-sql [:update $i1
+                 :set    (= closql-id $s2)
+                 :where  (= closql-id $s3)]
+                slot nil emir--dummy-package)
       (closql-delete db dummy-epkg))))
 
 (defun emir--lookup-url (url)
