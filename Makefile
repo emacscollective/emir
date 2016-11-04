@@ -1,21 +1,19 @@
-ELS  = emir.el
-ELS += emir-report.el
+ELS   = emir.el
 
-DEPS  = ape
+DEPS  = borg
+DEPS += closql
 DEPS += dash
 DEPS += elx
 DEPS += epkg
 DEPS += emacsql
 DEPS += finalize
 DEPS += ghub
-DEPS += magit
-DEPS += melpa-db
+DEPS += magit/lisp
 DEPS += packed
-DEPS += request
 DEPS += with-editor
 
 ELCS    = $(ELS:.el=.elc)
-DFLAGS  = $(addprefix -L ../,$(DEPS)) -L ../epkg/lisp -L ../magit/lisp
+DFLAGS  = $(addprefix -L ../,$(DEPS))
 EFLAGS ?= $(DFLAGS)
 EMACS  ?= emacs
 BATCH   = $(EMACS) -batch -Q -L . $(EFLAGS)
