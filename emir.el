@@ -45,6 +45,7 @@
 
 (defvar finder-no-scan-regexp)
 (defvar finder--builtins-alist)
+(declare-function org-publish 'ox-publish)
 
 (defconst emir--dummy-package "emir--dummy-package")
 
@@ -60,6 +61,11 @@
 
 (defcustom emir-emacs-repository nil
   "The Emacs repository used to extract builtin packages."
+  :group 'emir
+  :type '(choice directory (const nil)))
+
+(defcustom emir-reports-directory nil
+  "The directories where reports are stored."
   :group 'emir
   :type '(choice directory (const nil)))
 
@@ -1259,7 +1265,7 @@ This variable should only be used as a last resort."
   (find-file-other-frame
    (if (equal name "emir")
        "~/.emacs.d/lib/emir/emir.org"
-     (format "~/Repos/pages/emacsmirror.net/stats/%s.org" name))))
+     (expand-file-name (concat name ".org") emir-reports-directory))))
 
 ;;; Utilities
 
@@ -1307,20 +1313,14 @@ Show all slots instead of honoring `epkg-describe-package-slots'."
            epkg-insert-dependencies
            epkg-insert-reverse-dependencies))))))
 
-
-(declare-function org-publish 'ox-publish)
-(defvar emir-report-src "~/Repos/pages/emacsmirror.net/stats/")
-(defvar emir-report-dst "~/Repos/pages/emacsmirror.net/_site/stats/")
-
 (defun emir-generate-reports ()
   (interactive)
   (let ((org-confirm-babel-evaluate nil))
     (org-publish
      `("emir"
-       :base-extension       "org"
-       :base-directory       ,emir-report-src
-       :publishing-directory ,emir-report-dst
-       :publishing-function  org-html-publish-to-html)
+       :base-extension      "org"
+       :base-directory      ,emir-reports-directory
+       :publishing-function org-html-publish-to-html)
      t)))
 
 (defvar emir-url-history nil)
