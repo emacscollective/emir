@@ -464,10 +464,10 @@ This variable should only be used as a last resort."
 ;;;###autoload
 (defun emir-update-wiki-packages (&optional from)
   (interactive (emir-update-read-args))
-  (if (y-or-n-p "Did you run `emir-import-wiki-packages' before this? ")
-      (progn (emir-update-packages 'epkg-wiki-package from)
-             (emir--commit "update %n wiki %p"))
-    (user-error "Well, then do that now")))
+  (when (y-or-n-p "Import packages first? ")
+    (emir-import-wiki-packages))
+  (emir-update-packages 'epkg-wiki-package from)
+  (emir--commit "update %n wiki %p"))
 
 ;;;###autoload
 (defun emir-update-elpa-packages (&optional from)
