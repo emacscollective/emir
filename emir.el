@@ -427,9 +427,11 @@ This variable should only be used as a last resort."
 ;;;; Update Packages
 
 ;;;###autoload
-(defun emir-update-packages (&optional predicate from message)
+(defun emir-update-packages (&optional predicate from message packages)
   (interactive (list nil (car (emir-update-read-args)) "update %n %p"))
-  (dolist (pkg (epkgs nil (or predicate 'epkg-mirrored-package)))
+  (dolist (pkg (if packages
+                   (mapcar #'epkg packages)
+                 (epkgs nil (or predicate 'epkg-mirrored-package))))
     (with-slots (name) pkg
       (when (or (not from) (string< from name))
         (if (assoc name emir-suspended-packages)
@@ -467,6 +469,22 @@ This variable should only be used as a last resort."
   (when (y-or-n-p "Import packages first? ")
     (emir-import-wiki-packages))
   (emir-update-packages 'epkg-wiki-package from)
+  (emir--commit "update %n wiki %p"))
+
+;;;###autoload
+(defun emir-update-drew-packages (&optional from)
+  (interactive (emir-update-read-args))
+  (let ((packages
+         (mapcar #'car
+                 (epkg-sql [:select :distinct [packages:name]
+                            :from [packages authors]
+                            :where (and (= packages:name authors:package)
+                                        (= packages:class 'wiki)
+                                        (= authors:name "Drew Adams"))]))))
+    (when (y-or-n-p "Import packages first? ")
+      (emir-pull   'epkg-wiki-package)
+      (emir-import 'epkg-wiki-package packages))
+    (emir-update-packages 'epkg-wiki-package from nil packages))
   (emir--commit "update %n wiki %p"))
 
 ;;;###autoload
@@ -1130,11 +1148,14 @@ This variable should only be used as a last resort."
 (defun emir--lookup-url (url)
   (caar (epkg-sql [:select [name] :from packages :where (= url $s1)] url)))
 
-(cl-defmethod emir-import ((class (subclass epkg-wiki-package)))
+(cl-defmethod emir-import ((class (subclass epkg-wiki-package)) &optional packages)
   (message "Importing wiki packages...")
   (with-epkg-repository class
     (magit-process-buffer)
-    (magit-run-git-async "filter-emacswiki" "--tag" "--notes"))
+    (if packages
+        (dolist (name packages)
+          (magit-run-git "filter-emacswiki" "--tag" "--notes" name))
+      (magit-run-git-async "filter-emacswiki" "--tag" "--notes")))
   (message "Importing wiki packages...done"))
 
 (cl-defmethod emir-import ((pkg epkg-wiki-package))
