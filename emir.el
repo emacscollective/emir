@@ -989,15 +989,15 @@ This variable should only be used as a last resort."
 ;;;###autoload
 (defun emir-import-melpa-recipes (&optional fetch)
   (interactive (list (not current-prefix-arg)))
-  (when fetch
-    (message "Fetching Melpa recipes...")
-    (magit-git "checkout" "master")
-    (magit-git "clean" "-fdx" "recipes")
-    (magit-git "pull" "--ff-only" "origin")
-    (message "Fetching Melpa recipes...done"))
-  (message "Importing Melpa recipes...")
   (let ((default-directory (expand-file-name "import/melpa/" epkg-repository))
         (recipes (make-hash-table :test #'equal :size 6000)))
+    (when fetch
+      (message "Fetching Melpa recipes...")
+      (magit-git "checkout" "master")
+      (magit-git "clean" "-fdx" "recipes")
+      (magit-git "pull" "--ff-only" "origin")
+      (message "Fetching Melpa recipes...done"))
+    (message "Importing Melpa recipes...")
     (dolist (file (directory-files
                    (expand-file-name "recipes/" default-directory)
                    t "^[^.]"))
