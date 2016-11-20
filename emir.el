@@ -340,7 +340,6 @@ This variable should only be used as a last resort."
                               :from melpa-recipes
                               :order-by [(asc name)]]))
         (unless (or (epkg name)
-                    ;; (not url)
                     (memq fetcher '(bzr cvs darcs fossil svn))
                     (member url mirrored)
                     (assoc name emir-pending-packages)
