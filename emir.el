@@ -3,7 +3,7 @@
 ;; Copyright (C) 2016  Jonas Bernoulli
 
 ;; Author: Jonas Bernoulli <jonas@bernoul.li>
-;; Homepage: https://gitlab.com/emacscollective/emir
+;; Homepage: https://github.com/emacscollective/emir
 ;; Keywords: local
 
 ;; This file is not part of GNU Emacs.
