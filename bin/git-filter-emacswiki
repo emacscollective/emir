@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2014  Jonas Bernoulli
+# Copyright (C) 2014-2016  Jonas Bernoulli
 #
 # A lot of code comes from git-filter-branch:
 # Copyright (C) 2006  Petr Baudis
@@ -242,7 +242,7 @@ then
 	if test -z "$force"; then
 		test -n "$time" && printf "No new commits found in $t.\n"
 		printf "Already up-to-date.\n"
-		exit 2
+		exit 0
 	else
 		printf "Already up-to-date.  Forcing rewrite.\n"
 		test -n "$tag" && git tag -d $(git tag | grep -e "^$package/")
