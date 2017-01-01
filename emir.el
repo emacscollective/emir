@@ -111,6 +111,12 @@ This variable should only be used as a last resort."
   :type '(repeat (list (string :tag "Name")
                        (string :tag "Filename"))))
 
+(defcustom emir-orphanage-reason nil
+  "List of packages in the orphanage."
+  :group 'emir
+  :type '(repeat (list (string :tag "Name")
+                       (string :tag "Reason"))))
+
 ;;; Repository
 
 (defmacro with-epkg-repository (arg &rest body)
