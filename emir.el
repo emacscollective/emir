@@ -1165,14 +1165,18 @@ This variable should only be used as a last resort."
     (magit-process-buffer)
     (if packages
         (dolist (name packages)
-          (magit-run-git "filter-emacswiki" "--tag" "--notes" name))
+          (message "Importing %s..." name)
+          (magit-run-git "filter-emacswiki" "--tag" "--notes" name)
+          (message "Importing %s..." name))
       (magit-run-git-async "filter-emacswiki" "--tag" "--notes")))
   (message "Importing wiki packages...done"))
 
 (cl-defmethod emir-import ((pkg epkg-wiki-package))
   (with-epkg-repository 'epkg-wiki-package
     (with-slots (name) pkg
-      (magit-git "filter-emacswiki" "--tag" "--notes" name))))
+      (message "Importing %s..." name)
+      (magit-git "filter-emacswiki" "--tag" "--notes" name)
+      (message "Importing %s...done" name))))
 
 (cl-defmethod emir-import ((class (subclass epkg-elpa-package)))
   (--each (emir--list-packages class)
@@ -1183,8 +1187,10 @@ This variable should only be used as a last resort."
 (cl-defmethod emir-import ((pkg epkg-elpa-package))
   (with-epkg-repository 'epkg-elpa-package
     (with-slots (name) pkg
+      (message "Importing %s..." name)
       (magit-git "branch" "-f" (concat "directory/" name) "master")
-      (magit-git "filter-elpa" name))))
+      (magit-git "filter-elpa" name)
+      (message "Importing %s...done" name))))
 
 (cl-defmethod emir-import ((_pkg epkg-elpa-branch-package))) ; noop
 
