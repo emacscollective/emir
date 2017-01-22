@@ -1018,7 +1018,13 @@ This variable should only be used as a last resort."
         (push recipe (gethash epkg-name recipes))
         (message "Importing %s...done" epkg-name)))
     (message "Importing Melpa recipes...")
-    (emir--insert-recipes 'melpa-recipes recipes)
+    (emacsql-with-transaction (epkg-db)
+      (emir--insert-recipes 'melpa-recipes recipes)
+      ;; FIXME this should not have to be done explicitly
+      (dolist (elt (epkg-sql [:select [name] :from melpa-recipes]))
+        (unless (file-exists-p (expand-file-name (concat "recipes/" (car elt))))
+          (epkg-sql [:delete-from melpa-recipes :where (= name $s1)]
+                    (car elt)))))
     (message "Importing Melpa recipes...done")))
 
 (defun emir-melpa--recipe (file)
