@@ -404,12 +404,11 @@ This variable should only be used as a last resort."
               (mapcar #'car (epkg-sql [:select library :from builtin-libraries
                                        :where (= name $s1)]
                                       name)))
-        (setf library
-              (pcase name
-                ("emacs" nil)
-                ("nxml" "lisp/nxml/nxml-mode.el")
-                (_ (let ((main (concat "/" name ".el")))
-                     (--first (string-suffix-p main it) libraries))))))
+        (unless (equal name "emacs")
+          (setf library
+                (or (let ((main (concat "/" name ".el")))
+                      (--first (string-suffix-p main it) libraries))
+                    library))))
       (--if-let (or library
                     (ignore-errors
                       (packed-main-library default-directory name nil t)))
