@@ -324,7 +324,7 @@ This variable should only be used as a last resort."
 ;;;###autoload
 (defun emir-add-builtin-packages (&optional dry-run)
   (interactive "P")
-  (dolist (name (epkg-sql [:select :distinct name :from builtin-packages
+  (dolist (name (epkg-sql [:select :distinct name :from builtin-libraries
                            :order-by (asc name)]))
     (setq  name (car name))
     (unless (epkg name)
@@ -401,7 +401,7 @@ This variable should only be used as a last resort."
       (setf hash (magit-rev-parse "HEAD"))
       (when (epkg-builtin-package-p pkg)
         (setf libraries
-              (mapcar #'car (epkg-sql [:select library :from builtin-packages
+              (mapcar #'car (epkg-sql [:select library :from builtin-libraries
                                        :where (= name $s1)]
                                       name)))
         (setf library
