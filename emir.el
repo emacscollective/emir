@@ -835,7 +835,7 @@ This variable should only be used as a last resort."
           provided hard soft)
       (dolist (lib (if (epkg-builtin-package-p pkg)
                        (oref pkg libraries)
-                     (packed-libraries default-directory name)))
+                     (packed-libraries default-directory)))
         (with-temp-buffer
           (insert-file-contents lib)
           (setq buffer-file-name lib)
