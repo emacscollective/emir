@@ -477,7 +477,7 @@ This variable should only be used as a last resort."
 (defun emir-update-wiki-packages (&optional from)
   (interactive (emir-update-read-args))
   (when (y-or-n-p "Import packages first? ")
-    (emir-import-wiki-packages))
+    (emir-import-wiki-packages (epkgs 'name 'epkg-wiki-package-p)))
   (emir-update-packages 'epkg-wiki-package from)
   (emir--commit "update %n wiki %p"))
 
@@ -492,8 +492,7 @@ This variable should only be used as a last resort."
                                         (= packages:class 'wiki)
                                         (= authors:name "Drew Adams"))]))))
     (when (y-or-n-p "Import packages first? ")
-      (emir-pull   'epkg-wiki-package)
-      (emir-import 'epkg-wiki-package packages))
+      (emir-import-wiki-packages packages))
     (emir-update-packages 'epkg-wiki-package from nil packages))
   (emir--commit "update %n wiki %p"))
 
@@ -931,10 +930,10 @@ This variable should only be used as a last resort."
 ;;;; Wiki
 
 ;;;###autoload
-(defun emir-import-wiki-packages ()
+(defun emir-import-wiki-packages (&optional packages)
   (interactive)
   (emir-pull   'epkg-wiki-package)
-  (emir-import 'epkg-wiki-package))
+  (emir-import 'epkg-wiki-package packages))
 
 ;;;; Emacs
 
