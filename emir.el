@@ -69,12 +69,6 @@
   :group 'emir
   :type '(choice directory (const nil)))
 
-(defcustom emir-ignored-dependencies nil
-  "List of dependencies that are ignored in all packages."
-  :group 'emir
-  :type '(repeat (list (symbol :tag "Name")
-                       (string :tag "Reason"))))
-
 (defcustom emir-pending-packages nil
   "List of packages that might eventually be imported.
 These package only will be imported if and when upstream
@@ -840,48 +834,40 @@ This variable should only be used as a last resort."
           (setq buffer-file-name lib)
           (set-buffer-modified-p nil)
           (with-syntax-table emacs-lisp-mode-syntax-table
-            (-let [(h s) (packed-required)]
-              (--each h (cl-pushnew it hard))
-              (--each s (cl-pushnew it soft))
-              (--each (packed-provided)
-                (cl-pushnew it provided))))))
+            (-let (((h s) (packed-required))
+                   (p     (packed-provided)))
+              (dolist (h h) (cl-pushnew h hard))
+              (dolist (s s) (cl-pushnew s soft))
+              (dolist (p p) (cl-pushnew p provided))))))
       (emacsql-with-transaction (epkg-db)
-        (let ((drop (emir--lookup-feature 'provided 'drop t name))
-              (join (emir--lookup-feature 'provided 'join t name)))
+        (let ((drop (epkg-sql [:select [feature drop] :from provided
+                               :where (and (= package $s1) (notnull drop))
+                               :order-by [(asc feature)]]
+                              name))
+              (join (epkg-sql [:select [feature join] :from provided
+                               :where (and (= package $s1) (notnull join))
+                               :order-by [(asc feature)]]
+                              name)))
           (oset pkg provided
-                (nconc
-                 (--map (list it (and (memq it drop) t) nil)
-                        provided)
-                 (--map (progn (push it provided)
-                               (list it nil t))
-                        (-difference join provided)))))
-        (let ((drop (emir--lookup-feature 'required 'drop t name))
-              (ease (emir--lookup-feature 'required 'ease t name)))
-          (setq hard (-difference   hard provided))
-          (setq soft (-difference   soft provided))
-          (setq soft (-difference   soft hard))
-          (setq ease (-intersection ease hard))
-          (setq soft (-union        soft ease))
-          (setq hard (-difference   hard ease))
+                (nconc (--map (list it (cadr (assoc it drop)) nil)
+                              provided)
+                       (-keep (-lambda ((feature reason))
+                                (message "%S -- %S" feature reason)
+                                (unless (memq feature provided)
+                                  (push feature provided)
+                                  (list feature nil reason)))
+                              join))))
+        (let ((drop (epkg-sql [:select [feature drop] :from required
+                               :where (and (= package $s1) (notnull drop))
+                               :order-by [(asc feature)]]
+                              name)))
+          (setq hard (-difference hard provided))
+          (setq soft (-difference soft provided))
+          (setq soft (-difference soft hard))
           (oset pkg required
-                (nconc
-                 (--map (list it t nil
-                              (or (and (assq it emir-ignored-dependencies) 'global)
-                                  (and (memq it drop) t)))
-                        hard)
-                 (--map (list it nil
-                              (and (memq it ease) t)
-                              (or (and (assq it emir-ignored-dependencies) 'global)
-                                  (and (memq it drop) t)))
-                        soft))))
-        ))))
-
-(defun emir--lookup-feature (table column value name)
-  (sort (mapcar #'car (epkg-sql [:select [feature] :from $i1
-                                 :where (and (= $i2 $s3)
-                                             (= package $s4))]
-                        table column value name))
-        #'string<))
+                (nconc (--map (list it t   nil (cadr (assoc it drop))) hard)
+                       (--map (list it nil nil (cadr (assoc it drop))) soft)
+                       )))))))
 
 ;;; Github
 
@@ -1253,20 +1239,6 @@ This variable should only be used as a last resort."
          (val (oref pkg required))
          (elt (assq feature val)))
     (setf (nth 3 elt) t)
-    (oset pkg required val)))
-
-;;;###autoload
-(defun emir-soften-required (package feature)
-  (interactive
-   (let  ((package (epkg-read-package "Package: ")))
-     (list package (intern (completing-read "Soften require: "
-                                            (oref (epkg package) required)
-                                            nil t)))))
-  (let* ((pkg (epkg package))
-         (val (oref pkg required))
-         (elt (assq feature val)))
-    (setf (nth 1 elt) nil)
-    (setf (nth 2 elt) t)
     (oset pkg required val)))
 
 ;;; Find
