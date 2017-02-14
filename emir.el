@@ -1261,12 +1261,18 @@ This variable should only be used as a last resort."
 
 ;;;###autoload
 (defun emir-find-org-file (name)
-  (interactive (list (completing-read "Find org file: "
-                                      '("emir" "config" "compare" "issues"))))
+  (interactive
+   (list (completing-read "Find org file: "
+                          '("maint" "config"
+                            "compare" "emacsorphanage" "issues"
+                            "kludges" "melpa-missing" "notes"))))
   (find-file-other-frame
-   (if (equal name "emir")
-       "~/.emacs.d/lib/emir/emir.org"
-     (expand-file-name (concat name ".org") emir-reports-directory))))
+   (cond ((equal name "maint")
+          "~/.emacs.d/lib/emir/emir.org")
+         ((equal name "config")
+          (expand-file-name "emir.org" epkg-repository))
+         (t
+          (expand-file-name (concat name ".org") emir-reports-directory)))))
 
 ;;; Utilities
 
