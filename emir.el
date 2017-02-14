@@ -92,24 +92,12 @@ a different repository."
   :type '(repeat (list (string :tag "Name")
                        (string :tag "Reason"))))
 
-(defcustom emir-preferred-upstreams nil
-  "List of packages with multiple potential upstreams."
-  :group 'emir
-  :type '(repeat (list (string :tag "Name")
-                       (string :tag "Reason"))))
-
 (defcustom emir-renamed-files nil
   "List of files that have to be renamed after fetching with curl.
 This variable should only be used as a last resort."
   :group 'emir
   :type '(repeat (list (string :tag "Name")
                        (string :tag "Filename"))))
-
-(defcustom emir-orphanage-reason nil
-  "List of packages in the orphanage."
-  :group 'emir
-  :type '(repeat (list (string :tag "Name")
-                       (string :tag "Reason"))))
 
 ;;; Repository
 
