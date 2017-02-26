@@ -1366,8 +1366,17 @@ Show all slots instead of honoring `epkg-describe-package-slots'."
 
 (defmacro emir--with-org-header (header &rest body)
   (declare (indent defun))
-  `(--when-let (progn ,@body)
-     (append '((,@header) hline) it)))
+  `(-when-let (rows (progn ,@body))
+     (let ((header ',header)
+           (n 0) prev)
+       (dolist (row rows)
+         (unless (equal (car row) prev)
+           (cl-incf n))
+         (setq prev (car row)))
+       (append (list (cons (format "%s (%s)" (car header) n)
+                           (cdr header)))
+               (list 'hline)
+               rows))))
 
 (defun emir--melpa-get (name select)
   (let ((val (car (epkg-sql [:select $i1 :from melpa-recipes
