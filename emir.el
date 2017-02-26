@@ -419,7 +419,7 @@ This variable should only be used as a last resort."
 ;;;; Update Packages
 
 ;;;###autoload
-(defun emir-update-packages (&optional predicate from message packages)
+(defun emir-update-packages (&optional predicate from message packages force)
   (interactive (list nil (car (emir-update-read-args)) "update %n %p"))
   (dolist (pkg (if packages
                    (mapcar #'epkg packages)
@@ -430,7 +430,7 @@ This variable should only be used as a last resort."
             (message "Skipping suspended %s" name)
           (condition-case err
               (progn (message "Updating %s..." name)
-                     (emir-update-package name)
+                     (emir-update-package name force)
                      (when message
                        (emir--commit message))
                      (message "Updating %s...done" name))
@@ -502,21 +502,12 @@ This variable should only be used as a last resort."
 ;;;###autoload
 (defun emir-recreate-package (package)
   (interactive (list (epkg-read-package "Recreate package: ")))
-  (let ((pkg (epkg package)))
-    (emacsql-with-transaction (epkg-db)
-      (when (cl-typep pkg 'epkg-mirrored-package)
-        (emir-init pkg t))
-      (emir-update pkg))))
+  (emir-update-package package t))
 
 ;;;###autoload
-(defun emir-recreate-packages (&optional filter from)
+(defun emir-recreate-packages (&optional predicate from)
   (interactive (cons nil (emir-update-read-args)))
-  (dolist (pkg (epkgs nil filter))
-    (with-slots (name) pkg
-      (when (or (not from) (string< from name))
-        (message "Recreating package %s..." name)
-        (emir-recreate-package name)
-        (message "Recreating package %s...done" name)))))
+  (emir-update-packages predicate from nil nil t))
 
 ;;;###autoload
 (defun emir-recalculate-features (&optional filter)
