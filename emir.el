@@ -593,18 +593,6 @@ This variable should only be used as a last resort."
 (cl-defmethod closql--public-to-class ((_db epkg-database) value)
   (intern (format "eieio-class-tag--%s" value)))
 
-;;; Migrate
-
-;;;###autoload
-(defun emir-migrate-github-package (name url)
-  (interactive (list (epkg-read-package "Migrate: ")
-                     (emir-read-url "Url")))
-  (let ((pkg (epkg name)))
-    (oset pkg url url)
-    (emir-init      pkg t)
-    (emir-update    pkg)
-    (emir-gh-update pkg)))
-
 ;;; Clone
 
 (cl-defmethod emir-clone ((pkg epkg-mirrored-package))
