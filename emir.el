@@ -1180,7 +1180,7 @@ This variable should only be used as a last resort."
   (let* ((val (oref pkg provided))
          (elt (assq feature val)))
     (if elt
-        (progn (setf (nth 3 elt) reason)
+        (progn (setf (nth 2 elt) reason)
                (oset pkg provided val))
       (oset pkg provided (cons (list feature nil reason) val)))))
 
