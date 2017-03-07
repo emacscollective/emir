@@ -791,6 +791,7 @@ This variable should only be used as a last resort."
 (cl-defmethod emir--set-features ((pkg epkg-package))
   (with-epkg-repository pkg
     (let ((enable-local-variables nil)
+          (load-suffixes '(".el" ".el.in" ".el.tmpl"))
           (name (oref pkg name))
           provided hard soft)
       (dolist (lib (if (epkg-builtin-package-p pkg)
