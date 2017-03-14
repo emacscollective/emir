@@ -59,6 +59,11 @@
   "Maintain the Emacsmirror."
   :group 'local)
 
+(defcustom emir-emacs-reference "emacs-25.1"
+  "The Emacs reference used to extract builtin packages."
+  :group 'emir
+  :type 'string)
+
 (defcustom emir-emacs-repository nil
   "The Emacs repository used to extract builtin packages."
   :group 'emir
@@ -906,6 +911,8 @@ This variable should only be used as a last resort."
     (message "Importing builtin libraries...done")))
 
 (defun emir-emacs--libraries (file)
+  (with-epkg-repository 'epkg-builtin-package
+    (magit-git "checkout" emir-emacs-reference))
   (with-temp-buffer
     (insert-file-contents (expand-file-name file emir-emacs-repository))
     (let* ((features (packed-provided))
