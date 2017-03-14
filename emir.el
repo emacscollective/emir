@@ -398,7 +398,9 @@ This variable should only be used as a last resort."
                     library))))
       (--if-let (or library
                     (ignore-errors
-                      (packed-main-library default-directory name nil t)))
+                      (let ((load-suffixes '(".el" ".el.in" ".el.tmpl"))
+                            (load-file-rep-suffixes '("")))
+                        (packed-main-library default-directory name nil t))))
           (with-temp-buffer
             (insert-file-contents it)
             (oset pkg summary     (elx-summary nil t))
