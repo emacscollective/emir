@@ -797,6 +797,7 @@ This variable should only be used as a last resort."
   (with-epkg-repository pkg
     (let ((enable-local-variables nil)
           (load-suffixes '(".el" ".el.in" ".el.tmpl"))
+          (load-file-rep-suffixes '(""))
           (name (oref pkg name))
           provided hard soft)
       (dolist (lib (if (epkg-builtin-package-p pkg)
