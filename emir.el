@@ -64,15 +64,15 @@
   :group 'emir
   :type 'string)
 
-(defcustom emir-emacs-repository nil
+(defcustom emir-emacs-repository "~/code/emacs/"
   "The Emacs repository used to extract builtin packages."
   :group 'emir
-  :type '(choice directory (const nil)))
+  :type 'directory)
 
-(defcustom emir-reports-directory nil
+(defcustom emir-reports-directory "~/code/emacsmirror/export/reports/"
   "The directories where reports are stored."
   :group 'emir
-  :type '(choice directory (const nil)))
+  :type 'directory)
 
 (defcustom emir-pending-packages nil
   "List of packages that might eventually be imported.
