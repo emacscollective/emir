@@ -820,7 +820,6 @@ This variable should only be used as a last resort."
                 (nconc (--map (list it (cadr (assoc it drop)) nil)
                               provided)
                        (-keep (-lambda ((feature reason))
-                                (message "%S -- %S" feature reason)
                                 (unless (memq feature provided)
                                   (push feature provided)
                                   (list feature nil reason)))
