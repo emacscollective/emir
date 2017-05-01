@@ -448,6 +448,16 @@ This variable should only be used as a last resort."
                             (error-message-string err)))))))))
 
 ;;;###autoload
+(defun emir-update-most-packages ()
+  (interactive)
+  (emir-update-elpa-packages)
+  (emir-update-elpa-branch-packages)
+  (emir-update-file-packages)
+  (emir-update-drew-packages)
+  (emir-update-hg-packages)
+  (emir-update-git-packages))
+
+;;;###autoload
 (defun emir-update-git-packages (&optional from)
   (interactive (emir-update-read-args))
   (emir-update-packages 'epkg-git-package--eieio-childp from)
