@@ -892,8 +892,7 @@ This variable should only be used as a last resort."
                         (homepage       . ,(oref pkg homepage))
                         (has_issues     . nil)
                         (has_wiki       . nil)
-                        (has_downloads  . nil)
-                        (default_branch . "master"))))))
+                        (has_downloads  . nil))))))
 
 (cl-defmethod emir-gh-prune ((pkg epkg-github-package))
   (with-epkg-repository pkg
