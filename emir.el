@@ -1359,7 +1359,7 @@ Show all slots instead of honoring `epkg-describe-package-slots'."
 
 (defun emir--sort-submodule-sections ()
   (with-epkg-repository t
-    (borg--sort-submodule-sections ".git/config")
+    (borg--sort-submodule-sections (magit-git-dir "config"))
     (borg--sort-submodule-sections ".gitmodules")
     (magit-call-git "add" ".gitmodules")))
 
