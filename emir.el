@@ -548,7 +548,7 @@ This variable should only be used as a last resort."
 
 ;;;###autoload
 (defun emir-remove-package (name)
-  (interactive (list (epkg-read-package "Remove package: " t)))
+  (interactive (list (epkg-read-package "Remove package: ")))
   (let ((pkg (epkg name)))
     (unless (epkg-builtin-package-p pkg)
       (with-epkg-repository t
