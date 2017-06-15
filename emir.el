@@ -569,8 +569,8 @@ This variable should only be used as a last resort."
       (with-epkg-repository 'epkg-wiki-package
         (magit-call-git "branch" "-D" name)))
     (with-demoted-errors "Error: %S"
-      (delete-directory
-       (expand-file-name (concat ".git/modules/" name) epkg-repository) t))))
+      (with-epkg-repository t
+        (delete-directory (magit-git-dir (concat "modules/" name)) t)))))
 
 ;;; Shelve
 
