@@ -1138,16 +1138,13 @@ This variable should only be used as a last resort."
   (caar (epkg-sql [:select [name] :from packages :where (= url $s1)] url)))
 
 (cl-defmethod emir-import ((class (subclass epkg-wiki-package)) &optional packages)
-  (message "Importing wiki packages...")
   (with-epkg-repository class
     (magit-process-buffer)
     (if packages
-        (dolist (name packages)
-          (message "Importing %s..." name)
-          (magit-run-git "filter-emacswiki" "--tag" "--notes" name)
-          (message "Importing %s..." name))
-      (magit-run-git-async "filter-emacswiki" "--tag" "--notes")))
-  (message "Importing wiki packages...done"))
+        (--each packages
+          (emir-import (epkg-wiki-package :name it)))
+      (message "Importing wiki packages asynchronously...")
+      (magit-run-git-async "filter-emacswiki" "--tag" "--notes"))))
 
 (cl-defmethod emir-import ((pkg epkg-wiki-package))
   (with-epkg-repository 'epkg-wiki-package
@@ -1158,9 +1155,7 @@ This variable should only be used as a last resort."
 
 (cl-defmethod emir-import ((class (subclass epkg-elpa-package)))
   (--each (emir--list-packages class)
-    (message "Importing %s..." it)
-    (emir-import (epkg-elpa-package :name it))
-    (message "Importing %s...done" it)))
+    (emir-import (epkg-elpa-package :name it))))
 
 (cl-defmethod emir-import ((pkg epkg-elpa-package))
   (with-epkg-repository 'epkg-elpa-package
