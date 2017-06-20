@@ -510,9 +510,9 @@ This variable should only be used as a last resort."
   (emir-update-package package t))
 
 ;;;###autoload
-(defun emir-recreate-packages (&optional predicate from)
-  (interactive (cons nil (emir-update-read-args)))
-  (emir-update-packages predicate from nil nil t))
+(defun emir-recreate-packages (&optional from)
+  (interactive (emir-update-read-args))
+  (emir-update-packages nil from nil nil t))
 
 ;;;###autoload
 (defun emir-recalculate-features (&optional filter)
