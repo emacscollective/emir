@@ -558,11 +558,7 @@ This variable should only be used as a last resort."
           (when (file-exists-p module-dir)
             (magit-git "rm" "-f" module-dir))))
       (with-demoted-errors "Error: %S"
-        (ghub-delete (format "/repos/%s/%s"
-                             (if (epkg-shelved-package-p pkg)
-                                 "emacsattic"
-                               "emacsmirror")
-                             (oref pkg mirror-name)))))
+        (emir-gh-delete pkg)))
     (closql-delete (epkg-db) pkg)
     (with-epkg-repository t
       (magit-call-git "add" "epkg.sqlite"))
@@ -581,7 +577,7 @@ This variable should only be used as a last resort."
   (let ((pkg (epkg name)))
     (with-demoted-errors "Error: %S"
       ;; The Github api does not support repository transfers.
-      (ghub-delete (format "/repos/emacsmirror/%s" (oref pkg mirror-name))))
+      (emir-gh-delete pkg))
     (with-epkg-repository pkg
       (magit-git "reset" "--hard" "HEAD"))
     (with-epkg-repository t
@@ -897,6 +893,13 @@ This variable should only be used as a last resort."
   (with-epkg-repository pkg
     (--when-let (delete "master" (magit-list-remote-branches "mirror"))
       (magit-git "push" "mirror" (--map (concat ":" it) it)))))
+
+(cl-defmethod emir-gh-delete ((pkg epkg-package))
+  (ghub-delete (format "/repos/%s/%s"
+                       (if (epkg-shelved-package-p pkg)
+                           "emacsattic"
+                         "emacsmirror")
+                       (oref pkg mirror-name))))
 
 ;;; Import
 ;;;; Wiki
