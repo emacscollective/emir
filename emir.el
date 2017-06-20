@@ -773,7 +773,7 @@ This variable should only be used as a last resort."
   (emir--format-url pkg 'repopage-format))
 
 (cl-defmethod emir--homepage ((pkg epkg-package))
-  (or (caar (epkg-sql [:select [page] :from pkg-homepages
+  (or (caar (epkg-sql [:select page :from pkg-homepages
                        :where [(= package $s1)]]
                       (oref pkg name)))
       (--when-let (lm-homepage)
@@ -784,13 +784,13 @@ This variable should only be used as a last resort."
 
 (cl-defmethod emir--wikipage ((pkg epkg-package))
   (--when-let (or (and (epkg-wiki-package-p pkg) (elx-wikipage))
-                  (caar (epkg-sql [:select [page] :from pkg-wikipages
+                  (caar (epkg-sql [:select page :from pkg-wikipages
                                    :where [(= package $s1)]]
                                   (oref pkg name)))
                   (let ((name (emir--normalize-wikipage (oref pkg name))))
-                    (or (caar (epkg-sql [:select [page] :from raw-wikipages
+                    (or (caar (epkg-sql [:select page :from raw-wikipages
                                          :where (= normalized $s1)] name))
-                        (caar (epkg-sql [:select [page] :from raw-wikipages
+                        (caar (epkg-sql [:select page :from raw-wikipages
                                          :where (= normalized $s1)]
                                 (if (string-match-p "mode$" name)
                                     (substring name 0 -4)
@@ -993,7 +993,7 @@ This variable should only be used as a last resort."
     (emacsql-with-transaction (epkg-db)
       (emir--insert-recipes 'melpa-recipes recipes)
       ;; FIXME this should not have to be done explicitly
-      (dolist (elt (epkg-sql [:select [name] :from melpa-recipes]))
+      (dolist (elt (epkg-sql [:select name :from melpa-recipes]))
         (unless (file-exists-p (expand-file-name (concat "recipes/" (car elt))))
           (epkg-sql [:delete-from melpa-recipes :where (= name $s1)]
                     (car elt)))))
@@ -1134,7 +1134,7 @@ This variable should only be used as a last resort."
       (closql-delete db dummy-epkg))))
 
 (defun emir--lookup-url (url)
-  (caar (epkg-sql [:select [name] :from packages :where (= url $s1)] url)))
+  (caar (epkg-sql [:select name :from packages :where (= url $s1)] url)))
 
 (cl-defmethod emir-import ((class (subclass epkg-wiki-package)) &optional packages)
   (with-epkg-repository class
