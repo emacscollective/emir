@@ -375,15 +375,9 @@ This variable should only be used as a last resort."
           (when (or force (not (equal (oref pkg hash) tip)))
             (emir-gh-update pkg)
             (emir-push pkg)))
-      (magit-git-error
-       (push (oref pkg name) emir-failed-updates)
-       (message "%s" (error-message-string err)))
-      (epg-error
-       (push (oref pkg name) emir-failed-updates)
-       (signal (car err) (cdr err)))
       (error
        (push (oref pkg name) emir-failed-updates)
-       (message "%s" (error-message-string err))))))
+       (message "Update error: %s" (error-message-string err))))))
 
 (cl-defmethod emir-update ((pkg epkg-package))
   (with-epkg-repository pkg
@@ -423,8 +417,6 @@ This variable should only be used as a last resort."
     (emir--set-features pkg)
     (--when-let (magit-mode-get-buffer 'magit-process-mode)
       (kill-buffer it))))
-
-(define-error 'epg-error "GPG error")
 
 ;;;; Update Packages
 
