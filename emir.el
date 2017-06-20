@@ -64,16 +64,6 @@
   :group 'emir
   :type 'string)
 
-(defcustom emir-emacs-repository "~/code/emacs/"
-  "The Emacs repository used to extract builtin packages."
-  :group 'emir
-  :type 'directory)
-
-(defcustom emir-reports-directory "~/code/emacsmirror/export/reports/"
-  "The directories where reports are stored."
-  :group 'emir
-  :type 'directory)
-
 (defcustom emir-pending-packages nil
   "List of packages that might eventually be imported.
 These package only will be imported if and when upstream
@@ -104,7 +94,13 @@ This variable should only be used as a last resort."
   :type '(repeat (list (string :tag "Name")
                        (string :tag "Filename"))))
 
-;;; Repository
+;;; Repositories
+
+(defconst emir-emacs-repository "~/git/src/emacs/")
+(defconst emir-gelpa-repository "~/git/emacs/gelpa/")
+(defconst emir-melpa-repository "~/git/emacs/melpa/")
+(defconst emir-ewiki-repository "~/git/emacs/ewiki/")
+(defconst emir-stats-repository "~/git/emacs/stats/")
 
 (defmacro with-epkg-repository (arg &rest body)
   (declare (indent defun))
@@ -125,13 +121,13 @@ This variable should only be used as a last resort."
   emir-emacs-repository)
 
 (cl-defmethod epkg-repository ((_class (subclass epkg-elpa-package)))
-  (expand-file-name "import/gelpa/" epkg-repository))
+  emir-gelpa-repository)
 
 (cl-defmethod epkg-repository ((_class (subclass epkg-elpa-branch-package)))
-  (expand-file-name "import/gelpa/" epkg-repository))
+  emir-gelpa-repository)
 
 (cl-defmethod epkg-repository ((_class (subclass epkg-wiki-package)))
-  (expand-file-name "import/wiki/" epkg-repository))
+  emir-ewiki-repository)
 
 (cl-defmethod epkg-repository ((_class (subclass epkg-builtin-package)))
   emir-emacs-repository)
@@ -650,8 +646,9 @@ This variable should only be used as a last resort."
     (with-epkg-repository pkg
       (magit-git "remote" "rename" "origin" "mirror")
       (magit-git "remote" "add" "import"
-                 (concat "../../import/"
-                         (if (epkg-wiki-package-p pkg) "wiki" "gelpa")))
+                 (file-relative-name (if (epkg-wiki-package-p pkg)
+                                         emir-ewiki-repository
+                                       emir-gelpa-repository)))
       (magit-git "config" "remote.import.fetch"
                  (format "refs/heads/%s%s:refs/remotes/import/master"
                          (pcase (eieio-object-class pkg)
@@ -966,7 +963,7 @@ This variable should only be used as a last resort."
 ;;;###autoload
 (defun emir-import-melpa-recipes (&optional fetch)
   (interactive (list (not current-prefix-arg)))
-  (let ((default-directory (expand-file-name "import/melpa/" epkg-repository))
+  (let ((default-directory emir-melpa-repository)
         (recipes (make-hash-table :test #'equal :size 6000)))
     (when fetch
       (message "Fetching Melpa recipes...")
@@ -1039,7 +1036,7 @@ This variable should only be used as a last resort."
   (emir-pull 'epkg-elpa-package)
   (message "Fetching Felpa recipes...done")
   (message "Importing Gelpa recipes...")
-  (let ((default-directory (epkg-repository 'epkg-elpa-package))
+  (let ((default-directory emir-gelpa-repository)
 	(recipes (make-hash-table :test #'equal :size 300)))
     (push (list "org" :core nil nil t "git://orgmode.org/org-mode.git")
           (gethash "org" recipes))
@@ -1083,7 +1080,7 @@ This variable should only be used as a last resort."
               (t
                :merge))
         (let ((file (expand-file-name (format "packages/%s/%s.el" name name)
-                                      (epkg-repository 'epkg-elpa-package))))
+                                      emir-gelpa-repository)))
           (if (not (file-exists-p file))
               t ; assume all externals are released
             (not (equal (with-temp-buffer
@@ -1099,8 +1096,7 @@ This variable should only be used as a last resort."
 (defun emir-gelpa--externals ()
   (with-temp-buffer
     (insert-file-contents
-     (expand-file-name "externals-list"
-                       (epkg-repository 'epkg-elpa-package)))
+     (expand-file-name "externals-list" emir-gelpa-repository))
     (read (current-buffer))))
 
 ;;;; Utilities
@@ -1265,7 +1261,7 @@ This variable should only be used as a last resort."
          ((equal name "config")
           (expand-file-name "emir.org" epkg-repository))
          (t
-          (expand-file-name (concat name ".org") emir-reports-directory)))))
+          (expand-file-name (concat name ".org") emir-stats-repository)))))
 
 ;;; Utilities
 
@@ -1319,7 +1315,7 @@ Show all slots instead of honoring `epkg-describe-package-slots'."
     (org-publish
      `("emir"
        :base-extension      "org"
-       :base-directory      ,emir-reports-directory
+       :base-directory      ,emir-stats-repository
        :publishing-function org-html-publish-to-html)
      t)))
 
