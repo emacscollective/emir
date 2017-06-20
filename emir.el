@@ -875,7 +875,7 @@ This variable should only be used as a last resort."
 
 (cl-defmethod emir-gh-unsubscribe :after ((pkg epkg-package))
   (let ((org  (if (epkg-shelved-package-p pkg) "emacsattic" "emacsmirror"))
-        (name (oref pkg name)))
+        (name (oref pkg mirror-name)))
     (with-demoted-errors
         (format "Failed to unsubscribe from %s/%s: %%S" org name)
       (ghub-delete (format "/repos/%s/%s/subscription" org name)))))
