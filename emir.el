@@ -881,12 +881,12 @@ This variable should only be used as a last resort."
       (ghub-delete (format "/repos/%s/%s/subscription" org name)))))
 
 (cl-defmethod emir-gh-update ((pkg epkg-package))
-  (let ((org (if (epkg-shelved-package-p pkg) "emacsattic" "emacsmirror")))
+  (let ((org  (if (epkg-shelved-package-p pkg) "emacsattic" "emacsmirror"))
+        (name (oref pkg mirror-name)))
     (with-demoted-errors
-        (format "Failed to update metadata for %s/%s: %%S" org
-                (oref pkg mirror-name))
-      (ghub-patch (format "/repos/%s/%s" org (oref pkg mirror-name))
-                  nil `((name           . ,(oref pkg mirror-name))
+        (format "Failed to update metadata for %s/%s: %%S" org name)
+      (ghub-patch (format "/repos/%s/%s" org name)
+                  nil `((name           . ,name)
                         (description    . ,(oref pkg summary))
                         (homepage       . ,(oref pkg homepage))
                         (has_issues     . nil)
