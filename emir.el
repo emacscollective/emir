@@ -790,7 +790,7 @@ This variable should only be used as a last resort."
                                 (if (string-match-p "mode$" name)
                                     (substring name 0 -4)
                                   (concat name "mode")))))))
-    (concat "http://emacswiki.org/" it)))
+    (concat "https://emacswiki.org/" it)))
 
 (defun emir--authors ()
   (cl-delete-duplicates (--map (list (car it) (cdr it)) (elx-authors))
