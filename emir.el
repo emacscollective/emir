@@ -744,15 +744,13 @@ This variable should only be used as a last resort."
     (magit-git "push" "mirror")))
 
 (cl-defmethod emir-push ((pkg epkg-subset-package))
-  (with-slots (name mirror-name mirror-url) pkg
-    (let ((class (eieio-object-class pkg)))
-      (with-epkg-repository class
-        (magit-git "push" mirror-url
-                   (format (pcase class
-                             ('epkg-wiki-package                  "%s:master")
-                             ('epkg-elpa-package        "directory/%s:master")
-                             ('epkg-elpa-branch-package "externals/%s:master"))
-                           name))))))
+  (with-epkg-repository (eieio-object-class pkg)
+    (magit-git "push" (oref pkg mirror-url)
+               (format (cl-typecase pkg
+                         (epkg-wiki-package                  "%s:master")
+                         (epkg-elpa-package        "directory/%s:master")
+                         (epkg-elpa-branch-package "externals/%s:master"))
+                       (oref pkg name)))))
 
 (cl-defmethod emir-push ((pkg epkg-shelved-package))
   (with-epkg-repository pkg
