@@ -511,8 +511,13 @@ This variable should only be used as a last resort."
 
 ;;;###autoload
 (defun emir-recreate-packages (&optional from)
-  (interactive (emir-update-read-args))
-  (emir-update-packages nil from nil nil t))
+  (interactive (list (and current-prefix-arg
+                          (epkg-read-package "Recreate packages following: "))))
+  (dolist (name (epkgs 'name 'epkg-mirrored-package--eieio-childp))
+    (when (or (not from) (string< from name))
+      (message "Recreating %s..." name)
+      (emir-update-package name)
+      (message "Recreating %s...done" name))))
 
 ;;;###autoload
 (defun emir-recalculate-features (&optional filter)
