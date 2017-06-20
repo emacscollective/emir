@@ -426,14 +426,11 @@ This variable should only be used as a last resort."
       (when (or (not from) (string< from name))
         (if (assoc name emir-suspended-packages)
             (message "Skipping suspended %s" name)
-          (condition-case err
-              (progn (message "Updating %s..." name)
-                     (emir-update-package name force)
-                     (when message
-                       (emir--commit message))
-                     (message "Updating %s...done" name))
-            (error (message "Updating %s...failed %s" name
-                            (error-message-string err)))))))))
+          (message "Updating %s..." name)
+          (emir-update-package name force)
+          (when message
+            (emir--commit message))
+          (message "Updating %s...done" name))))))
 
 ;;;###autoload
 (defun emir-update-most-packages ()
