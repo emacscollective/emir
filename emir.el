@@ -637,15 +637,16 @@ This variable should only be used as a last resort."
                  url (concat "mirror/" name)))))
 
 (cl-defmethod emir-clone ((pkg epkg-file-package))
-  (with-slots (name mirror-url) pkg
+  (let* ((name (oref pkg name))
+         (repo (oref pkg mirror-url))
+         (path (concat "mirror/" name)))
     (with-epkg-repository t
-      (magit-git "init" (concat "mirror/" name)))
+      (magit-git "init" path))
     (emir-pull pkg t)
     (with-epkg-repository t
-      (magit-git "submodule" "add" "--name" name
-                 mirror-url (concat "mirror/" name)))
+      (magit-git "submodule" "add" "--name" name repo path))
     (with-epkg-repository pkg
-      (magit-git "remote" "add" "mirror" mirror-url)
+      (magit-git "remote" "add" "mirror" repo)
       (magit-git "config" "branch.master.remote" "mirror")
       (magit-git "config" "branch.master.merge" "refs/heads/master"))))
 
