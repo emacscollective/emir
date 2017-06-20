@@ -579,6 +579,7 @@ This variable should only be used as a last resort."
   (interactive (list (epkg-read-package "Shelve package: " t)))
   (let ((pkg (epkg name)))
     (with-demoted-errors "Error: %S"
+      ;; The Github api does not support repository transfers.
       (ghub-delete (format "/repos/emacsmirror/%s" (oref pkg mirror-name))))
     (with-epkg-repository pkg
       (magit-git "reset" "--hard" "HEAD"))
@@ -588,14 +589,12 @@ This variable should only be used as a last resort."
                  (concat "attic/" name)))
     (closql--set-object-class (epkg-db) pkg 'epkg-shelved-package)
     (emir-init pkg t)
-    (with-slots (mirror-url) pkg
-      (with-epkg-repository t
-        (magit-git "config" "-f" ".gitmodules"
-                   (concat "submodule." name ".url") mirror-url)
-        (magit-git "add" ".gitmodules" "epkg.sqlite"))
-      (with-epkg-repository pkg
-        (magit-git "remote" "rm" "mirror")
-        (magit-git "remote" "add" "attic" mirror-url)))
+    (with-epkg-repository pkg
+      (magit-git "remote" "rename" "mirror" "attic")
+      (magit-git "remote" "set-url" "attic" (oref pkg mirror-url)))
+    (with-epkg-repository t
+      (magit-git "submodule" "sync" (concat "attic/" name))
+      (magit-git "add" ".gitmodules" "epkg.sqlite"))
     (emir-update  pkg)
     (emir-gh-init pkg)
     (emir-push    pkg)))
