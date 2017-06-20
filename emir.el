@@ -417,90 +417,26 @@ This variable should only be used as a last resort."
 ;;;; Update Packages
 
 ;;;###autoload
-(defun emir-update-packages (&optional predicate from message packages force)
-  (interactive (list nil (car (emir-update-read-args)) "update %n %p"))
-  (dolist (pkg (if packages
-                   (mapcar #'epkg packages)
-                 (epkgs nil (or predicate 'epkg-mirrored-package))))
-    (with-slots (name) pkg
-      (when (or (not from) (string< from name))
-        (if (assoc name emir-suspended-packages)
-            (message "Skipping suspended %s" name)
-          (message "Updating %s..." name)
-          (emir-update-package name force)
-          (when message
-            (emir--commit message))
-          (message "Updating %s...done" name))))))
+(defun emir-update-packages (&optional from)
+  "Update all mirrored packages.
 
-;;;###autoload
-(defun emir-update-most-packages ()
-  (interactive)
-  (emir-update-elpa-packages)
-  (emir-update-elpa-branch-packages)
-  (emir-update-file-packages)
-  (emir-update-drew-packages)
-  (emir-update-hg-packages)
-  (emir-update-git-packages))
+With a prefix argument read a package name from the user and
+only update packages whose names are higher alphabetically.
 
-;;;###autoload
-(defun emir-update-git-packages (&optional from)
-  (interactive (emir-update-read-args))
-  (emir-update-packages 'epkg-git-package--eieio-childp from)
-  (emir--commit "update %n git %p"))
-
-;;;###autoload
-(defun emir-update-hg-packages (&optional from)
-  (interactive (emir-update-read-args))
-  (emir-update-packages 'epkg-hg-package--eieio-childp from)
-  (emir--commit "update %n hg %p"))
-
-;;;###autoload
-(defun emir-update-file-packages (&optional from)
-  (interactive (emir-update-read-args))
-  (emir-update-packages 'epkg-file-package from)
-  (emir--commit "update %n file %p"))
-
-;;;###autoload
-(defun emir-update-wiki-packages (&optional from)
-  (interactive (emir-update-read-args))
-  (when (y-or-n-p "Import packages first? ")
-    (emir-import-wiki-packages (epkgs 'name 'epkg-wiki-package-p)))
-  (emir-update-packages 'epkg-wiki-package from)
-  (emir--commit "update %n wiki %p"))
-
-;;;###autoload
-(defun emir-update-drew-packages (&optional from)
-  (interactive (emir-update-read-args))
-  (let ((packages
-         (mapcar #'car
-                 (epkg-sql [:select :distinct [packages:name]
-                            :from [packages authors]
-                            :where (and (= packages:name authors:package)
-                                        (= packages:class 'wiki)
-                                        (= authors:name "Drew Adams"))]))))
-    (when (y-or-n-p "Import packages first? ")
-      (emir-import-wiki-packages packages))
-    (emir-update-packages 'epkg-wiki-package from nil packages))
-  (emir--commit "update %n wiki %p"))
-
-;;;###autoload
-(defun emir-update-elpa-packages (&optional from)
-  (interactive (emir-update-read-args))
-  (emir-pull   'epkg-elpa-package)
-  (emir-import 'epkg-elpa-package)
-  (emir-update-packages 'epkg-elpa-package from)
-  (emir--commit "update %n elpa %p"))
-
-;;;###autoload
-(defun emir-update-elpa-branch-packages (&optional from)
-  (interactive (emir-update-read-args))
-  (emir-pull   'epkg-elpa-branch-package)
-  (emir-update-packages 'epkg-elpa-branch-package from)
-  (emir--commit "update %n elpa-branch %p"))
-
-(defun emir-update-read-args ()
-  (when current-prefix-arg
-    (list (epkg-read-package "Limit to packages after: "))))
+Some packages have to be imported before they can actually be
+updated.  Use the commands `emir-import-elpa-package', and
+`emir-import-wiki-packages' and/or `emir-import-drew-packages'
+to do so."
+  (interactive (list (and current-prefix-arg
+                          (epkg-read-package "Limit to packages after: "))))
+  (dolist (name (epkgs 'name 'epkg-mirrored-package--eieio-childp))
+    (when (or (not from) (string< from name))
+      (if (assoc name emir-suspended-packages)
+          (message "Skipping suspended %s" name)
+        (message "Updating %s..." name)
+        (emir-update-package name)
+        (message "Updating %s...done" name))))
+  (emir--commit "update %n %p"))
 
 ;;; Recreate
 
@@ -895,10 +831,22 @@ This variable should only be used as a last resort."
 ;;;; Wiki
 
 ;;;###autoload
-(defun emir-import-wiki-packages (&optional packages)
-  (interactive)
+(defun emir-import-wiki-packages (&optional drew-only)
+  "Import packages from the Emacswiki.
+With a prefix argument only update Drew's packages (those are
+almost the only ones that actually get updated occasionally)."
+  (interactive "p")
   (emir-pull   'epkg-wiki-package)
-  (emir-import 'epkg-wiki-package packages))
+  (emir-import 'epkg-wiki-package
+               (and drew-only
+                    (mapcar
+                     #'car
+                     (epkg-sql
+                      [:select :distinct [packages:name]
+                       :from [packages authors]
+                       :where (and (= packages:name authors:package)
+                                   (= packages:class 'wiki)
+                                   (= authors:name "Drew Adams"))])))))
 
 ;;;; Emacs
 
@@ -1030,6 +978,13 @@ This variable should only be used as a last resort."
                        'list))))
 
 ;;;; Gelpa
+
+;;;###autoload
+(defun emir-import-elpa-packages ()
+  "Import all `elpa' and `elpa-branch' packages."
+  (interactive)
+  (emir-pull   'epkg-elpa-package)
+  (emir-import 'epkg-elpa-package))
 
 ;;;###autoload
 (defun emir-import-gelpa-recipes ()
