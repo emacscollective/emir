@@ -148,10 +148,11 @@ This variable should only be used as a last resort."
                                   (substring (symbol-name it) 5 -8))))
           (name (magit-read-string
                  "Package name"
-                 (->> (or (emir--url-get url 'upstream-name) "")
-                      (replace-regexp-in-string "\\`emacs-" "")
-                      (replace-regexp-in-string "\\`elisp-" "")
-                      (replace-regexp-in-string "[.-]el\\'" "")))))
+                 (--when-let (emir--url-get url 'upstream-name)
+                   (->> it
+                        (replace-regexp-in-string "\\`emacs-" "")
+                        (replace-regexp-in-string "\\`elisp-" "")
+                        (replace-regexp-in-string "[.-]el\\'" ""))))))
      (list name url (intern (format "epkg-%s-package" type)))))
   (let ((pkg (apply class :name name :url url plist)))
     (unless (epkg-wiki-package-p pkg)
