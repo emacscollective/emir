@@ -153,8 +153,10 @@ This variable should only be used as a last resort."
   (let ((pkg (apply class :name name :url url plist)))
     (unless (epkg-wiki-package-p pkg)
       (emir--assert-unknown name url))
-    (with-epkg-repository t (emir-add pkg))
-    (with-epkg-repository t (magit-call-git "add" "epkg.sqlite")))
+    (with-epkg-repository t
+      (emir-add pkg))
+    (with-epkg-repository t
+      (magit-call-git "add" "epkg.sqlite" (epkg-repository pkg))))
   (emir--sort-submodule-sections))
 
 (cl-defmethod emir-add ((pkg epkg-mirrored-package))
@@ -163,8 +165,7 @@ This variable should only be used as a last resort."
   (emir-clone     pkg)
   (emir-push      pkg)
   (emir-update    pkg)
-  (emir-gh-update pkg)
-  (emir--stage    pkg))
+  (emir-gh-update pkg))
 
 (cl-defmethod emir-add :after ((pkg epkg-github-package))
   (emir-gh-prune pkg))
@@ -367,7 +368,9 @@ This variable should only be used as a last resort."
           (when (cl-typep pkg 'epkg-mirrored-package)
             (emir-pull pkg))
           (emir-update pkg)
-          (emir--stage pkg)
+          (unless (epkg-builtin-package-p pkg)
+            (with-epkg-repository t
+              (magit-call-git "add" (epkg-repository pkg))))
           (when (or force (not (equal (oref pkg hash) tip)))
             (emir-gh-update pkg)
             (emir-push pkg)))
@@ -1280,11 +1283,6 @@ Show all slots instead of honoring `epkg-describe-package-slots'."
 
 (defun emir-read-url (prompt)
   (magit-read-string prompt nil 'emir-url-history nil nil t))
-
-(defun emir--stage (pkg)
-  (unless (epkg-builtin-package-p pkg)
-    (with-epkg-repository t
-      (magit-call-git "add" (epkg-repository pkg)))))
 
 (defun emir--commit (message &rest include)
   (with-epkg-repository t
