@@ -501,7 +501,7 @@ to do so."
 
 ;;;###autoload
 (defun emir-shelve-package (name)
-  (interactive (list (epkg-read-package "Shelve package: " t)))
+  (interactive (list (epkg-read-package "Shelve package: ")))
   (let ((pkg (epkg name)))
     (with-demoted-errors "Error: %S"
       ;; The Github api does not support repository transfers.
