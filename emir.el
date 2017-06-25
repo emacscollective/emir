@@ -1328,9 +1328,5 @@ Show all slots instead of honoring `epkg-describe-package-slots'."
                             select name))))
     (if (vectorp select) val (car val))))
 
-;;; emir.el ends soon
 (provide 'emir)
-;; Local Variables:
-;; indent-tabs-mode: nil
-;; End:
 ;;; emir.el ends here
