@@ -319,9 +319,10 @@ This variable should only be used as a last resort."
           (message "Skipping %s (%s)...done" name (cadr it))
         (message "Adding %s..." name)
         (unless dry-run
-          (emir-add (epkg-builtin-package :name name :mirror-name name))
-          (emir--commit "add %n builtin %p"))
-        (message "Adding %s...done" name)))))
+          (emir-add (epkg-builtin-package :name name :mirror-name name)))
+        (message "Adding %s...done" name))))
+  (unless dry-run
+    (emir--commit "add %n builtin %p")))
 
 ;;;###autoload
 (defun emir-add-melpa-packages (&optional dry-run)
