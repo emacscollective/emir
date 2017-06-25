@@ -525,8 +525,8 @@ to do so."
     (emir-push    pkg)))
 
 (cl-defmethod closql--set-object-class ((db epkg-database) obj class)
-  (let* ((primary-table (closql--oref-default db 'primary-table))
-         (primary-key   (closql--oref-default db 'primary-key))
+  (let* ((primary-table (oref-default db 'primary-table))
+         (primary-key   (oref-default db 'primary-key))
          (object-id (closql--oref obj primary-key)))
     (aset obj 0 (closql--public-to-class db class))
     (emacsql db [:update $i1 :set (= class $s2) :where (= $i3 $s4)]
