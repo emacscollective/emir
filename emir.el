@@ -327,8 +327,7 @@ This variable should only be used as a last resort."
 ;;;###autoload
 (defun emir-add-melpa-packages (&optional dry-run)
   (interactive "P")
-  (let ((mirrored (epkgs 'url))
-        (plist nil))
+  (let ((mirrored (epkgs 'url)))
     (pcase-dolist (`(,name ,fetcher ,url ,branch)
                    (epkg-sql [:select [name fetcher url branch]
                               :from melpa-recipes
@@ -338,17 +337,11 @@ This variable should only be used as a last resort."
                     (member url mirrored)
                     (assoc name emir-pending-packages)
                     (assoc name emir-secondary-packages))
-          (when branch
-            (if (y-or-n-p
-                 (format "Set %s's upstream branch for %s, like Melpa does?"
-                         branch name))
-                (plist-put plist :upstream-branch branch)
-              (user-error "Abort")))
           (message "Adding %s..." name)
           (unless dry-run
             (apply #'emir-add-package name url
                    (intern (format "epkg-%s-package" fetcher))
-                   plist))
+                   (and branch (list :upstream-branch branch))))
           (message "Adding %s...done" name)))
     (emir-import-melpa-recipes)
     (emir--commit "add %n %p")))
