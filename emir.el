@@ -415,15 +415,6 @@ This variable should only be used as a last resort."
 
 ;;;###autoload
 (defun emir-update-packages (&optional from)
-  "Update all mirrored packages.
-
-With a prefix argument read a package name from the user and
-only update packages whose names are higher alphabetically.
-
-Some packages have to be imported before they can actually be
-updated.  Use the commands `emir-import-elpa-package', and
-`emir-import-wiki-packages' and/or `emir-import-drew-packages'
-to do so."
   (interactive (list (and current-prefix-arg
                           (epkg-read-package "Limit to packages after: "))))
   (dolist (name (epkgs 'name 'epkg-mirrored-package--eieio-childp))
@@ -784,9 +775,6 @@ to do so."
 
 ;;;###autoload
 (defun emir-import-wiki-packages (&optional drew-only)
-  "Import packages from the Emacswiki.
-With a prefix argument only update Drew's packages (those are
-almost the only ones that actually get updated occasionally)."
   (interactive "p")
   (emir-pull   'epkg-wiki-package)
   (emir-import 'epkg-wiki-package
@@ -933,7 +921,6 @@ almost the only ones that actually get updated occasionally)."
 
 ;;;###autoload
 (defun emir-import-elpa-packages ()
-  "Import all `elpa' and `elpa-branch' packages."
   (interactive)
   (emir-pull   'epkg-elpa-package)
   (emir-import 'epkg-elpa-package))
@@ -1176,8 +1163,6 @@ almost the only ones that actually get updated occasionally)."
 
 ;;;###autoload
 (defun emir-describe-package (package)
-  "Display the full documentation of PACKAGE.
-Show all slots instead of honoring `epkg-describe-package-slots'."
   (interactive
    (list (epkg-read-package "Describe package: "
                             (or (tabulated-list-get-id)
