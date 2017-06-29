@@ -332,17 +332,17 @@ This variable should only be used as a last resort."
                    (epkg-sql [:select [name fetcher url branch]
                               :from melpa-recipes
                               :order-by [(asc name)]]))
-        (unless (or (epkg name)
-                    (memq fetcher '(bzr cvs darcs fossil svn))
-                    (member url mirrored)
-                    (assoc name emir-pending-packages)
-                    (assoc name emir-secondary-packages))
-          (message "Adding %s..." name)
-          (unless dry-run
-            (apply #'emir-add-package name url
-                   (intern (format "epkg-%s-package" fetcher))
-                   (and branch (list :upstream-branch branch))))
-          (message "Adding %s...done" name)))
+      (unless (or (epkg name)
+                  (memq fetcher '(bzr cvs darcs fossil svn))
+                  (member url mirrored)
+                  (assoc name emir-pending-packages)
+                  (assoc name emir-secondary-packages))
+        (message "Adding %s..." name)
+        (unless dry-run
+          (apply #'emir-add-package name url
+                 (intern (format "epkg-%s-package" fetcher))
+                 (and branch (list :upstream-branch branch))))
+        (message "Adding %s...done" name)))
     (emir-import-melpa-recipes)
     (emir--commit "add %n %p")))
 
