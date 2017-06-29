@@ -522,14 +522,11 @@ to do so."
   (let* ((primary-table (oref-default db primary-table))
          (primary-key   (oref-default db primary-key))
          (object-id (closql--oref obj primary-key)))
-    (aset obj 0 (closql--public-to-class db class))
+    (aset obj 0 (intern (format "eieio-class-tag--%s" class)))
     (emacsql db [:update $i1 :set (= class $s2) :where (= $i3 $s4)]
              primary-table
              (closql--class-to-sql db class)
              primary-key object-id)))
-
-(cl-defmethod closql--public-to-class ((_db epkg-database) value)
-  (intern (format "eieio-class-tag--%s" value)))
 
 ;;; Clone
 
