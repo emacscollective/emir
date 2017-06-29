@@ -452,21 +452,6 @@ to do so."
       (emir-update-package name)
       (message "Recreating %s...done" name))))
 
-;;;###autoload
-(defun emir-recalculate-features (&optional filter)
-  (interactive)
-  (let ((pkgs (epkgs nil filter)))
-    (dolist (pkg pkgs)
-      (with-slots (name) pkg
-        (message "Recalculating features for %s..." name)
-        (emir--set-features pkg)
-        (message "Recalculating features for %s...done" name)))))
-
-;;;###autoload
-(defun emir-recalculate-builtin-features ()
-  (interactive)
-  (emir-recalculate-features 'epkg-builtin-package))
-
 ;;; Remove
 
 ;;;###autoload
