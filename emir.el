@@ -435,23 +435,6 @@ to do so."
         (message "Updating %s...done" name))))
   (emir--commit "update %n %p"))
 
-;;; Recreate
-
-;;;###autoload
-(defun emir-recreate-package (package)
-  (interactive (list (epkg-read-package "Recreate package: ")))
-  (emir-update-package package t))
-
-;;;###autoload
-(defun emir-recreate-packages (&optional from)
-  (interactive (list (and current-prefix-arg
-                          (epkg-read-package "Recreate packages following: "))))
-  (dolist (name (epkgs 'name 'epkg-mirrored-package--eieio-childp))
-    (when (or (not from) (string< from name))
-      (message "Recreating %s..." name)
-      (emir-update-package name)
-      (message "Recreating %s...done" name))))
-
 ;;; Remove
 
 ;;;###autoload
