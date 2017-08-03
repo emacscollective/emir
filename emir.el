@@ -173,15 +173,6 @@ This variable should only be used as a last resort."
 (cl-defmethod emir-add :after ((pkg epkg-github-package))
   (emir-gh-prune pkg))
 
-(cl-defmethod emir-add ((pkg epkg-subset-package))
-  (emir-init      pkg)
-  (emir-gh-init   pkg)
-  (emir-import    pkg)
-  (emir-push      pkg)
-  (emir-clone     pkg)
-  (emir-update    pkg)
-  (emir-gh-update pkg))
-
 (cl-defmethod emir-add ((pkg epkg-builtin-package) &optional recreate)
   (unless recreate
     (closql-insert (epkg-db) pkg))
@@ -474,6 +465,9 @@ This variable should only be used as a last resort."
     (emir-push    pkg)))
 
 ;;; Clone
+
+(cl-defmethod emir-clone :before ((pkg epkg-subset-package))
+  (emir-import pkg))
 
 (cl-defmethod emir-clone ((pkg epkg-mirrored-package))
   (with-slots (name url upstream-branch mirror-url) pkg
