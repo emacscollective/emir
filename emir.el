@@ -241,7 +241,7 @@ This variable should only be used as a last resort."
     (let (slots)
       (while (re-search-forward "%\\(.\\)" nil t)
         (push (cdr (assq (string-to-char (match-string 1))
-                         '((?N . mirror-name)
+                         '((?m . mirror-name)
                            (?n . upstream-name)
                            (?u . upstream-user))))
               slots)
