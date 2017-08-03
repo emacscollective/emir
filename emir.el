@@ -170,14 +170,12 @@ This variable should only be used as a last resort."
   (emir-update    pkg)
   (emir-gh-update pkg t))
 
-(cl-defmethod emir-add ((pkg epkg-builtin-package) &optional recreate)
-  (unless recreate
-    (closql-insert (epkg-db) pkg))
+(cl-defmethod emir-add ((pkg epkg-builtin-package))
+  (closql-insert (epkg-db) pkg)
   (emir-update pkg))
 
-(cl-defmethod emir-init ((pkg epkg-package) &optional recreate)
-  (unless recreate
-    (closql-insert (epkg-db) pkg))
+(cl-defmethod emir-init ((pkg epkg-mirrored-package))
+  (closql-insert (epkg-db) pkg)
   (with-slots
       (url mirror-url upstream-user upstream-name mirror-name name mirrorpage)
       pkg
@@ -450,7 +448,8 @@ This variable should only be used as a last resort."
                  (concat "mirror/" name)
                  (concat "attic/" name)))
     (closql--set-object-class (epkg-db) pkg 'epkg-shelved-package)
-    (emir-init pkg t)
+    (oset pkg mirror-url (emir--format-url pkg 'mirror-url-format))
+    (oset pkg mirrorpage (emir--format-url pkg 'mirrorpage-format))
     (with-epkg-repository pkg
       (magit-git "remote" "rename" "mirror" "attic")
       (magit-git "remote" "set-url" "attic" (oref pkg mirror-url)))
