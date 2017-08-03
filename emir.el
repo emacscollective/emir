@@ -1026,10 +1026,6 @@ This variable should only be used as a last resort."
       (magit-git "filter-elpa" name)
       (message "Importing %s...done" name))))
 
-(cl-defmethod emir--list-packages ((class (subclass epkg-wiki-package)))
-  (with-epkg-repository class
-    (delete "master" (magit-list-local-branch-names))))
-
 (cl-defmethod emir--list-packages ((class (subclass epkg-elpa-package)))
   (-mapcat (lambda (line)
              (setq line (cdr (split-string line)))
