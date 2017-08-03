@@ -177,11 +177,7 @@ This variable should only be used as a last resort."
     (when (epkg-orphaned-package-p pkg)
       (setf upstream-user "emacsorphanage"))
     (setf mirror-url (emir--format-url pkg 'mirror-url-format))
-    (setf mirrorpage (format "https://github.com/%s/%s"
-                             (if (epkg-shelved-package-p pkg)
-                                 "emacsattic"
-                               "emacsmirror")
-                             mirror-name)))
+    (setf mirrorpage (emir--format-url pkg 'mirrorpage-format)))
   (closql-insert (epkg-db) pkg)
   (emir-gh-init   pkg)
   (emir-clone     pkg)
