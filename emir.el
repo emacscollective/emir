@@ -182,15 +182,6 @@ This variable should only be used as a last resort."
   (emir-update    pkg)
   (emir-gh-update pkg))
 
-(cl-defmethod emir-add ((pkg epkg-subtree-package))
-  (emir-init      pkg)
-  (emir-gh-init   pkg)
-  (emir-clone     pkg)
-  (emir-pull      pkg)
-  (emir-push      pkg)
-  (emir-update    pkg)
-  (emir-gh-update pkg))
-
 (cl-defmethod emir-add ((pkg epkg-builtin-package) &optional recreate)
   (unless recreate
     (closql-insert (epkg-db) pkg))
@@ -497,6 +488,9 @@ This variable should only be used as a last resort."
         (magit-git "branch" "-M" upstream-branch "master"))
       (magit-git "remote" "add" "mirror" mirror-url)
       (magit-call-git "fetch" "mirror"))))
+
+(cl-defmethod emir-clone :after ((pkg epkg-subtree-package))
+  (emir-pull pkg))
 
 (cl-defmethod emir-clone :before ((pkg epkg-hg-package))
   ;; `git submodule' doesn't want to use `git remote-hg'
