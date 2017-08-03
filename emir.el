@@ -230,8 +230,7 @@ This variable should only be used as a last resort."
 
 (defun emir--format-url (pkg slot)
   (--when-let (eieio-oref-default pkg slot)
-    (format-spec it `((?p . ,(oref pkg name))
-                      (?m . ,(oref pkg mirror-name))
+    (format-spec it `((?m . ,(oref pkg mirror-name))
                       (?n . ,(oref pkg upstream-name))
                       (?u . ,(oref pkg upstream-user))))))
 
