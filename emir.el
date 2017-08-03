@@ -588,7 +588,7 @@ This variable should only be used as a last resort."
     (magit-git "pull" "--ff-only" "import"
                (concat "externals/" (oref pkg name)))))
 
-(cl-defmethod emir-pull ((class (subclass epkg-subset-package)))
+(cl-defmethod emir-pull ((class (subclass epkg-elpa-package)))
   (with-epkg-repository class
     (magit-git "checkout" "master")
     (magit-git "pull" "--ff-only" "origin")))
@@ -762,8 +762,9 @@ This variable should only be used as a last resort."
 ;;;###autoload
 (defun emir-import-wiki-packages (&optional drew-only)
   (interactive "p")
-  (emir-pull 'epkg-wiki-package)
   (with-epkg-repository 'epkg-wiki-package
+    (magit-git "checkout" "master")
+    (magit-git "pull" "--ff-only" "origin")
     (magit-process-buffer)
     (if drew-only
         (--each (epkg-sql [:select :distinct [packages:name]
