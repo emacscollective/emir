@@ -762,17 +762,18 @@ This variable should only be used as a last resort."
 ;;;###autoload
 (defun emir-import-wiki-packages (&optional drew-only)
   (interactive "p")
-  (emir-pull   'epkg-wiki-package)
-  (emir-import 'epkg-wiki-package
-               (and drew-only
-                    (mapcar
-                     #'car
-                     (epkg-sql
-                      [:select :distinct [packages:name]
-                       :from [packages authors]
-                       :where (and (= packages:name authors:package)
-                                   (= packages:class 'wiki)
-                                   (= authors:name "Drew Adams"))])))))
+  (emir-pull 'epkg-wiki-package)
+  (with-epkg-repository 'epkg-wiki-package
+    (magit-process-buffer)
+    (if drew-only
+        (--each (epkg-sql [:select :distinct [packages:name]
+                           :from [packages authors]
+                           :where (and (= packages:name authors:package)
+                                       (= packages:class 'wiki)
+                                       (= authors:name "Drew Adams"))])
+          (emir-import (epkg-wiki-package :name (car it))))
+      (message "Importing wiki packages asynchronously...")
+      (magit-run-git-async "filter-emacswiki" "--tag" "--notes"))))
 
 ;;;; Emacs
 
@@ -1008,15 +1009,6 @@ This variable should only be used as a last resort."
 
 (defun emir--lookup-url (url)
   (caar (epkg-sql [:select name :from packages :where (= url $s1)] url)))
-
-(cl-defmethod emir-import ((class (subclass epkg-wiki-package)) &optional packages)
-  (with-epkg-repository class
-    (magit-process-buffer)
-    (if packages
-        (--each packages
-          (emir-import (epkg-wiki-package :name it)))
-      (message "Importing wiki packages asynchronously...")
-      (magit-run-git-async "filter-emacswiki" "--tag" "--notes"))))
 
 (cl-defmethod emir-import ((pkg epkg-wiki-package))
   (with-epkg-repository 'epkg-wiki-package
