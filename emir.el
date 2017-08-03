@@ -168,10 +168,7 @@ This variable should only be used as a last resort."
   (emir-clone     pkg)
   (emir-push      pkg)
   (emir-update    pkg)
-  (emir-gh-update pkg))
-
-(cl-defmethod emir-add :after ((pkg epkg-github-package))
-  (emir-gh-prune pkg))
+  (emir-gh-update pkg t))
 
 (cl-defmethod emir-add ((pkg epkg-builtin-package) &optional recreate)
   (unless recreate
@@ -733,7 +730,7 @@ This variable should only be used as a last resort."
         (format "Failed to unsubscribe from %s/%s: %%S" org name)
       (ghub-delete (format "/repos/%s/%s/subscription" org name)))))
 
-(cl-defmethod emir-gh-update ((pkg epkg-package))
+(cl-defmethod emir-gh-update ((pkg epkg-package) &optional _clone)
   (let ((org  (if (epkg-shelved-package-p pkg) "emacsattic" "emacsmirror"))
         (name (oref pkg mirror-name)))
     (with-demoted-errors
@@ -746,10 +743,11 @@ This variable should only be used as a last resort."
                         (has_wiki       . nil)
                         (has_downloads  . nil))))))
 
-(cl-defmethod emir-gh-prune ((pkg epkg-github-package))
-  (with-epkg-repository pkg
-    (--when-let (delete "master" (magit-list-remote-branches "mirror"))
-      (magit-git "push" "mirror" (--map (concat ":" it) it)))))
+(cl-defmethod emir-gh-update :after ((pkg epkg-github-package) &optional clone)
+  (when clone
+    (with-epkg-repository pkg
+      (--when-let (delete "master" (magit-list-remote-branches "mirror"))
+        (magit-git "push" "mirror" (--map (concat ":" it) it))))))
 
 (cl-defmethod emir-gh-delete ((pkg epkg-package))
   (ghub-delete (format "/repos/%s/%s"
