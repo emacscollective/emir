@@ -908,8 +908,9 @@ This variable should only be used as a last resort."
 ;;;###autoload
 (defun emir-import-elpa-packages ()
   (interactive)
-  (emir-pull   'epkg-elpa-package)
-  (emir-import 'epkg-elpa-package))
+  (emir-pull 'epkg-elpa-package)
+  (dolist (name (emir--list-packages 'epkg-elpa-packages))
+    (emir-import (epkg-elpa-package :name name))))
 
 ;;;###autoload
 (defun emir-import-gelpa-recipes ()
@@ -1023,10 +1024,6 @@ This variable should only be used as a last resort."
       (message "Importing %s..." name)
       (magit-git "filter-emacswiki" "--tag" "--notes" name)
       (message "Importing %s...done" name))))
-
-(cl-defmethod emir-import ((class (subclass epkg-elpa-package)))
-  (--each (emir--list-packages class)
-    (emir-import (epkg-elpa-package :name it))))
 
 (cl-defmethod emir-import ((pkg epkg-elpa-package))
   (with-epkg-repository 'epkg-elpa-package
