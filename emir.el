@@ -519,11 +519,6 @@ This variable should only be used as a last resort."
       (magit-git "config" "branch.master.remote" "mirror")
       (magit-git "config" "branch.master.merge" "refs/heads/master"))))
 
-(cl-defmethod emir-clone :after ((pkg epkg-subtree-package))
-  (with-epkg-repository pkg
-    (magit-git "checkout" "--detach" "HEAD")
-    (magit-git "branch" "-D" "master")))
-
 (cl-defmethod emir-clone ((pkg epkg-subset-package))
   (with-slots (name mirror-url) pkg
     (with-epkg-repository t
@@ -591,7 +586,9 @@ This variable should only be used as a last resort."
   (with-epkg-repository pkg
     (magit-git "fetch"    "origin")
     (magit-git "checkout" "origin/master")
-    (magit-git "subtree"  "-P" (oref pkg upstream-tree) "push" "." "master")
+    (magit-git "branch" "-f" "master"
+               (magit-git-string "subtree" "-P"
+                                 (oref pkg upstream-tree) "split"))
     (magit-git "checkout" "master")))
 
 (cl-defmethod emir-pull ((pkg epkg-subset-package))
