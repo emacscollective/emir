@@ -166,10 +166,11 @@ This variable should only be used as a last resort."
   (with-slots
       (url mirror-url upstream-user mirror-name name mirrorpage)
       pkg
-    (when url
-      (emir--set-url pkg url))
-    (unless url
-      (setf url (emir--format-url pkg 'url-format)))
+    (if url
+        (when-let (url-format (oref pkg url-format))
+          (pcase-dolist (`(,slot . ,value) (emir--match-url url-format url))
+            (eieio-oset pkg slot value)))
+      (setf url (oref-default pkg url-format)))
     (oset pkg mirror-name
           (replace-regexp-in-string "\\+" "-plus" name))
     (when (epkg-orphaned-package-p pkg)
@@ -187,15 +188,6 @@ This variable should only be used as a last resort."
   (oset pkg mirror-name (oref pkg name))
   (closql-insert (epkg-db) pkg)
   (emir-update pkg))
-
-(defun emir--set-url (pkg url)
-  (oset pkg url
-        (if-let (url-format (oref pkg url-format))
-            (progn
-              (pcase-dolist (`(,slot . ,value) (emir--match-url url-format url))
-                (eieio-oset pkg slot value))
-              (emir--format-url pkg 'url-format))
-          url)))
 
 (cl-defmethod emir--format-url ((pkg epkg-package) slot)
   (--when-let (eieio-oref-default pkg slot)
