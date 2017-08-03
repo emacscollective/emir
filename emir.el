@@ -163,20 +163,17 @@ This variable should only be used as a last resort."
                       (epkg-repository pkg)))))
 
 (cl-defmethod emir-add ((pkg epkg-mirrored-package))
-  (with-slots
-      (url mirror-url upstream-user mirror-name name mirrorpage)
-      pkg
-    (if url
-        (when-let (url-format (oref pkg url-format))
-          (pcase-dolist (`(,slot . ,value) (emir--match-url url-format url))
-            (eieio-oset pkg slot value)))
-      (setf url (oref-default pkg url-format)))
-    (oset pkg mirror-name
-          (replace-regexp-in-string "\\+" "-plus" name))
-    (when (epkg-orphaned-package-p pkg)
-      (setf upstream-user "emacsorphanage"))
-    (setf mirror-url (emir--format-url pkg 'mirror-url-format))
-    (setf mirrorpage (emir--format-url pkg 'mirrorpage-format)))
+  (if-let (url (oref pkg url))
+      (when-let (url-format (oref pkg url-format))
+        (pcase-dolist (`(,slot . ,value) (emir--match-url url-format url))
+          (eieio-oset pkg slot value)))
+    (oset pkg url (oref-default pkg url-format)))
+  (oset pkg mirror-name
+        (replace-regexp-in-string "\\+" "-plus" (oref pkg name)))
+  (when (epkg-orphaned-package-p pkg)
+    (oset pkg upstream-user "emacsorphanage"))
+  (oset pkg mirror-url (emir--format-url pkg 'mirror-url-format))
+  (oset pkg mirrorpage (emir--format-url pkg 'mirrorpage-format))
   (closql-insert (epkg-db) pkg)
   (emir-gh-init   pkg)
   (emir-clone     pkg)
