@@ -156,8 +156,10 @@ This variable should only be used as a last resort."
     (with-epkg-repository t
       (emir-add pkg))
     (with-epkg-repository t
-      (magit-call-git "add" "epkg.sqlite" (epkg-repository pkg))))
-  (emir--sort-submodule-sections))
+      (borg--sort-submodule-sections (magit-git-dir "config"))
+      (borg--sort-submodule-sections ".gitmodules")
+      (magit-call-git "add" "epkg.sqlite" ".gitmodules"
+                      (epkg-repository pkg)))))
 
 (cl-defmethod emir-add ((pkg epkg-mirrored-package))
   (emir-init      pkg)
@@ -1229,12 +1231,6 @@ This variable should only be used as a last resort."
                          `((?n . ,(number-to-string count))
                            (?p . ,(if (> count 1) "packages" "package"))))
                    "-i" ".gitmodules" "epkg.sqlite" include)))))
-
-(defun emir--sort-submodule-sections ()
-  (with-epkg-repository t
-    (borg--sort-submodule-sections (magit-git-dir "config"))
-    (borg--sort-submodule-sections ".gitmodules")
-    (magit-call-git "add" ".gitmodules")))
 
 (defun emir--normalize-wikipage (string)
   (->> string
