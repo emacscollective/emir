@@ -409,7 +409,10 @@ This variable should only be used as a last resort."
         (unless (or (epkg-shelved-package-p pkg)
                     (equal name "emacs"))
           (error "Cannot determine main library"))))
-    (emir--set-features pkg)
+    (pcase-let ((`(,required ,provided)
+                 (emir--features pkg)))
+      (oset pkg required required)
+      (oset pkg provided provided))
     (--when-let (magit-mode-get-buffer 'magit-process-mode)
       (kill-buffer it))))
 
@@ -672,9 +675,7 @@ This variable should only be used as a last resort."
   (cl-delete-duplicates (--map (list (car it) (cdr it)) (elx-maintainers))
                         :test #'equal :key #'car))
 
-;;; Features
-
-(cl-defmethod emir--set-features ((pkg epkg-package))
+(cl-defmethod emir--features ((pkg epkg-package))
   (with-epkg-repository pkg
     (let ((enable-local-variables nil)
           (load-suffixes '(".el" ".el.in" ".el.tmpl"))
@@ -694,34 +695,31 @@ This variable should only be used as a last resort."
               (dolist (h h) (cl-pushnew h hard))
               (dolist (s s) (cl-pushnew s soft))
               (dolist (p p) (cl-pushnew p provided))))))
-      (emacsql-with-transaction (epkg-db)
-        (let ((drop (epkg-sql [:select [feature drop] :from provided
-                               :where (and (= package $s1) (notnull drop))
-                               :order-by [(asc feature)]]
-                              name))
-              (join (epkg-sql [:select [feature join] :from provided
-                               :where (and (= package $s1) (notnull join))
-                               :order-by [(asc feature)]]
-                              name)))
-          (oset pkg provided
-                (nconc (--map (list it (cadr (assoc it drop)) nil)
-                              provided)
-                       (-keep (-lambda ((feature reason))
-                                (unless (memq feature provided)
-                                  (push feature provided)
-                                  (list feature nil reason)))
-                              join))))
-        (let ((drop (epkg-sql [:select [feature drop] :from required
-                               :where (and (= package $s1) (notnull drop))
-                               :order-by [(asc feature)]]
-                              name)))
-          (setq hard (-difference hard provided))
-          (setq soft (-difference soft provided))
-          (setq soft (-difference soft hard))
-          (oset pkg required
-                (nconc (--map (list it t   nil (cadr (assoc it drop))) hard)
-                       (--map (list it nil nil (cadr (assoc it drop))) soft)
-                       )))))))
+      (list
+       (let ((drop (epkg-sql [:select [feature drop] :from required
+                              :where (and (= package $s1) (notnull drop))
+                              :order-by [(asc feature)]]
+                             name)))
+         (setq hard (-difference hard provided))
+         (setq soft (-difference soft provided))
+         (setq soft (-difference soft hard))
+         (nconc (--map (list it t   nil (cadr (assoc it drop))) hard)
+                (--map (list it nil nil (cadr (assoc it drop))) soft)))
+       (let ((drop (epkg-sql [:select [feature drop] :from provided
+                              :where (and (= package $s1) (notnull drop))
+                              :order-by [(asc feature)]]
+                             name))
+             (join (epkg-sql [:select [feature join] :from provided
+                              :where (and (= package $s1) (notnull join))
+                              :order-by [(asc feature)]]
+                             name)))
+         (nconc (--map (list it (cadr (assoc it drop)) nil)
+                       provided)
+                (-keep (-lambda ((feature reason))
+                         (unless (memq feature provided)
+                           (push feature provided)
+                           (list feature nil reason)))
+                       join)))))))
 
 ;;; Github
 
