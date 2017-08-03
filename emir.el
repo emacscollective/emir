@@ -154,8 +154,7 @@ This variable should only be used as a last resort."
   (let ((pkg (apply class :name name :url url plist)))
     (unless (epkg-wiki-package-p pkg)
       (emir--assert-unknown name url))
-    (with-epkg-repository t
-      (emir-add pkg))
+    (emir-add pkg)
     (with-epkg-repository t
       (borg--sort-submodule-sections (magit-git-dir "config"))
       (borg--sort-submodule-sections ".gitmodules")
