@@ -170,8 +170,8 @@ This variable should only be used as a last resort."
       (emir--set-url pkg url))
     (unless url
       (setf url (emir--format-url pkg 'url-format)))
-    (when (or (not mirror-name) (string-match-p "\\+" mirror-name))
-      (setf mirror-name (replace-regexp-in-string "\\+" "-plus" name)))
+    (oset pkg mirror-name
+          (replace-regexp-in-string "\\+" "-plus" name))
     (when (epkg-orphaned-package-p pkg)
       (setf upstream-user "emacsorphanage"))
     (setf mirror-url (emir--format-url pkg 'mirror-url-format))
@@ -184,6 +184,7 @@ This variable should only be used as a last resort."
   (emir-gh-update pkg t))
 
 (cl-defmethod emir-add ((pkg epkg-builtin-package))
+  (oset pkg mirror-name (oref pkg name))
   (closql-insert (epkg-db) pkg)
   (emir-update pkg))
 
@@ -289,7 +290,7 @@ This variable should only be used as a last resort."
           (message "Skipping %s (%s)...done" name (cadr it))
         (message "Adding %s..." name)
         (unless dry-run
-          (emir-add (epkg-builtin-package :name name :mirror-name name)))
+          (emir-add (epkg-builtin-package :name name)))
         (message "Adding %s...done" name))))
   (unless dry-run
     (emir--commit "add %n builtin %p")))
