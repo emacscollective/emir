@@ -228,7 +228,7 @@ This variable should only be used as a last resort."
               (emir--format-url pkg 'url-format))
           url)))
 
-(defun emir--format-url (pkg slot)
+(cl-defmethod emir--format-url ((pkg epkg-package) slot)
   (--when-let (eieio-oref-default pkg slot)
     (format-spec it `((?m . ,(oref pkg mirror-name))
                       (?n . ,(oref pkg upstream-name))
