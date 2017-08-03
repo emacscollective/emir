@@ -163,19 +163,6 @@ This variable should only be used as a last resort."
                       (epkg-repository pkg)))))
 
 (cl-defmethod emir-add ((pkg epkg-mirrored-package))
-  (emir-init      pkg)
-  (emir-gh-init   pkg)
-  (emir-clone     pkg)
-  (emir-push      pkg)
-  (emir-update    pkg)
-  (emir-gh-update pkg t))
-
-(cl-defmethod emir-add ((pkg epkg-builtin-package))
-  (closql-insert (epkg-db) pkg)
-  (emir-update pkg))
-
-(cl-defmethod emir-init ((pkg epkg-mirrored-package))
-  (closql-insert (epkg-db) pkg)
   (with-slots
       (url mirror-url upstream-user upstream-name mirror-name name mirrorpage)
       pkg
@@ -194,7 +181,17 @@ This variable should only be used as a last resort."
                              (if (epkg-shelved-package-p pkg)
                                  "emacsattic"
                                "emacsmirror")
-                             mirror-name))))
+                             mirror-name)))
+  (closql-insert (epkg-db) pkg)
+  (emir-gh-init   pkg)
+  (emir-clone     pkg)
+  (emir-push      pkg)
+  (emir-update    pkg)
+  (emir-gh-update pkg t))
+
+(cl-defmethod emir-add ((pkg epkg-builtin-package))
+  (closql-insert (epkg-db) pkg)
+  (emir-update pkg))
 
 (defun emir--set-url (pkg url)
   (oset pkg url
