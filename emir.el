@@ -234,7 +234,7 @@ This variable should only be used as a last resort."
                       (?n . ,(oref pkg upstream-name))
                       (?u . ,(oref pkg upstream-user))))))
 
-(defun emir--match-url (format url &optional lax)
+(defun emir--match-url (format url)
   (with-temp-buffer
     (insert (regexp-quote format))
     (goto-char (point-min))
@@ -247,7 +247,7 @@ This variable should only be used as a last resort."
               slots)
         (replace-match "\\([^/]+\\)" t t))
       ;; The side-effect and the return value.
-      (and (string-match (concat "^" (buffer-string) (unless lax "$")) url)
+      (and (string-match (concat "^" (buffer-string) "$") url)
            (nreverse slots)))))
 
 (defun emir--url-to-class (url)
