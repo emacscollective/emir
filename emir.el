@@ -151,9 +151,11 @@ This variable should only be used as a last resort."
                         (replace-regexp-in-string "\\`elisp-" "")
                         (replace-regexp-in-string "[.-]el\\'" ""))))))
      (list name url (intern (format "epkg-%s-package" type)))))
+  (--if-let (epkg name)
+      (user-error "Package %s already exists" name)
+    (when (assoc name emir-pending-packages)
+      (user-error "Package %s is on hold" name)))
   (let ((pkg (apply class :name name :url url plist)))
-    (unless (epkg-wiki-package-p pkg)
-      (emir--assert-unknown name url))
     (emir-add pkg)
     (with-epkg-repository t
       (borg--sort-submodule-sections (magit-git-dir "config"))
@@ -163,9 +165,13 @@ This variable should only be used as a last resort."
 
 (cl-defmethod emir-add ((pkg epkg-mirrored-package))
   (if-let (url (oref pkg url))
-      (when-let (url-format (oref pkg url-format))
-        (pcase-dolist (`(,slot . ,value) (emir--match-url url-format url))
-          (eieio-oset pkg slot value)))
+      (progn
+        (when-let (conflict (and url (cadr (assoc url (epkgs [url name])))))
+          (user-error "Another package, %s, is already mirrored from %s"
+                      conflict url))
+        (when-let (url-format (oref pkg url-format))
+          (pcase-dolist (`(,slot . ,value) (emir--match-url url-format url))
+            (eieio-oset pkg slot value))))
     (oset pkg url (oref-default pkg url-format)))
   (oset pkg mirror-name
         (replace-regexp-in-string "\\+" "-plus" (oref pkg name)))
@@ -222,21 +228,6 @@ This variable should only be used as a last resort."
                (slots (emir--match-url (oref-default class url-format) url)))
     (cdr (assoc slot slots))))
 
-(defun emir--assert-unknown (name url)
-  (--if-let (epkg name)
-      (cl-typecase it
-        (epkg-builtin-package (user-error "Package %s is already built-in" name))
-        (epkg-shelved-package (user-error "Package %s is already shelved"  name))
-        (t                    (user-error "Package %s is already mirrored" name)))
-    (when (assoc name emir-pending-packages)
-      (user-error "Package %s is pending" name)))
-  (--when-let (and url (cadr (assoc url (epkgs [url name]))))
-    (user-error "Another package, %s, is already mirrored from %s" it url))
-  (let ((repo (expand-file-name (concat ".git/modules/" name) epkg-repository)))
-    (when (file-exists-p repo)
-      (user-error "Package %s used to be mirrored.  Remove %s first"
-                  name repo))))
-
 ;;;; Add Packages
 
 ;;;###autoload
@@ -248,7 +239,6 @@ This variable should only be used as a last resort."
       (--if-let (assoc name emir-pending-packages)
           (message "Skipping %s (%s)...done" name (cadr it))
         (message "Adding %s..." name)
-        (emir--assert-unknown name nil)
         (unless dry-run
           (emir-add (epkg-elpa-package :name name)))
         (message "Adding %s...done" name))))
@@ -264,7 +254,6 @@ This variable should only be used as a last resort."
       (--if-let (assoc name emir-pending-packages)
           (message "Skipping %s (%s)...done" name (cadr it))
         (message "Adding %s..." name)
-        (emir--assert-unknown name nil)
         (unless dry-run
           (emir-add (epkg-elpa-branch-package :name name)))
         (message "Adding %s...done" name))))
