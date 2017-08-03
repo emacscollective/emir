@@ -164,7 +164,7 @@ This variable should only be used as a last resort."
 
 (cl-defmethod emir-add ((pkg epkg-mirrored-package))
   (with-slots
-      (url mirror-url upstream-user upstream-name mirror-name name mirrorpage)
+      (url mirror-url upstream-user mirror-name name mirrorpage)
       pkg
     (when url
       (emir--set-url pkg url))
@@ -172,8 +172,6 @@ This variable should only be used as a last resort."
       (setf url (emir--format-url pkg 'url-format)))
     (when (or (not mirror-name) (string-match-p "\\+" mirror-name))
       (setf mirror-name (replace-regexp-in-string "\\+" "-plus" name)))
-    (unless upstream-name
-      (setf upstream-name name))
     (when (epkg-orphaned-package-p pkg)
       (setf upstream-user "emacsorphanage"))
     (setf mirror-url (emir--format-url pkg 'mirror-url-format))
