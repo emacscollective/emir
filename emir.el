@@ -529,9 +529,11 @@ This variable should only be used as a last resort."
   (with-epkg-repository pkg
     (magit-git "fetch"    "origin")
     (magit-git "checkout" "origin/master")
+    (message "Filtering subtree...")
     (magit-git "branch" "-f" "master"
                (magit-git-string "subtree" "-P"
                                  (oref pkg upstream-tree) "split"))
+    (message "Filtering subtree...done")
     (magit-git "checkout" "master")))
 
 (cl-defmethod emir-pull ((pkg epkg-subset-package))
