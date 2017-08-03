@@ -42,6 +42,7 @@
 (require 'magit)
 (require 'org)
 (require 'packed)
+(require 'subr-x)
 
 (defvar finder-no-scan-regexp)
 (defvar finder--builtins-alist)
@@ -220,11 +221,10 @@ This variable should only be used as a last resort."
 
 (defun emir--set-url (pkg url)
   (oset pkg url
-        (if (oref pkg url-format)
-            (let ((i 0))
-              (dolist (slot (emir--match-url (oref pkg url-format) url))
-                (setf (slot-value pkg slot)
-                      (match-string (cl-incf i) url)))
+        (if-let (url-format (oref pkg url-format))
+            (progn
+              (pcase-dolist (`(,slot . ,value) (emir--match-url url-format url))
+                (eieio-oset pkg slot value))
               (emir--format-url pkg 'url-format))
           url)))
 
@@ -239,16 +239,18 @@ This variable should only be used as a last resort."
     (insert (regexp-quote format))
     (goto-char (point-min))
     (let (slots)
-      (while (re-search-forward "%\\(.\\)" nil t)
-        (push (cdr (assq (string-to-char (match-string 1))
-                         '((?m . mirror-name)
-                           (?n . upstream-name)
-                           (?u . upstream-user))))
-              slots)
-        (replace-match "\\([^/]+\\)" t t))
-      ;; The side-effect and the return value.
-      (and (string-match (concat "^" (buffer-string) "$") url)
-           (nreverse slots)))))
+      (save-match-data
+        (while (re-search-forward "%\\(.\\)" nil t)
+          (push (cdr (assq (string-to-char (match-string 1))
+                           '((?m . mirror-name)
+                             (?n . upstream-name)
+                             (?u . upstream-user))))
+                slots)
+          (replace-match "\\([^/]+\\)" t t))
+        (and (string-match (concat "^" (buffer-string) "$") url)
+             (let ((i 0))
+               (--map (cons it (match-string (cl-incf i) url))
+                      (nreverse slots))))))))
 
 (defun emir--url-to-class (url)
   (--first (ignore-errors (emir--match-url (oref-default it url-format) url))
@@ -256,9 +258,8 @@ This variable should only be used as a last resort."
 
 (defun emir--url-get (url slot)
   (-when-let* ((class (emir--url-to-class url))
-               (slots (emir--match-url (oref-default class url-format) url))
-               (value (cl-position slot slots)))
-    (match-string (1+ value) url)))
+               (slots (emir--match-url (oref-default class url-format) url)))
+    (cdr (assoc slot slots))))
 
 (defun emir--assert-unknown (name url)
   (--if-let (epkg name)
