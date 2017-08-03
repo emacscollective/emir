@@ -1,4 +1,7 @@
 ELS   = emir.el
+ELS  += emir-gelpa.el
+ELS  += emir-melpa.el
+ELCS  = $(ELS:.el=.elc)
 
 DEPS  = borg
 DEPS += closql
@@ -12,7 +15,6 @@ DEPS += magit/lisp
 DEPS += packed
 DEPS += with-editor
 
-ELCS    = $(ELS:.el=.elc)
 DFLAGS  = $(addprefix -L ../,$(DEPS))
 EFLAGS ?= $(DFLAGS)
 EMACS  ?= emacs

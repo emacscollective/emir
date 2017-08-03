@@ -790,75 +790,6 @@ This variable should only be used as a last resort."
              (magit-git-items "ls-tree" "-z" "-r" "--name-only"
                               "HEAD" "lisp/"))))
 
-;;;; Melpa
-
-;;;###autoload
-(defun emir-import-melpa-recipes (&optional fetch)
-  (interactive (list (not current-prefix-arg)))
-  (let ((default-directory emir-melpa-repository)
-        (recipes (make-hash-table :test #'equal :size 6000)))
-    (when fetch
-      (message "Fetching Melpa recipes...")
-      (magit-git "checkout" "master")
-      (magit-git "clean" "-fdx" "recipes")
-      (magit-git "pull" "--ff-only" "origin")
-      (message "Fetching Melpa recipes...done"))
-    (message "Importing Melpa recipes...")
-    (dolist (file (directory-files
-                   (expand-file-name "recipes/" default-directory)
-                   t "^[^.]"))
-      (-let [(epkg-name . recipe)
-             (emir-melpa--recipe file)]
-        (message "Importing %s..." epkg-name)
-        (push recipe (gethash epkg-name recipes))
-        (message "Importing %s...done" epkg-name)))
-    (message "Importing Melpa recipes...")
-    (emacsql-with-transaction (epkg-db)
-      (emir--insert-recipes 'melpa-recipes recipes)
-      ;; FIXME this should not have to be done explicitly
-      (dolist (elt (epkg-sql [:select name :from melpa-recipes]))
-        (unless (file-exists-p (expand-file-name (concat "recipes/" (car elt))))
-          (epkg-sql [:delete-from melpa-recipes :where (= name $s1)]
-                    (car elt)))))
-    (message "Importing Melpa recipes...done")))
-
-(defun emir-melpa--recipe (file)
-  (-let* (((name . plist)
-           (with-temp-buffer
-             (insert-file-contents file)
-             (read (current-buffer))))
-          (name (symbol-name name))
-          (repo (plist-get plist :repo)))
-    (pcase (plist-get plist :fetcher)
-      ('github
-       (plist-put plist :url      (format "git@github.com:%s.git" repo))
-       (plist-put plist :repopage (format "https://github.com/%s" repo)))
-      ('gitlab
-       (plist-put plist :url      (format "git@gitlab.com:%s.git" repo))
-       (plist-put plist :repopage (format "https://gitlab.com/%s" repo)))
-      ('bitbucket
-       (plist-put plist :url      (format "hg::ssh://hg@bitbucket.org/%s" repo))
-       (plist-put plist :repopage (format "https://bitbucket.org/%s" repo)))
-      ('wiki
-       (plist-put plist :repopage
-                  (format "https://www.emacswiki.org/emacs/download/%s.el"
-                          name))))
-    (plist-put plist :name name)
-    (plist-put plist :closql-id emir--dummy-package)
-    (cond ((epkg name)
-           (plist-put plist :closql-id name))
-          ((assoc name emir-pending-packages)
-           (plist-put plist :status 'pending))
-          (t (--if-let (or (emir--lookup-url (plist-get plist :url))
-                           (cadr (assoc name emir-secondary-packages)))
-                 (progn (plist-put plist :closql-id it)
-                        (plist-put plist :status 'partial))
-               (plist-put plist :status 'new))))
-    (mapcar (lambda (row)
-              (plist-get plist (intern (format ":%s" row))))
-            (cl-coerce (closql--slot-get 'epkg-package 'melpa-recipes :columns)
-                       'list))))
-
 ;;;; Gelpa
 
 ;;;###autoload
@@ -867,76 +798,6 @@ This variable should only be used as a last resort."
   (emir-pull 'epkg-elpa-package)
   (dolist (name (emir--list-packages 'epkg-elpa-packages))
     (emir-import (epkg-elpa-package :name name))))
-
-;;;###autoload
-(defun emir-import-gelpa-recipes ()
-  (interactive)
-  (message "Fetching Gelpa recipes...")
-  (emir-pull 'epkg-elpa-package)
-  (message "Fetching Felpa recipes...done")
-  (message "Importing Gelpa recipes...")
-  (let ((default-directory emir-gelpa-repository)
-	(recipes (make-hash-table :test #'equal :size 300)))
-    (push (list "org" :core nil nil t "git://orgmode.org/org-mode.git")
-          (gethash "org" recipes))
-    (pcase-dolist (`(,name ,type ,url) (emir-gelpa--externals))
-      (message "Importing %s..." name)
-      (push (emir-gelpa--recipe name type url)
-            (gethash (if (epkg name) name emir--dummy-package) recipes))
-      (message "Importing %s...done" name))
-    (dolist (dir (directory-files "packages/" t "^[^.]"))
-      (when (file-directory-p dir)
-	(let ((name (file-name-nondirectory dir)))
-	  (unless (gethash name recipes)
-            (message "Importing %s..." name)
-            (push (emir-gelpa--recipe name)
-                  (gethash (if (epkg name) name emir--dummy-package) recipes))
-            (message "Importing %s...done" name)))))
-    (message "Importing Gelpa recipes...")
-    (emir--insert-recipes 'gelpa-recipes recipes)
-    (message "Importing Gelpa recipes...done")))
-
-(defun emir-gelpa--recipe (name &optional type url)
-  (list name
-        (cond (type)
-              ((cadr (assoc name (emir-gelpa--externals))))
-              ((member name (emir--list-packages 'epkg-elpa-branch-package))
-               :external!)
-              ((member name (emir--list-packages 'epkg-elpa-package))
-               :subtree!))
-        (cond ((epkg name) nil)
-              ((assoc name emir-pending-packages) 'pending)
-              (t 'new))
-        (cond ((member name (emir--list-packages 'epkg-elpa-branch-package))
-               nil)
-              ((with-epkg-repository 'epkg-elpa-package
-                 (--any-p (string-match-p "^[^ ]+ Merge commit" it)
-                          (magit-git-lines "log" "--oneline" "--"
-                                           (concat "packages/" name))))
-               :squash)
-              ((member name '("loccur" "undo-tree"))
-               :squash!)
-              (t
-               :merge))
-        (let ((file (expand-file-name (format "packages/%s/%s.el" name name)
-                                      emir-gelpa-repository)))
-          (if (not (file-exists-p file))
-              t ; assume all externals are released
-            (not (equal (with-temp-buffer
-                          (insert-file-contents file)
-                          (goto-char (point-min))
-                          (or (lm-header "package-version")
-                              (lm-header "version")))
-                        "0"))))
-        (or url
-            (--when-let (epkg name)
-              (oref it url)))))
-
-(defun emir-gelpa--externals ()
-  (with-temp-buffer
-    (insert-file-contents
-     (expand-file-name "externals-list" emir-gelpa-repository))
-    (read (current-buffer))))
 
 ;;;; Utilities
 
@@ -979,19 +840,6 @@ This variable should only be used as a last resort."
       (magit-git "branch" "-f" (concat "directory/" name) "master")
       (magit-git "filter-elpa" name)
       (message "Importing %s...done" name))))
-
-(cl-defmethod emir--list-packages ((class (subclass epkg-elpa-package)))
-  (-mapcat (lambda (line)
-             (setq line (cdr (split-string line)))
-             (and (equal (nth 0 line) "tree")
-                  (list  (nth 2 line))))
-           (with-epkg-repository class
-             (magit-git-lines "ls-tree" "master:packages"))))
-
-(cl-defmethod emir--list-packages ((class (subclass epkg-elpa-branch-package)))
-  (--map (substring it 10)
-         (with-epkg-repository class
-           (magit-list-refnames "refs/heads/externals"))))
 
 ;;; Patch
 
@@ -1174,11 +1022,7 @@ This variable should only be used as a last resort."
                (list 'hline)
                rows))))
 
-(defun emir--melpa-get (name select)
-  (let ((val (car (epkg-sql [:select $i1 :from melpa-recipes
-                             :where (= name $s2)]
-                            select name))))
-    (if (vectorp select) val (car val))))
-
 (provide 'emir)
+(require 'emir-gelpa)
+(require 'emir-melpa)
 ;;; emir.el ends here
