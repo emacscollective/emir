@@ -174,6 +174,8 @@ This variable should only be used as a last resort."
     (oset pkg upstream-user "emacsorphanage"))
   (oset pkg mirror-url (emir--format-url pkg 'mirror-url-format))
   (oset pkg mirrorpage (emir--format-url pkg 'mirrorpage-format))
+  (oset pkg repopage   (emir--format-url pkg 'repopage-format))
+  (oset pkg homepage   (emir--format-url pkg 'homepage-format))
   (closql-insert (epkg-db) pkg)
   (emir-gh-init   pkg)
   (emir-clone     pkg)
@@ -183,6 +185,8 @@ This variable should only be used as a last resort."
 
 (cl-defmethod emir-add ((pkg epkg-builtin-package))
   (oset pkg mirror-name (oref pkg name))
+  (oset pkg repopage (emir--format-url pkg 'repopage-format))
+  (oset pkg homepage (emir--format-url pkg 'homepage-format))
   (closql-insert (epkg-db) pkg)
   (emir-update pkg))
 
@@ -361,7 +365,6 @@ This variable should only be used as a last resort."
             (oset pkg authors     (emir--authors))
             (oset pkg maintainers (emir--maintainers))
             (oset pkg commentary  (elx-commentary nil t))
-            (oset pkg repopage    (emir--repopage pkg))
             (oset pkg homepage    (emir--homepage pkg))
             (oset pkg wikipage    (emir--wikipage pkg)))
         (unless (or (epkg-shelved-package-p pkg)
@@ -603,9 +606,6 @@ This variable should only be used as a last resort."
       (cl-call-next-method)))
 
 (cl-defmethod emir--updated ((_pkg epkg-builtin-package)))
-
-(cl-defmethod emir--repopage ((pkg epkg-package))
-  (emir--format-url pkg 'repopage-format))
 
 (cl-defmethod emir--homepage ((pkg epkg-package))
   (or (caar (epkg-sql [:select page :from pkg-homepages
