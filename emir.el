@@ -453,28 +453,43 @@ This variable should only be used as a last resort."
   (emir-import pkg))
 
 (cl-defmethod emir-clone ((pkg epkg-mirrored-package))
-  (with-slots (name url upstream-branch mirror-url) pkg
-    (with-epkg-repository t
-      (magit-git "submodule" "add" "--name" name
-                 "-b" (or upstream-branch "master")
-                 url (concat "mirror/" name))
+  (with-epkg-repository t
+    (let* ((name  (oref pkg name))
+           (repo  (cl-typecase pkg
+                    (epkg-wiki-package
+                     (file-relative-name emir-ewiki-repository))
+                    (epkg-elpa-package
+                     (file-relative-name emir-gelpa-repository))
+                    (epkg-elpa-branch-package
+                     (file-relative-name emir-gelpa-repository))
+                    (t
+                     (oref pkg url))))
+           (path  (concat "mirror/" name)))
+      (magit-git
+       "clone"
+       "--single-branch"
+       "--branch" (cl-typecase pkg
+                    (epkg-wiki-package        name)
+                    (epkg-elpa-package        (concat "directory/" name))
+                    (epkg-elpa-branch-package (concat "externals/" name))
+                    (t (or (oref pkg upstream-branch) "master")))
+       "--origin" (cl-typecase pkg
+                    (epkg-subset-package  "import")
+                    (t                    "origin"))
+       repo
+       path)
+      (magit-git "submodule" "add" "--name" name repo path)
+      (magit-git "submodule" "absorbgitdirs" path)
       (magit-git "config" "-f" ".gitmodules"
-                 (concat "submodule." name ".url") mirror-url))
-    (with-epkg-repository pkg
-      (when upstream-branch
-        (magit-git "branch" "-M" upstream-branch "master"))
-      (magit-git "remote" "add" "mirror" mirror-url)
-      (magit-call-git "fetch" "mirror"))))
+                 (concat "submodule." name ".url")
+                 (oref pkg mirror-url))))
+  (with-epkg-repository pkg
+    (magit-git "remote" "add" "mirror" (oref pkg mirror-url))))
 
 (cl-defmethod emir-clone :after ((pkg epkg-subtree-package))
+  (with-epkg-repository pkg
+    (magit-git "branch" "--unset-upstream" "master"))
   (emir-pull pkg))
-
-(cl-defmethod emir-clone :before ((pkg epkg-hg-package))
-  ;; `git submodule' doesn't want to use `git remote-hg'
-  (with-slots (name url upstream-branch mirror-url) pkg
-    (with-epkg-repository t
-      (magit-git "clone" "-b" (or upstream-branch "master")
-                 url (concat "mirror/" name)))))
 
 (cl-defmethod emir-clone ((pkg epkg-file-package))
   (let* ((name (oref pkg name))
@@ -489,37 +504,6 @@ This variable should only be used as a last resort."
       (magit-git "remote" "add" "mirror" repo)
       (magit-git "config" "branch.master.remote" "mirror")
       (magit-git "config" "branch.master.merge" "refs/heads/master"))))
-
-(cl-defmethod emir-clone ((pkg epkg-subset-package))
-  (with-slots (name mirror-url) pkg
-    (with-epkg-repository t
-      (magit-git "submodule" "add" "--name" name "-b" "master"
-                 mirror-url (concat "mirror/" name)))
-    (with-epkg-repository pkg
-      (magit-git "remote" "rename" "origin" "mirror")
-      (magit-git "remote" "add" "import"
-                 (file-relative-name (if (epkg-wiki-package-p pkg)
-                                         emir-ewiki-repository
-                                       emir-gelpa-repository)))
-      (magit-git "config" "remote.import.fetch"
-                 (format "refs/heads/%s%s:refs/remotes/import/master"
-                         (pcase (eieio-object-class pkg)
-                           ('epkg-wiki-package "")
-                           ('epkg-elpa-package "directory/")
-                           ('epkg-elpa-branch-package "externals/"))
-                         name))
-      (magit-git "fetch"  "import")
-      (magit-git "config" "--remove-section" "branch.master")
-      (magit-git "branch" "--set-upstream-to=import/master"))))
-
-(cl-defmethod emir-clone ((pkg epkg-mocking-package))
-  (with-slots (name mirror-url) pkg
-    (let ((archive (if (epkg-shelved-package-p pkg) "attic" "mirror")))
-      (with-epkg-repository t
-        (magit-git "submodule" "add" "--name" name "-b" "master"
-                   mirror-url (concat archive "/" name)))
-      (with-epkg-repository pkg
-        (magit-git "remote" "rename" "origin" archive)))))
 
 ;;; Pull
 
