@@ -466,7 +466,10 @@ This variable should only be used as a last resort."
 
 ;;; Clone
 
-(cl-defmethod emir-clone :before ((pkg epkg-subset-package))
+(cl-defmethod emir-clone :before ((pkg epkg-elpa-package))
+  (emir-import pkg))
+
+(cl-defmethod emir-clone :before ((pkg epkg-wiki-package))
   (emir-import pkg))
 
 (cl-defmethod emir-clone ((pkg epkg-mirrored-package))
@@ -1034,8 +1037,6 @@ This variable should only be used as a last resort."
       (magit-git "branch" "-f" (concat "directory/" name) "master")
       (magit-git "filter-elpa" name)
       (message "Importing %s...done" name))))
-
-(cl-defmethod emir-import ((_pkg epkg-elpa-branch-package))) ; noop
 
 (cl-defmethod emir--list-packages ((class (subclass epkg-wiki-package)))
   (with-epkg-repository class
