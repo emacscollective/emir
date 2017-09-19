@@ -205,38 +205,6 @@ This variable should only be used as a last resort."
       (magit-call-git "add" "epkg.sqlite" ".gitmodules"
                       (epkg-repository pkg)))))
 
-(cl-defmethod emir-add ((pkg epkg-mirrored-package))
-  (if-let (url (oref pkg url))
-      (progn
-        (when-let (conflict (and url (cadr (assoc url (epkgs [url name])))))
-          (user-error "Another package, %s, is already mirrored from %s"
-                      conflict url))
-        (when-let (url-format (oref pkg url-format))
-          (pcase-dolist (`(,slot . ,value) (emir--match-url url-format url))
-            (eieio-oset pkg slot value))))
-    (oset pkg url (oref-default pkg url-format)))
-  (oset pkg mirror-name
-        (replace-regexp-in-string "\\+" "-plus" (oref pkg name)))
-  (when (epkg-orphaned-package-p pkg)
-    (oset pkg upstream-user "emacsorphanage"))
-  (oset pkg mirror-url (emir--format-url pkg 'mirror-url-format))
-  (oset pkg mirrorpage (emir--format-url pkg 'mirrorpage-format))
-  (oset pkg repopage   (emir--format-url pkg 'repopage-format))
-  (oset pkg homepage   (emir--format-url pkg 'homepage-format))
-  (closql-insert (epkg-db) pkg)
-  (emir-gh-init   pkg)
-  (emir-clone     pkg)
-  (emir-push      pkg)
-  (emir-update    pkg)
-  (emir-gh-update pkg t))
-
-(cl-defmethod emir-add ((pkg epkg-builtin-package))
-  (oset pkg mirror-name (oref pkg name))
-  (oset pkg repopage (emir--format-url pkg 'repopage-format))
-  (oset pkg homepage (emir--format-url pkg 'homepage-format))
-  (closql-insert (epkg-db) pkg)
-  (emir-update pkg))
-
 (cl-defmethod emir--format-url ((pkg epkg-package) slot)
   (--when-let (eieio-oref-default pkg slot)
     (format-spec it `((?m . ,(oref pkg mirror-name))
@@ -753,6 +721,39 @@ This variable should only be used as a last resort."
 
 ;;; Database
 ;;;; Add
+
+(cl-defmethod emir-add ((pkg epkg-mirrored-package))
+  (if-let (url (oref pkg url))
+      (progn
+        (when-let (conflict (and url (cadr (assoc url (epkgs [url name])))))
+          (user-error "Another package, %s, is already mirrored from %s"
+                      conflict url))
+        (when-let (url-format (oref pkg url-format))
+          (pcase-dolist (`(,slot . ,value) (emir--match-url url-format url))
+            (eieio-oset pkg slot value))))
+    (oset pkg url (oref-default pkg url-format)))
+  (oset pkg mirror-name
+        (replace-regexp-in-string "\\+" "-plus" (oref pkg name)))
+  (when (epkg-orphaned-package-p pkg)
+    (oset pkg upstream-user "emacsorphanage"))
+  (oset pkg mirror-url (emir--format-url pkg 'mirror-url-format))
+  (oset pkg mirrorpage (emir--format-url pkg 'mirrorpage-format))
+  (oset pkg repopage   (emir--format-url pkg 'repopage-format))
+  (oset pkg homepage   (emir--format-url pkg 'homepage-format))
+  (closql-insert (epkg-db) pkg)
+  (emir-gh-init   pkg)
+  (emir-clone     pkg)
+  (emir-push      pkg)
+  (emir-update    pkg)
+  (emir-gh-update pkg t))
+
+(cl-defmethod emir-add ((pkg epkg-builtin-package))
+  (oset pkg mirror-name (oref pkg name))
+  (oset pkg repopage (emir--format-url pkg 'repopage-format))
+  (oset pkg homepage (emir--format-url pkg 'homepage-format))
+  (closql-insert (epkg-db) pkg)
+  (emir-update pkg))
+
 ;;;; Update
 ;;; Extract
 
