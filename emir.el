@@ -498,7 +498,10 @@ This variable should only be used as a last resort."
 
 (cl-defmethod emir-pull ((pkg epkg-mirrored-package))
   (with-epkg-repository pkg
-    (magit-git "pull" "--ff-only" "origin")))
+    (if (oref pkg patched)
+        (progn (magit-git "fetch" "origin")
+               (magit-git "rebase" "@{upstream}"))
+      (magit-git "pull" "--ff-only" "origin"))))
 
 (cl-defmethod emir-pull ((pkg epkg-file-package) &optional force)
   (with-epkg-repository pkg
@@ -555,7 +558,9 @@ This variable should only be used as a last resort."
 
 (cl-defmethod emir-push ((pkg epkg-mirrored-package))
   (with-epkg-repository pkg
-    (magit-git "push" "mirror")))
+    (if (oref pkg patched)
+        (magit-git "push" "--force" "mirror")
+      (magit-git "push" "mirror"))))
 
 (cl-defmethod emir-push ((pkg epkg-subset-package))
   (with-epkg-repository (eieio-object-class pkg)
