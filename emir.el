@@ -132,8 +132,9 @@ This variable should only be used as a last resort."
 (cl-defmethod epkg-repository ((_class (subclass epkg-builtin-package)))
   emir-emacs-repository)
 
-;;; Add
-;;;; Add Package
+;;; Commands
+;;;; Import
+;;;; Add
 
 ;;;###autoload
 (defun emir-add-package (name url class &rest plist)
@@ -227,7 +228,6 @@ This variable should only be used as a last resort."
                (slots (emir--match-url (oref-default class url-format) url)))
     (cdr (assoc slot slots))))
 
-;;;; Add Packages
 
 ;;;###autoload
 (defun emir-add-gelpa-packages (&optional dry-run)
@@ -269,8 +269,7 @@ This variable should only be used as a last resort."
         (message "Adding %s...done" name)))
     (emir--commit "add")))
 
-;;; Update
-;;;; Update Package
+;;;; Update
 
 (defvar emir-failed-updates nil)
 
@@ -336,8 +335,6 @@ This variable should only be used as a last resort."
     (--when-let (magit-mode-get-buffer 'magit-process-mode)
       (kill-buffer it))))
 
-;;;; Update Packages
-
 ;;;###autoload
 (defun emir-update-packages (&optional from)
   (interactive (list (and current-prefix-arg
@@ -351,7 +348,8 @@ This variable should only be used as a last resort."
         (message "Updating %s...done" name))))
   (emir--commit "update"))
 
-;;; Remove
+;;;; Patch
+;;;; Shelve
 
 ;;;###autoload
 (defun emir-remove-package (name)
@@ -375,7 +373,7 @@ This variable should only be used as a last resort."
       (with-epkg-repository t
         (delete-directory (magit-git-dir (concat "modules/" name)) t)))))
 
-;;; Shelve
+;;;; Remove
 
 ;;;###autoload
 (defun emir-shelve-package (name)
@@ -403,7 +401,10 @@ This variable should only be used as a last resort."
     (emir-gh-init pkg)
     (emir-push    pkg)))
 
-;;; Clone
+;;;; Convenience
+;;; Git
+;;;; Import
+;;;; Clone
 
 (cl-defmethod emir-clone :before ((pkg epkg-elpa-package))
   (emir-import pkg))
@@ -464,7 +465,7 @@ This variable should only be used as a last resort."
       (magit-git "config" "branch.master.remote" "mirror")
       (magit-git "config" "branch.master.merge" "refs/heads/master"))))
 
-;;; Pull
+;;;; Pull
 
 (cl-defmethod emir-pull ((pkg epkg-mirrored-package))
   (with-epkg-repository pkg
@@ -521,7 +522,7 @@ This variable should only be used as a last resort."
     (magit-git "checkout" "master")
     (magit-git "pull" "--ff-only" "origin")))
 
-;;; Push
+;;;; Push
 
 (cl-defmethod emir-push ((pkg epkg-mirrored-package))
   (with-epkg-repository pkg
@@ -540,6 +541,10 @@ This variable should only be used as a last resort."
   (with-epkg-repository pkg
     (magit-git "push" "attic")))
 
+;;;; Commit
+;;; Database
+;;;; Add
+;;;; Update
 ;;; Extract
 
 (cl-defmethod emir--updated ((_pkg epkg-package))
@@ -630,8 +635,6 @@ This variable should only be used as a last resort."
                            (push feature provided)
                            (list feature nil reason)))
                        join)))))))
-
-;;; Libraries
 
 (defun emir--builtin-packages-alist ()
   (let ((default-directory emir-emacs-repository))
@@ -726,7 +729,7 @@ This variable should only be used as a last resort."
                          "emacsmirror")
                        (oref pkg mirror-name))))
 
-;;; Import
+;;; -
 
 ;;;###autoload
 (defun emir-import-emacs-packages ()
@@ -787,7 +790,7 @@ This variable should only be used as a last resort."
       (magit-git "filter-elpa" name)
       (message "Importing %s...done" name))))
 
-;;; Patch
+;;; -
 
 ;;;###autoload
 (defun emir-join-provided (pkg feature reason)
@@ -832,7 +835,7 @@ This variable should only be used as a last resort."
     (setf (nth 3 elt) reason)
     (oset pkg required val)))
 
-;;; Find
+;;; -
 
 ;;;###autoload
 (defun emir-find-file (filename &optional wildcards)
@@ -877,7 +880,7 @@ This variable should only be used as a last resort."
          (t
           (expand-file-name (concat name ".org") emir-stats-repository)))))
 
-;;; Utilities
+;;; Urls
 
 ;;;###autoload
 (defun emir-describe-package (package)
