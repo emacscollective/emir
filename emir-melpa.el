@@ -25,76 +25,62 @@
 ;;;###autoload
 (defun emir-import-melpa-recipes (&optional fetch)
   (interactive (list (not current-prefix-arg)))
-  (let ((default-directory emir-melpa-repository)
-        (recipes (make-hash-table :test #'equal :size 6000)))
-    (when fetch
+  (when fetch
+    (let ((default-directory emir-melpa-repository))
       (message "Fetching Melpa recipes...")
       (magit-git "checkout" "master")
       (magit-git "clean" "-fdx" "recipes")
       (magit-git "pull" "--ff-only" "origin")
-      (message "Fetching Melpa recipes...done"))
+      (message "Fetching Melpa recipes...done")))
+  (emacsql-with-transaction (epkg-db)
     (message "Importing Melpa recipes...")
-    (dolist (file (directory-files
-                   (expand-file-name "recipes/" default-directory)
-                   t "^[^.]"))
-      (-let [(epkg-name . recipe)
-             (emir-melpa--recipe file)]
-        (message "Importing %s..." epkg-name)
-        (push recipe (gethash epkg-name recipes))
-        (message "Importing %s...done" epkg-name)))
+    (dolist (name (directory-files (emir-melpa--recipe-file nil) nil "^[^.]"))
+      (message "Updating %s recipe..." name)
+      (emir-import-melpa-recipe name)
+      (message "Updating %s recipe...done" name))
     (message "Importing Melpa recipes...")
-    (emacsql-with-transaction (epkg-db)
-      (emir--insert-recipes 'melpa-recipes recipes)
-      ;; FIXME this should not have to be done explicitly
-      (dolist (elt (epkg-sql [:select name :from melpa-recipes]))
-        (unless (file-exists-p (expand-file-name (concat "recipes/" (car elt))))
-          (epkg-sql [:delete-from melpa-recipes :where (= name $s1)]
-                    (car elt)))))
+    (dolist (name (melpa-recipes 'name))
+      (unless (file-exists-p (emir-melpa--recipe-file name))
+        (message "Removing %s..." name)
+        (closql-delete (melpa-get name))
+        (message "Removing %s...done" name)))
     (message "Importing Melpa recipes...done")))
 
-(defun emir-melpa--recipe (file)
-  (-let* (((name . plist)
-           (with-temp-buffer
-             (insert-file-contents file)
-             (read (current-buffer))))
-          (name (symbol-name name))
-          (repo (plist-get plist :repo)))
-    (pcase (plist-get plist :fetcher)
-      ('github
-       (plist-put plist :url      (format "git@github.com:%s.git" repo))
-       (plist-put plist :repopage (format "https://github.com/%s" repo)))
-      ('gitlab
-       (plist-put plist :url      (format "git@gitlab.com:%s.git" repo))
-       (plist-put plist :repopage (format "https://gitlab.com/%s" repo)))
-      ('bitbucket
-       (plist-put plist :url      (format "hg::ssh://hg@bitbucket.org/%s" repo))
-       (plist-put plist :repopage (format "https://bitbucket.org/%s" repo)))
-      ('wiki
-       (plist-put plist :repopage
-                  (format "https://www.emacswiki.org/emacs/download/%s.el"
-                          name))))
-    (plist-put plist :name name)
-    (plist-put plist :closql-id emir--dummy-package)
+(defun emir-import-melpa-recipe (name)
+  (let* ((rcp   (melpa-get name))
+         (plist (emir-melpa--recipe-plist name))
+         (class (intern (format "melpa-%s-recipe"
+                                (plist-get plist :fetcher)))))
+    (when (and rcp (not (eq (eieio-object-class rcp) class)))
+      (closql-delete rcp)
+      (setq rcp nil))
+    (unless rcp
+      (setq rcp (funcall class :name name))
+      (closql-insert (epkg-db) rcp))
+    (dolist (slot '(url repo files branch commit module version-regexp old-names))
+      (eieio-oset rcp slot (plist-get plist (intern (format ":%s" slot)))))
+    (unless (oref rcp url)
+      (oset rcp url    (emir--format-url rcp 'url-format)))
+    (oset rcp repopage (emir--format-url rcp 'repopage-format))
     (cond ((epkg name)
-           (plist-put plist :closql-id name))
-          ((assoc name emir-pending-packages)
-           (plist-put plist :status 'pending))
-          (t (--if-let (or (emir--lookup-url (plist-get plist :url))
+           (oset rcp epkg-package name))
+          ((not (assoc name emir-pending-packages))
+           (--when-let (or (emir--lookup-url (oref rcp url))
                            (cadr (assoc name emir-secondary-packages)))
-                 (progn (plist-put plist :closql-id it)
-                        (plist-put plist :status 'partial))
-               (plist-put plist :status 'new))))
-    (mapcar (lambda (row)
-              (plist-get plist (intern (format ":%s" row))))
-            (cl-coerce (closql--slot-get 'epkg-package 'melpa-recipes
-                                         :closql-columns)
-                       'list))))
+             (oset rcp epkg-package it))))))
 
-(defun emir--melpa-get (name select)
-  (let ((val (car (epkg-sql [:select $i1 :from melpa-recipes
-                             :where (= name $s2)]
-                            select name))))
-    (if (vectorp select) val (car val))))
+(defun emir-melpa--recipe-plist (name)
+  (with-temp-buffer
+    (insert-file-contents (emir-melpa--recipe-file name))
+    (cdr (read (current-buffer)))))
+
+(defun emir-melpa--recipe-file (name)
+  (expand-file-name (concat "recipes/" name) emir-melpa-repository))
+
+(cl-defmethod emir--format-url ((rcp melpa-recipe) slot)
+  (ignore-errors
+    (--when-let (eieio-oref-default rcp slot)
+      (format-spec it `((?r . ,(oref rcp repo)))))))
 
 (provide 'emir-melpa)
 ;;; emir-melpa.el ends here

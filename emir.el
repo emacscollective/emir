@@ -281,22 +281,20 @@ This variable should only be used as a last resort."
 (defun emir-add-melpa-packages (&optional dry-run)
   (interactive "P")
   (let ((mirrored (epkgs 'url)))
-    (pcase-dolist (`(,name ,fetcher ,url ,branch)
-                   (epkg-sql [:select [name fetcher url branch]
-                              :from melpa-recipes
-                              :order-by [(asc name)]]))
+    (pcase-dolist (`(,name ,class ,url ,branch)
+                   (melpa-recipes [name class url branch]))
       (unless (or (epkg name)
-                  (memq fetcher '(bzr cvs darcs fossil svn))
+                  (memq class '(bzr cvs darcs fossil svn))
                   (member url mirrored)
                   (assoc name emir-pending-packages)
                   (assoc name emir-secondary-packages))
         (message "Adding %s..." name)
         (unless dry-run
           (apply #'emir-add-package name url
-                 (intern (format "epkg-%s-package" fetcher))
-                 (and branch (list :upstream-branch branch))))
+                 (intern (format "epkg-%s-package" class))
+                 (and branch (list :upstream-branch branch)))
+          (oset (melpa-get name) epkg-package name))
         (message "Adding %s...done" name)))
-    (emir-import-melpa-recipes)
     (emir--commit "add %n %p")))
 
 ;;; Update
