@@ -418,9 +418,10 @@ This variable should only be used as a last resort."
 (defun emir-find-org-file (name)
   (interactive
    (list (completing-read "Find org file: "
-                          '("maint" "config"
-                            "compare" "emacsorphanage" "issues"
-                            "kludges" "melpa-missing" "notes"))))
+                          (append '("maint" "config")
+                                  (--map (substring it 0 -4)
+                                         (directory-files emir-stats-repository
+                                                          nil "\\.org\\'"))))))
   (find-file-other-frame
    (cond ((equal name "maint")
           "~/.emacs.d/lib/emir/emir.org")
