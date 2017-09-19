@@ -235,13 +235,14 @@ This variable should only be used as a last resort."
 (defun emir-add-elpa-packages (&optional dry-run)
   (interactive "P")
   (emir-pull 'epkg-elpa-package)
-  (dolist (name (emir--list-packages 'epkg-elpa-package))
+  (dolist (name (gelpa-recipes 'name 'gelpa-subtree-recipe))
     (unless (epkg name)
       (--if-let (assoc name emir-pending-packages)
           (message "Skipping %s (%s)...done" name (cadr it))
         (message "Adding %s..." name)
         (unless dry-run
-          (emir-add (epkg-elpa-package :name name)))
+          (emir-add (epkg-elpa-package :name name))
+          (oset (gelpa-get name) epkg-package name))
         (message "Adding %s...done" name))))
   (unless dry-run
     (emir--commit "add %n elpa %p")))
@@ -250,13 +251,14 @@ This variable should only be used as a last resort."
 (defun emir-add-elpa-branch-packages (&optional dry-run)
   (interactive "P")
   (emir-pull 'epkg-elpa-package)
-  (dolist (name (emir--list-packages 'epkg-elpa-branch-package))
+  (dolist (name (gelpa-recipes 'name 'gelpa-external-recipe))
     (unless (epkg name)
       (--if-let (assoc name emir-pending-packages)
           (message "Skipping %s (%s)...done" name (cadr it))
         (message "Adding %s..." name)
         (unless dry-run
-          (emir-add (epkg-elpa-branch-package :name name)))
+          (emir-add (epkg-elpa-branch-package :name name))
+          (oset (gelpa-get name) epkg-package name))
         (message "Adding %s...done" name))))
   (unless dry-run
     (emir--commit "add %n elpa-branch %p")))
@@ -795,7 +797,7 @@ This variable should only be used as a last resort."
 (defun emir-import-elpa-packages ()
   (interactive)
   (emir-pull 'epkg-elpa-package)
-  (dolist (name (emir--list-packages 'epkg-elpa-packages))
+  (dolist (name (gelpa-recipes 'name 'gelpa-subtree-recipe))
     (emir-import (epkg-elpa-package :name name))))
 
 ;;;; Utilities

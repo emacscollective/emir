@@ -28,82 +28,107 @@
   (message "Fetching Gelpa recipes...")
   (emir-pull 'epkg-elpa-package)
   (message "Fetching Felpa recipes...done")
-  (message "Importing Gelpa recipes...")
-  (let ((default-directory emir-gelpa-repository)
-	(recipes (make-hash-table :test #'equal :size 300)))
-    (push (list "org" :core nil nil t "git://orgmode.org/org-mode.git")
-          (gethash "org" recipes))
-    (pcase-dolist (`(,name ,type ,url) (emir-gelpa--externals))
-      (message "Importing %s..." name)
-      (push (emir-gelpa--recipe name type url)
-            (gethash (if (epkg name) name emir--dummy-package) recipes))
-      (message "Importing %s...done" name))
-    (dolist (dir (directory-files "packages/" t "^[^.]"))
-      (when (file-directory-p dir)
-	(let ((name (file-name-nondirectory dir)))
-	  (unless (gethash name recipes)
-            (message "Importing %s..." name)
-            (push (emir-gelpa--recipe name)
-                  (gethash (if (epkg name) name emir--dummy-package) recipes))
-            (message "Importing %s...done" name)))))
+  (emacsql-with-transaction (epkg-db)
     (message "Importing Gelpa recipes...")
-    (emir--insert-recipes 'gelpa-recipes recipes)
+    (let ((alist (emir-gelpa--package-alist)))
+      (pcase-dolist (`(,name . ,spec) alist)
+        (message "Updating %s recipe..." name)
+        (emir-import-gelpa-recipe name spec)
+        (message "Updating %s recipe...done" name))
+      (message "Importing Gelpa recipes...")
+      (dolist (name (gelpa-recipes 'name))
+        (unless (assoc name alist)
+          (message "Removing %s..." name)
+          (closql-delete (gelpa-get name))
+          (message "Removing %s...done" name))))
     (message "Importing Gelpa recipes...done")))
 
-(defun emir-gelpa--recipe (name &optional type url)
-  (list name
-        (cond (type)
-              ((cadr (assoc name (emir-gelpa--externals))))
-              ((member name (emir--list-packages 'epkg-elpa-branch-package))
-               :external!)
-              ((member name (emir--list-packages 'epkg-elpa-package))
-               :subtree!))
-        (cond ((epkg name) nil)
-              ((assoc name emir-pending-packages) 'pending)
-              (t 'new))
-        (cond ((member name (emir--list-packages 'epkg-elpa-branch-package))
-               nil)
-              ((with-epkg-repository 'epkg-elpa-package
-                 (--any-p (string-match-p "^[^ ]+ Merge commit" it)
-                          (magit-git-lines "log" "--oneline" "--"
-                                           (concat "packages/" name))))
-               :squash)
-              ((member name '("loccur" "undo-tree"))
-               :squash!)
-              (t
-               :merge))
-        (let ((file (expand-file-name (format "packages/%s/%s.el" name name)
-                                      emir-gelpa-repository)))
-          (if (not (file-exists-p file))
-              t ; assume all externals are released
-            (not (equal (with-temp-buffer
-                          (insert-file-contents file)
-                          (goto-char (point-min))
-                          (or (lm-header "package-version")
-                              (lm-header "version")))
-                        "0"))))
-        (or url
-            (--when-let (epkg name)
-              (oref it url)))))
+(defun emir-import-gelpa-recipe (name spec)
+  (let* ((default-directory emir-gelpa-repository)
+         (rcp   (gelpa-get name))
+         (class (pcase (cadr spec)
+                  ('core     'gelpa-builtin-recipe)
+                  ('subtree  'gelpa-subtree-recipe)
+                  ('external 'gelpa-external-recipe))))
+    (when (and rcp (not (eq (eieio-object-class rcp) class)))
+      (closql-delete rcp)
+      (setq rcp nil))
+    (unless rcp
+      (setq rcp (funcall class :name name))
+      (closql-insert (epkg-db) rcp))
+    (oset rcp url          (nth 0 spec))
+    (oset rcp method       (nth 2 spec))
+    (oset rcp released     (nth 3 spec))
+    (oset rcp epkg-package (and (epkg name) name))))
 
-(defun emir-gelpa--externals ()
-  (with-temp-buffer
-    (insert-file-contents
-     (expand-file-name "externals-list" emir-gelpa-repository))
-    (read (current-buffer))))
+(defun emir-gelpa--package-alist ()
+  ;; Be defensive.
+  (let ((default-directory emir-gelpa-repository)
+        (alist (with-temp-buffer
+                 (insert-file-contents
+                  (expand-file-name "externals-list" emir-gelpa-repository))
+                 (read (current-buffer)))))
+    (unless (assoc "org" alist)
+      (push (list "org" :core nil) alist))
+    (dolist (line (magit-git-lines "ls-tree" "master:packages"))
+      (pcase-let ((`(,_ ,object-type ,_ ,name) (split-string line)))
+        (when (equal object-type "tree")
+          (--if-let (assoc name alist)
+              (pcase-let ((`(,_ ,type ,_) it))
+                (unless (eq type :subtree)
+                  (error "`%s's type is `%s' but `packages/%s' also exists"
+                         name type name)))
+            (push (list name :subtree nil) alist)))))
+    (dolist (line (magit-list-refnames "refs/heads/externals"))
+      (let ((name (substring line 10)))
+        (--when-let (assoc name alist)
+          (pcase-let ((`(,_ ,type ,_) it))
+            (unless (eq type :external)
+              (error "`%s's type is `%s' but `externals/%s' also exists"
+                     name type name))))))
+    (mapcar
+     (pcase-lambda (`(,name ,type ,url))
+       (let ((method nil)
+             (released t))
+         (pcase type
+           (:core
+            (setq url nil))
+           (:subtree
+            (unless (file-exists-p
+                     (expand-file-name (concat "packages/" name)))
+              (error "`%s's type is `%s' but `packages/%s' is missing"
+                     name type name))
+            (setq released (emir-gelpa--subtree-released-p name)))
+           (:external
+            (unless (magit-branch-p (concat "externals/" name))
+              (error "`%s's type is `%s' but `externals/%s' is missing"
+                     name type name))))
+         (list name url
+               (intern (substring (symbol-name type) 1))
+               method released)))
+     (cl-sort alist #'string< :key #'car))))
 
-(cl-defmethod emir--list-packages ((class (subclass epkg-elpa-package)))
-  (-mapcat (lambda (line)
-             (setq line (cdr (split-string line)))
-             (and (equal (nth 0 line) "tree")
-                  (list  (nth 2 line))))
-           (with-epkg-repository class
-             (magit-git-lines "ls-tree" "master:packages"))))
+(defun emir-gelpa--subtree-method (name)
+  ;; This function isn't currently used.
+  ;; Also this heuristic might fail.
+  (if (or (--any-p (string-match-p "^[^ ]+ Merge commit" it)
+                   (magit-git-lines "log" "--oneline" "--"
+                                    (concat "packages/" name)))
+          ;; Correct false negatives.
+          (member name (list "loccur" "undo-tree")))
+      'squash
+    'merge))
 
-(cl-defmethod emir--list-packages ((class (subclass epkg-elpa-branch-package)))
-  (--map (substring it 10)
-         (with-epkg-repository class
-           (magit-list-refnames "refs/heads/externals"))))
+(defun emir-gelpa--subtree-released-p (name)
+  ;; See section "Public incubation" in "<gelpa>/README".
+  (not (equal (with-temp-buffer
+                (insert-file-contents
+                 (expand-file-name
+                  (format "packages/%s/%s.el" name name)))
+                (goto-char (point-min))
+                (or (lm-header "package-version")
+                    (lm-header "version")))
+              "0")))
 
 (provide 'emir-gelpa)
 ;;; emir-gelpa.el ends here
