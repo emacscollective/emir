@@ -384,6 +384,21 @@ This variable should only be used as a last resort."
       (with-epkg-repository t
         (delete-directory (magit-git-dir (concat "modules/" name)) t)))))
 
+;;;; Fixup
+
+(defun emir-fixup-modules ()
+  (interactive)
+  (dolist (pkg (epkgs nil '(epkg-mirrored-package--eieio-childp
+                            epkg-shelved-package--eieio-childp)))
+    (let ((name (oref pkg name)))
+      (condition-case err
+          (progn (message "Fixing %s..." name)
+                 (emir-fixup-module pkg)
+                 (message "Fixing %s...done" name))
+        (error
+         (push name emir-failed-updates)
+         (message "Update error: %s" (error-message-string err)))))))
+
 ;;; Git
 ;;;; Import
 
@@ -549,6 +564,48 @@ This variable should only be used as a last resort."
                    "-m" (format "%s %s %s" verb count
                                 (if (> count 1) "packages" "package"))
                    "-i" ".gitmodules" "epkg.sqlite")))))
+
+;;;; Fixup
+
+(cl-defmethod emir-fixup-module ((pkg epkg-package))
+  (let* ((name   (oref pkg name))
+         (mirror (cl-typecase pkg
+                   (epkg-shelved-package "attic")
+                   (t                    "mirror")))
+         (origin (cl-typecase pkg
+                   (epkg-subset-package  "import")
+                   (t                    "origin")))
+         (branch (cl-typecase pkg
+                   (epkg-wiki-package        name)
+                   (epkg-elpa-package        (concat "directory/" name))
+                   (epkg-elpa-branch-package (concat "externals/" name))
+                   (t (or (oref pkg upstream-branch) "master")))))
+    (with-epkg-repository pkg
+      (magit-git "update-ref" "refs/heads/master" (oref pkg hash))
+      (magit-git "checkout" "master")
+      (magit-git "remote" "rename" "origin" mirror)
+      (cl-typecase pkg
+        (epkg-file-package)
+        (epkg-minority-package)
+        (epkg-shelved-package)
+        (t
+         (magit-git
+          "remote" "add" "-f" "-t" branch origin
+          (cl-typecase pkg
+            (epkg-wiki-package        (file-relative-name emir-ewiki-repository))
+            (epkg-elpa-package        (file-relative-name emir-gelpa-repository))
+            (epkg-elpa-branch-package (file-relative-name emir-gelpa-repository))
+            (t (oref pkg url))))))
+      (cl-typecase pkg
+        (epkg-file-package)
+        (epkg-minority-package)
+        (epkg-subtree-package
+         (magit-git "branch" "--unset-upstream" "master"))
+        (epkg-shelved-package
+         (magit-git "branch" "--unset-upstream" "master"))
+        (t
+         (magit-git "branch" (format "--set-upstream-to=%s/%s"
+                                     origin branch)))))))
 
 ;;; Database
 ;;;; Add
