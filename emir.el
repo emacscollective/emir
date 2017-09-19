@@ -49,8 +49,6 @@
 (defvar finder--builtins-alist)
 (declare-function org-publish 'ox-publish)
 
-(defconst emir--dummy-package "emir--dummy-package")
-
 (cl-pushnew (expand-file-name
              "bin" (file-name-directory (or load-file-name buffer-file-name)))
             exec-path :test #'equal)
@@ -262,22 +260,6 @@ This variable should only be used as a last resort."
         (message "Adding %s...done" name))))
   (unless dry-run
     (emir--commit "add %n elpa-branch %p")))
-
-;;;###autoload
-(defun emir-add-builtin-packages (&optional dry-run)
-  (interactive "P")
-  (dolist (name (epkg-sql [:select :distinct name :from builtin-libraries
-                           :order-by (asc name)]))
-    (setq  name (car name))
-    (unless (epkg name)
-      (--if-let (assoc name emir-pending-packages)
-          (message "Skipping %s (%s)...done" name (cadr it))
-        (message "Adding %s..." name)
-        (unless dry-run
-          (emir-add (epkg-builtin-package :name name)))
-        (message "Adding %s...done" name))))
-  (unless dry-run
-    (emir--commit "add %n builtin %p")))
 
 ;;;###autoload
 (defun emir-add-melpa-packages (&optional dry-run)
@@ -661,6 +643,51 @@ This variable should only be used as a last resort."
                            (list feature nil reason)))
                        join)))))))
 
+;;; Libraries
+
+(defun emir--builtin-packages-alist ()
+  (let ((default-directory emir-emacs-repository))
+    (-group-by
+     #'car
+     (cl-sort
+      (cl-mapcan
+       (lambda (file)
+         (message "Importing %s..." file)
+         (and (string-suffix-p ".el" file)
+              (not (string-match-p finder-no-scan-regexp file))
+              (not (member file
+                           '("lisp/gnus/.dir-locals.el"
+                             ;; Old versions:
+                             "lisp/obsolete/old-emacs-lock.el"
+                             "lisp/obsolete/old-whitespace.el"
+                             "lisp/obsolete/otodo-mode.el"
+                             ;; Moved to GNU Elpa:
+                             "lisp/obsolete/crisp.el"
+                             "lisp/obsolete/landmark.el")))
+              (with-temp-buffer
+                (insert-file-contents file)
+                (let ((package
+                       (cond
+                        ((not features) "emacs")
+                        ((string-prefix-p "lisp/term/"     file) "emacs")
+                        ((string-prefix-p "lisp/leim/"     file) "emacs")
+                        ((string-prefix-p "lisp/obsolete/" file) "emacs")
+                        ((lm-header "Package"))
+                        ((--when-let (assoc (-> file
+                                                file-name-directory
+                                                directory-file-name
+                                                file-name-nondirectory)
+                                            finder--builtins-alist)
+                           (symbol-name (cdr it))))
+                        ((-> file
+                             file-name-nondirectory
+                             file-name-sans-extension)))))
+                  (--map (list package file it)
+                         (or (packed-provided)
+                             (list nil)))))))
+       (magit-git-items "ls-tree" "-z" "-r" "--name-only" "HEAD" "lisp/"))
+      #'string< :key #'car))))
+
 ;;; Github
 
 (cl-defmethod emir-gh-init ((pkg epkg-package))
@@ -712,7 +739,23 @@ This variable should only be used as a last resort."
                        (oref pkg mirror-name))))
 
 ;;; Import
-;;;; Wiki
+
+;;;###autoload
+(defun emir-import-emacs-packages ()
+  (let ((default-directory emir-emacs-repository)
+        (alist (emir--builtin-packages-alist)))
+    (magit-git "checkout" emir-emacs-reference)
+    (pcase-dolist (`(,name . ,value) alist)
+      (oset (or (epkg name)
+                (emir-add (epkg-builtin-package :name name)))
+            builtin-libraries value))
+    (dolist (pkg (epkgs))
+      (when (and (oref pkg builtin-libraries)
+                 (not (assoc (oref pkg name) alist)))
+        (message "Deleting %s..." (oref pkg name))
+        (if (epkg-builtin-package-p pkg)
+            (closql-delete pkg)
+          (oset pkg builtin-libraries nil))))))
 
 ;;;###autoload
 (defun emir-import-wiki-packages (&optional drew-only)
@@ -731,98 +774,12 @@ This variable should only be used as a last resort."
       (message "Importing wiki packages asynchronously...")
       (magit-run-git-async "filter-emacswiki" "--tag" "--notes"))))
 
-;;;; Emacs
-
-;;;###autoload
-(defun emir-import-builtin-libraries ()
-  (interactive)
-  (message "Importing builtin libraries...")
-  (let ((recipes (make-hash-table :test #'equal :size 500)))
-    (dolist (file (emir--list-builtin-libraries))
-      (message "Importing %s..." file)
-      (pcase-dolist (`(,epkg-name . ,recipe)
-                     (emir-emacs--libraries file))
-        (push recipe (gethash epkg-name recipes)))
-      (message "Importing %s...done" file))
-    (message "Importing builtin libraries...")
-    (emir--insert-recipes 'builtin-libraries recipes)
-    (message "Importing builtin libraries...done")))
-
-(defun emir-emacs--libraries (file)
-  (with-epkg-repository 'epkg-builtin-package
-    (magit-git "checkout" emir-emacs-reference))
-  (with-temp-buffer
-    (insert-file-contents (expand-file-name file emir-emacs-repository))
-    (let* ((features (packed-provided))
-           (name (cond ((not features) "emacs")
-                       ((string-prefix-p "lisp/term/"     file) "emacs")
-                       ((string-prefix-p "lisp/leim/"     file) "emacs")
-                       ((string-prefix-p "lisp/obsolete/" file) "emacs")
-                       ((lm-header "Package"))
-                       ((--when-let (assoc (-> file
-                                               file-name-directory
-                                               directory-file-name
-                                               file-name-nondirectory)
-                                           finder--builtins-alist)
-                          (symbol-name (cdr it))))
-                       ((-> file
-                            file-name-nondirectory
-                            file-name-sans-extension))))
-           (epkg (epkg name)))
-      (mapcar (lambda (feature)
-                (list (if epkg name emir--dummy-package)
-                      file feature name))
-             (or features (list nil))))))
-
-(defun emir--list-builtin-libraries ()
-  (let ((default-directory emir-emacs-repository))
-    (-filter (lambda (file)
-               (and (string-match-p "\\.el$" file)
-                    (not (string-match-p finder-no-scan-regexp file))
-                    (not (member file
-                                 '("lisp/gnus/.dir-locals.el"
-                                   ;; Old versions:
-                                   "lisp/obsolete/old-emacs-lock.el"
-                                   "lisp/obsolete/old-whitespace.el"
-                                   "lisp/obsolete/otodo-mode.el"
-                                   ;; Moved to GNU Elpa:
-                                   "lisp/obsolete/crisp.el"
-                                   "lisp/obsolete/landmark.el")))))
-             (magit-git-items "ls-tree" "-z" "-r" "--name-only"
-                              "HEAD" "lisp/"))))
-
-;;;; Gelpa
-
 ;;;###autoload
 (defun emir-import-elpa-packages ()
   (interactive)
   (emir-pull 'epkg-elpa-package)
   (dolist (name (gelpa-recipes 'name 'gelpa-subtree-recipe))
     (emir-import (epkg-elpa-package :name name))))
-
-;;;; Utilities
-
-(defun emir--insert-recipes (slot recipes)
-  (let ((dummy-epkg (epkg-orphaned-package :name emir--dummy-package))
-        (db (epkg-db)))
-    (emacsql-with-transaction db
-      (unless (gethash emir--dummy-package recipes)
-        (epkg-sql [:delete-from $i1
-                   :where (isnull closql-id)]
-                  slot))
-      (closql-insert db dummy-epkg)
-      (epkg-sql [:update $i1
-                 :set    (= closql-id $s2)
-                 :where  (isnull closql-id)]
-                slot emir--dummy-package nil)
-      (maphash (lambda (key val)
-                 (eieio-oset (epkg key) slot val))
-               recipes)
-      (epkg-sql [:update $i1
-                 :set    (= closql-id $s2)
-                 :where  (= closql-id $s3)]
-                slot nil emir--dummy-package)
-      (closql-delete dummy-epkg))))
 
 (defun emir--lookup-url (url)
   (caar (epkg-sql [:select name :from packages :where (= url $s1)] url)))
