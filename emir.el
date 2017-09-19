@@ -304,47 +304,6 @@ This variable should only be used as a last resort."
        (push (oref pkg name) emir-failed-updates)
        (message "Update error: %s" (error-message-string err))))))
 
-(cl-defmethod emir-update ((pkg epkg-package))
-  (with-epkg-repository pkg
-    (with-slots (name hash libraries library) pkg
-      (setf hash (magit-rev-parse "HEAD"))
-      (when (epkg-builtin-package-p pkg)
-        (setf libraries
-              (mapcar #'car (epkg-sql [:select library :from builtin-libraries
-                                       :where (= name $s1)]
-                                      name)))
-        (unless (equal name "emacs")
-          (setf library
-                (or (let ((main (concat "/" name ".el")))
-                      (--first (string-suffix-p main it) libraries))
-                    library))))
-      (--if-let (or library
-                    (ignore-errors
-                      (let ((load-suffixes '(".el" ".el.in" ".el.tmpl"))
-                            (load-file-rep-suffixes '("")))
-                        (packed-main-library default-directory name nil t))))
-          (with-temp-buffer
-            (insert-file-contents it)
-            (oset pkg summary     (elx-summary nil t))
-            (oset pkg keywords    (elx-keywords-list nil t t))
-            (oset pkg license     (elx-license))
-            (oset pkg created     (elx-created))
-            (oset pkg updated     (emir--updated pkg))
-            (oset pkg authors     (emir--authors))
-            (oset pkg maintainers (emir--maintainers))
-            (oset pkg commentary  (elx-commentary nil t))
-            (oset pkg homepage    (emir--homepage pkg))
-            (oset pkg wikipage    (emir--wikipage pkg)))
-        (unless (or (epkg-shelved-package-p pkg)
-                    (equal name "emacs"))
-          (error "Cannot determine main library"))))
-    (pcase-let ((`(,required ,provided)
-                 (emir--features pkg)))
-      (oset pkg required required)
-      (oset pkg provided provided))
-    (--when-let (magit-mode-get-buffer 'magit-process-mode)
-      (kill-buffer it))))
-
 ;;;###autoload
 (defun emir-update-packages (&optional from)
   (interactive (list (and current-prefix-arg
@@ -755,6 +714,48 @@ This variable should only be used as a last resort."
   (emir-update pkg))
 
 ;;;; Update
+
+(cl-defmethod emir-update ((pkg epkg-package))
+  (with-epkg-repository pkg
+    (with-slots (name hash libraries library) pkg
+      (setf hash (magit-rev-parse "HEAD"))
+      (when (epkg-builtin-package-p pkg)
+        (setf libraries
+              (mapcar #'car (epkg-sql [:select library :from builtin-libraries
+                                       :where (= name $s1)]
+                                      name)))
+        (unless (equal name "emacs")
+          (setf library
+                (or (let ((main (concat "/" name ".el")))
+                      (--first (string-suffix-p main it) libraries))
+                    library))))
+      (--if-let (or library
+                    (ignore-errors
+                      (let ((load-suffixes '(".el" ".el.in" ".el.tmpl"))
+                            (load-file-rep-suffixes '("")))
+                        (packed-main-library default-directory name nil t))))
+          (with-temp-buffer
+            (insert-file-contents it)
+            (oset pkg summary     (elx-summary nil t))
+            (oset pkg keywords    (elx-keywords-list nil t t))
+            (oset pkg license     (elx-license))
+            (oset pkg created     (elx-created))
+            (oset pkg updated     (emir--updated pkg))
+            (oset pkg authors     (emir--authors))
+            (oset pkg maintainers (emir--maintainers))
+            (oset pkg commentary  (elx-commentary nil t))
+            (oset pkg homepage    (emir--homepage pkg))
+            (oset pkg wikipage    (emir--wikipage pkg)))
+        (unless (or (epkg-shelved-package-p pkg)
+                    (equal name "emacs"))
+          (error "Cannot determine main library"))))
+    (pcase-let ((`(,required ,provided)
+                 (emir--features pkg)))
+      (oset pkg required required)
+      (oset pkg provided provided))
+    (--when-let (magit-mode-get-buffer 'magit-process-mode)
+      (kill-buffer it))))
+
 ;;; Extract
 
 (cl-defmethod emir--updated ((_pkg epkg-package))
