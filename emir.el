@@ -205,40 +205,6 @@ This variable should only be used as a last resort."
       (magit-call-git "add" "epkg.sqlite" ".gitmodules"
                       (epkg-repository pkg)))))
 
-(cl-defmethod emir--format-url ((pkg epkg-package) slot)
-  (--when-let (eieio-oref-default pkg slot)
-    (format-spec it `((?m . ,(oref pkg mirror-name))
-                      (?n . ,(oref pkg upstream-name))
-                      (?u . ,(oref pkg upstream-user))))))
-
-(defun emir--match-url (format url)
-  (with-temp-buffer
-    (insert (regexp-quote format))
-    (goto-char (point-min))
-    (let (slots)
-      (save-match-data
-        (while (re-search-forward "%\\(.\\)" nil t)
-          (push (cdr (assq (string-to-char (match-string 1))
-                           '((?m . mirror-name)
-                             (?n . upstream-name)
-                             (?u . upstream-user))))
-                slots)
-          (replace-match "\\([^/]+\\)" t t))
-        (and (string-match (concat "^" (buffer-string) "$") url)
-             (let ((i 0))
-               (--map (cons it (match-string (cl-incf i) url))
-                      (nreverse slots))))))))
-
-(defun emir--url-to-class (url)
-  (--first (ignore-errors (emir--match-url (oref-default it url-format) url))
-           (closql--list-subclasses 'epkg-package)))
-
-(defun emir--url-get (url slot)
-  (-when-let* ((class (emir--url-to-class url))
-               (slots (emir--match-url (oref-default class url-format) url)))
-    (cdr (assoc slot slots))))
-
-
 ;;;###autoload
 (defun emir-add-gelpa-packages (&optional dry-run)
   (interactive "P")
@@ -941,6 +907,39 @@ This variable should only be used as a last resort."
                        (oref pkg mirror-name))))
 
 ;;; Urls
+
+(cl-defmethod emir--format-url ((pkg epkg-package) slot)
+  (--when-let (eieio-oref-default pkg slot)
+    (format-spec it `((?m . ,(oref pkg mirror-name))
+                      (?n . ,(oref pkg upstream-name))
+                      (?u . ,(oref pkg upstream-user))))))
+
+(defun emir--match-url (format url)
+  (with-temp-buffer
+    (insert (regexp-quote format))
+    (goto-char (point-min))
+    (let (slots)
+      (save-match-data
+        (while (re-search-forward "%\\(.\\)" nil t)
+          (push (cdr (assq (string-to-char (match-string 1))
+                           '((?m . mirror-name)
+                             (?n . upstream-name)
+                             (?u . upstream-user))))
+                slots)
+          (replace-match "\\([^/]+\\)" t t))
+        (and (string-match (concat "^" (buffer-string) "$") url)
+             (let ((i 0))
+               (--map (cons it (match-string (cl-incf i) url))
+                      (nreverse slots))))))))
+
+(defun emir--url-to-class (url)
+  (--first (ignore-errors (emir--match-url (oref-default it url-format) url))
+           (closql--list-subclasses 'epkg-package)))
+
+(defun emir--url-get (url slot)
+  (-when-let* ((class (emir--url-to-class url))
+               (slots (emir--match-url (oref-default class url-format) url)))
+    (cdr (assoc slot slots))))
 
 (defun emir--lookup-url (url)
   (caar (epkg-sql [:select name :from packages :where (= url $s1)] url)))
