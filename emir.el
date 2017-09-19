@@ -247,7 +247,7 @@ This variable should only be used as a last resort."
         (oset (gelpa-get name) epkg-package name))
       (message "Adding %s...done" name)))
   (unless dry-run
-    (emir--commit "add %n %p")))
+    (emir--commit "add")))
 
 ;;;###autoload
 (defun emir-add-melpa-packages (&optional dry-run)
@@ -267,7 +267,7 @@ This variable should only be used as a last resort."
                  (and branch (list :upstream-branch branch)))
           (oset (melpa-get name) epkg-package name))
         (message "Adding %s...done" name)))
-    (emir--commit "add %n %p")))
+    (emir--commit "add")))
 
 ;;; Update
 ;;;; Update Package
@@ -349,7 +349,7 @@ This variable should only be used as a last resort."
         (message "Updating %s..." name)
         (emir-update-package name)
         (message "Updating %s...done" name))))
-  (emir--commit "update %n %p"))
+  (emir--commit "update"))
 
 ;;; Remove
 
@@ -936,17 +936,14 @@ This variable should only be used as a last resort."
 (defun emir-read-url (prompt)
   (magit-read-string prompt nil 'emir-url-history nil nil t))
 
-(defun emir--commit (message &rest include)
+(defun emir--commit (verb)
   (with-epkg-repository t
     (let ((count (length (magit-staged-files nil "mirror"))))
       (when (> count 0)
-        (emir--sort-submodule-sections)
         (magit-git "commit"
-                   "-m" (format-spec
-                         message
-                         `((?n . ,(number-to-string count))
-                           (?p . ,(if (> count 1) "packages" "package"))))
-                   "-i" ".gitmodules" "epkg.sqlite" include)))))
+                   "-m" (format "%s %s %s" verb count
+                                (if (> count 1) "packages" "package"))
+                   "-i" ".gitmodules" "epkg.sqlite")))))
 
 (defun emir--normalize-wikipage (string)
   (->> string
