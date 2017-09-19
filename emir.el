@@ -134,6 +134,48 @@ This variable should only be used as a last resort."
 
 ;;; Commands
 ;;;; Import
+
+;;;###autoload
+(defun emir-import-emacs-packages ()
+  (let ((default-directory emir-emacs-repository)
+        (alist (emir--builtin-packages-alist)))
+    (magit-git "checkout" emir-emacs-reference)
+    (pcase-dolist (`(,name . ,value) alist)
+      (oset (or (epkg name)
+                (emir-add (epkg-builtin-package :name name)))
+            builtin-libraries value))
+    (dolist (pkg (epkgs))
+      (when (and (oref pkg builtin-libraries)
+                 (not (assoc (oref pkg name) alist)))
+        (message "Deleting %s..." (oref pkg name))
+        (if (epkg-builtin-package-p pkg)
+            (closql-delete pkg)
+          (oset pkg builtin-libraries nil))))))
+
+;;;###autoload
+(defun emir-import-ewiki-packages (&optional drew-only)
+  (interactive "p")
+  (with-epkg-repository 'epkg-wiki-package
+    (magit-git "checkout" "master")
+    (magit-git "pull" "--ff-only" "origin")
+    (magit-process-buffer)
+    (if drew-only
+        (--each (epkg-sql [:select :distinct [packages:name]
+                           :from [packages authors]
+                           :where (and (= packages:name authors:package)
+                                       (= packages:class 'wiki)
+                                       (= authors:name "Drew Adams"))])
+          (emir-import (epkg-wiki-package :name (car it))))
+      (message "Importing wiki packages asynchronously...")
+      (magit-run-git-async "filter-emacswiki" "--tag" "--notes"))))
+
+;;;###autoload
+(defun emir-import-gelpa-packages ()
+  (interactive)
+  (emir-pull 'epkg-elpa-package)
+  (dolist (name (gelpa-recipes 'name 'gelpa-subtree-recipe))
+    (emir-import (epkg-elpa-package :name name))))
+
 ;;;; Add
 
 ;;;###autoload
@@ -404,6 +446,22 @@ This variable should only be used as a last resort."
 ;;;; Convenience
 ;;; Git
 ;;;; Import
+
+(cl-defmethod emir-import ((pkg epkg-wiki-package))
+  (with-epkg-repository 'epkg-wiki-package
+    (with-slots (name) pkg
+      (message "Importing %s..." name)
+      (magit-git "filter-emacswiki" "--tag" "--notes" name)
+      (message "Importing %s...done" name))))
+
+(cl-defmethod emir-import ((pkg epkg-elpa-package))
+  (with-epkg-repository 'epkg-elpa-package
+    (with-slots (name) pkg
+      (message "Importing %s..." name)
+      (magit-git "branch" "-f" (concat "directory/" name) "master")
+      (magit-git "filter-elpa" name)
+      (message "Importing %s...done" name))))
+
 ;;;; Clone
 
 (cl-defmethod emir-clone :before ((pkg epkg-elpa-package))
@@ -731,64 +789,8 @@ This variable should only be used as a last resort."
 
 ;;; -
 
-;;;###autoload
-(defun emir-import-emacs-packages ()
-  (let ((default-directory emir-emacs-repository)
-        (alist (emir--builtin-packages-alist)))
-    (magit-git "checkout" emir-emacs-reference)
-    (pcase-dolist (`(,name . ,value) alist)
-      (oset (or (epkg name)
-                (emir-add (epkg-builtin-package :name name)))
-            builtin-libraries value))
-    (dolist (pkg (epkgs))
-      (when (and (oref pkg builtin-libraries)
-                 (not (assoc (oref pkg name) alist)))
-        (message "Deleting %s..." (oref pkg name))
-        (if (epkg-builtin-package-p pkg)
-            (closql-delete pkg)
-          (oset pkg builtin-libraries nil))))))
-
-;;;###autoload
-(defun emir-import-ewiki-packages (&optional drew-only)
-  (interactive "p")
-  (with-epkg-repository 'epkg-wiki-package
-    (magit-git "checkout" "master")
-    (magit-git "pull" "--ff-only" "origin")
-    (magit-process-buffer)
-    (if drew-only
-        (--each (epkg-sql [:select :distinct [packages:name]
-                           :from [packages authors]
-                           :where (and (= packages:name authors:package)
-                                       (= packages:class 'wiki)
-                                       (= authors:name "Drew Adams"))])
-          (emir-import (epkg-wiki-package :name (car it))))
-      (message "Importing wiki packages asynchronously...")
-      (magit-run-git-async "filter-emacswiki" "--tag" "--notes"))))
-
-;;;###autoload
-(defun emir-import-gelpa-packages ()
-  (interactive)
-  (emir-pull 'epkg-elpa-package)
-  (dolist (name (gelpa-recipes 'name 'gelpa-subtree-recipe))
-    (emir-import (epkg-elpa-package :name name))))
-
 (defun emir--lookup-url (url)
   (caar (epkg-sql [:select name :from packages :where (= url $s1)] url)))
-
-(cl-defmethod emir-import ((pkg epkg-wiki-package))
-  (with-epkg-repository 'epkg-wiki-package
-    (with-slots (name) pkg
-      (message "Importing %s..." name)
-      (magit-git "filter-emacswiki" "--tag" "--notes" name)
-      (message "Importing %s...done" name))))
-
-(cl-defmethod emir-import ((pkg epkg-elpa-package))
-  (with-epkg-repository 'epkg-elpa-package
-    (with-slots (name) pkg
-      (message "Importing %s..." name)
-      (magit-git "branch" "-f" (concat "directory/" name) "master")
-      (magit-git "filter-elpa" name)
-      (message "Importing %s...done" name))))
 
 ;;; -
 
