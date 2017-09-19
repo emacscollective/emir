@@ -787,12 +787,25 @@ This variable should only be used as a last resort."
 
 (cl-defmethod emir-gh-init ((pkg epkg-github-package))
   (with-slots (mirror-name upstream-user upstream-name) pkg
-    (ghub-post (format "/repos/%s/%s/forks" upstream-user upstream-name)
-               nil '((organization . "emacsmirror")))
-    (ghub-wait (format "/repos/emacsmirror/%s" upstream-name))
-    (unless (equal mirror-name upstream-name)
-      (ghub-patch (format "/repos/emacsmirror/%s" upstream-name)
-                  nil `((name . ,mirror-name))))))
+    (if (cl-flet ((forked
+                   (rsp key)
+                   (--when-let (cdr (assq 'full_name (cdr (assq key rsp))))
+                     (cl-find-if
+                      (lambda (fork)
+                        (equal (cdr (assq 'login (cdr (assq 'owner fork))))
+                               "emacsmirror"))
+                      (ghub-get (format "/repos/%s/forks" it))))))
+          (let ((rsp (ghub-get (format "/repos/%s/%s"
+                                       upstream-user upstream-name))))
+            (or (forked rsp 'source)
+                (forked rsp 'parent))))
+        (cl-call-next-method)
+      (ghub-post (format "/repos/%s/%s/forks" upstream-user upstream-name)
+                 nil '((organization . "emacsmirror")))
+      (ghub-wait (format "/repos/emacsmirror/%s" upstream-name))
+      (unless (equal mirror-name upstream-name)
+        (ghub-patch (format "/repos/emacsmirror/%s" upstream-name)
+                    nil `((name . ,mirror-name)))))))
 
 (cl-defmethod emir-gh-unsubscribe :after ((pkg epkg-package))
   (let ((org  (if (epkg-shelved-package-p pkg) "emacsattic" "emacsmirror"))
