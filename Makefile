@@ -1,6 +1,7 @@
 ELS   = emir.el
 ELS  += emir-gelpa.el
 ELS  += emir-melpa.el
+ELS  += emir-utils.el
 ELCS  = $(ELS:.el=.elc)
 
 DEPS  = borg
