@@ -230,36 +230,25 @@ This variable should only be used as a last resort."
 ;;;; Add Packages
 
 ;;;###autoload
-(defun emir-add-elpa-packages (&optional dry-run)
+(defun emir-add-gelpa-packages (&optional dry-run)
   (interactive "P")
   (emir-pull 'epkg-elpa-package)
-  (dolist (name (gelpa-recipes 'name 'gelpa-subtree-recipe))
+  (pcase-dolist (`(,name ,class)
+                 (gelpa-recipes [name class]
+                                '(gelpa-subtree-recipe
+                                  gelpa-external-recipe)))
     (unless (epkg name)
       (--if-let (assoc name emir-pending-packages)
           (message "Skipping %s (%s)...done" name (cadr it))
         (message "Adding %s..." name)
         (unless dry-run
-          (emir-add (epkg-elpa-package :name name))
+          (emir-add (cl-case class
+                      (subtree  (epkg-elpa-package        :name name))
+                      (external (epkg-elpa-branch-package :name name))))
           (oset (gelpa-get name) epkg-package name))
         (message "Adding %s...done" name))))
   (unless dry-run
-    (emir--commit "add %n elpa %p")))
-
-;;;###autoload
-(defun emir-add-elpa-branch-packages (&optional dry-run)
-  (interactive "P")
-  (emir-pull 'epkg-elpa-package)
-  (dolist (name (gelpa-recipes 'name 'gelpa-external-recipe))
-    (unless (epkg name)
-      (--if-let (assoc name emir-pending-packages)
-          (message "Skipping %s (%s)...done" name (cadr it))
-        (message "Adding %s..." name)
-        (unless dry-run
-          (emir-add (epkg-elpa-branch-package :name name))
-          (oset (gelpa-get name) epkg-package name))
-        (message "Adding %s...done" name))))
-  (unless dry-run
-    (emir--commit "add %n elpa-branch %p")))
+    (emir--commit "add %n %p")))
 
 ;;;###autoload
 (defun emir-add-melpa-packages (&optional dry-run)
