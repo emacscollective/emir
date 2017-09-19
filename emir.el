@@ -350,7 +350,9 @@ This variable should only be used as a last resort."
       (magit-git "remote" "rename" "mirror" "attic")
       (magit-git "remote" "set-url" "attic" (oref pkg mirror-url)))
     (with-epkg-repository t
-      (magit-git "submodule" "sync" (concat "attic/" name))
+      (magit-git "config" "-f" ".gitmodules"
+                 (concat "submodule." name ".url")
+                 (oref pkg mirror-url))
       (magit-git "add" ".gitmodules" "epkg.sqlite"))
     (emir-update  pkg)
     (emir-gh-init pkg)
