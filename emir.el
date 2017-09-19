@@ -391,6 +391,50 @@ This variable should only be used as a last resort."
   (emir--commit "update"))
 
 ;;;; Patch
+
+;;;###autoload
+(defun emir-join-provided (pkg feature reason)
+  (interactive
+   (let* ((pkg      (epkg (epkg-read-package "Package: ")))
+          (features (oref pkg provided))
+          (feature  (intern (read-string "Join provide: ")))
+          (reason   (read-string "Reason: " (nth 2 (assq feature features)))))
+     (list pkg feature reason)))
+  (let* ((val (oref pkg provided))
+         (elt (assq feature val)))
+    (if elt
+        (progn (setf (nth 2 elt) reason)
+               (oset pkg provided val))
+      (oset pkg provided (cons (list feature nil reason) val)))))
+
+;;;###autoload
+(defun emir-drop-provided (pkg feature reason)
+  (interactive
+   (let* ((pkg      (epkg (epkg-read-package "Package: ")))
+          (features (oref pkg provided))
+          (feature  (intern (completing-read "Drop provide: " features nil t)))
+          (reason   (read-string "Reason: " (nth 1 (assq feature features)))))
+     (list pkg feature
+           (and (not (equal reason "")) reason))))
+  (let* ((val (oref pkg provided))
+         (elt (assq feature val)))
+    (setf (nth 1 elt) reason)
+    (oset pkg provided val)))
+
+;;;###autoload
+(defun emir-drop-required (pkg feature reason)
+  (interactive
+   (let* ((pkg      (epkg (epkg-read-package "Package: ")))
+          (features (oref pkg required))
+          (feature  (intern (completing-read "Drop required: " features nil t)))
+          (reason   (read-string "Reason: " (nth 3 (assq feature features)))))
+     (list pkg feature
+           (and (not (equal reason "")) reason))))
+  (let* ((val (oref pkg required))
+         (elt (assq feature val)))
+    (setf (nth 3 elt) reason)
+    (oset pkg required val)))
+
 ;;;; Shelve
 
 ;;;###autoload
@@ -791,51 +835,6 @@ This variable should only be used as a last resort."
 
 (defun emir--lookup-url (url)
   (caar (epkg-sql [:select name :from packages :where (= url $s1)] url)))
-
-;;; -
-
-;;;###autoload
-(defun emir-join-provided (pkg feature reason)
-  (interactive
-   (let* ((pkg      (epkg (epkg-read-package "Package: ")))
-          (features (oref pkg provided))
-          (feature  (intern (read-string "Join provide: ")))
-          (reason   (read-string "Reason: " (nth 2 (assq feature features)))))
-     (list pkg feature reason)))
-  (let* ((val (oref pkg provided))
-         (elt (assq feature val)))
-    (if elt
-        (progn (setf (nth 2 elt) reason)
-               (oset pkg provided val))
-      (oset pkg provided (cons (list feature nil reason) val)))))
-
-;;;###autoload
-(defun emir-drop-provided (pkg feature reason)
-  (interactive
-   (let* ((pkg      (epkg (epkg-read-package "Package: ")))
-          (features (oref pkg provided))
-          (feature  (intern (completing-read "Drop provide: " features nil t)))
-          (reason   (read-string "Reason: " (nth 1 (assq feature features)))))
-     (list pkg feature
-           (and (not (equal reason "")) reason))))
-  (let* ((val (oref pkg provided))
-         (elt (assq feature val)))
-    (setf (nth 1 elt) reason)
-    (oset pkg provided val)))
-
-;;;###autoload
-(defun emir-drop-required (pkg feature reason)
-  (interactive
-   (let* ((pkg      (epkg (epkg-read-package "Package: ")))
-          (features (oref pkg required))
-          (feature  (intern (completing-read "Drop required: " features nil t)))
-          (reason   (read-string "Reason: " (nth 3 (assq feature features)))))
-     (list pkg feature
-           (and (not (equal reason "")) reason))))
-  (let* ((val (oref pkg required))
-         (elt (assq feature val)))
-    (setf (nth 3 elt) reason)
-    (oset pkg required val)))
 
 ;;; -
 
