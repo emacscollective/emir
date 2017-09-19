@@ -758,7 +758,7 @@ This variable should only be used as a last resort."
           (oset pkg builtin-libraries nil))))))
 
 ;;;###autoload
-(defun emir-import-wiki-packages (&optional drew-only)
+(defun emir-import-ewiki-packages (&optional drew-only)
   (interactive "p")
   (with-epkg-repository 'epkg-wiki-package
     (magit-git "checkout" "master")
@@ -775,7 +775,7 @@ This variable should only be used as a last resort."
       (magit-run-git-async "filter-emacswiki" "--tag" "--notes"))))
 
 ;;;###autoload
-(defun emir-import-elpa-packages ()
+(defun emir-import-gelpa-packages ()
   (interactive)
   (emir-pull 'epkg-elpa-package)
   (dolist (name (gelpa-recipes 'name 'gelpa-subtree-recipe))
