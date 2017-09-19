@@ -285,6 +285,22 @@ This variable should only be used as a last resort."
         (message "Updating %s...done" name))))
   (emir--commit "update"))
 
+;;;###autoload
+(defun emir-update-licenses ()
+  (interactive)
+  (dolist (pkg (epkgs))
+    (let ((name (oref pkg name)))
+      (when (member (oref pkg license)
+                    '(nil "failure" "failure(p)" "pending" "none"))
+        (message "Updating %s..." name)
+        (let* ((pkg (epkg name))
+               (default-directory (epkg-repository pkg)))
+          (--when-let (emir--main-library pkg)
+            (with-temp-buffer
+              (insert-file-contents it)
+              (oset pkg license (emir--license pkg)))))
+        (message "Updating %s...done" name)))))
+
 ;;;; Patch
 
 ;;;###autoload
