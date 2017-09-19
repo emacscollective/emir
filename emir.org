@@ -7,23 +7,24 @@
 
 * list tables
 #+BEGIN_SRC emacs-lisp
-  (cl-sort (epkg-sql [:select name :from sqlite_master :where (= type table)])
-           #'string< :key #'car)
+  (epkg-sql [:select name :from sqlite_master
+             :where (= type table)
+             :order-by [(asc name)]])
 #+END_SRC
 #+RESULTS:
-| authors          |
-| builtin_packages |
-| gelpa_packages   |
-| keywords         |
-| libraries        |
-| maintainers      |
-| melpa_recipes    |
-| packages         |
-| pkg_homepages    |
-| pkg_wikipages    |
-| provided         |
-| raw_wikipages    |
-| required         |
+| authors           |
+| builtin_libraries |
+| gelpa_recipes     |
+| keywords          |
+| libraries         |
+| maintainers       |
+| melpa_recipes     |
+| packages          |
+| pkg_homepages     |
+| pkg_wikipages     |
+| provided          |
+| raw_wikipages     |
+| required          |
 
 * recreate ~packages~ table et al.
 #+BEGIN_SRC emacs-lisp :results silent
