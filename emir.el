@@ -660,11 +660,7 @@ This variable should only be used as a last resort."
                   (or (let ((main (concat "/" name ".el")))
                         (--first (string-suffix-p main it) libraries))
                       library)))))
-      (--if-let (or library
-                    (ignore-errors
-                      (let ((load-suffixes '(".el" ".el.in" ".el.tmpl"))
-                            (load-file-rep-suffixes '("")))
-                        (packed-main-library default-directory name nil t))))
+      (--if-let (emir--main-library pkg)
           (with-temp-buffer
             (insert-file-contents it)
             (oset pkg summary     (elx-summary nil t))
@@ -688,6 +684,13 @@ This variable should only be used as a last resort."
       (kill-buffer it))))
 
 ;;; Extract
+
+(cl-defmethod emir--main-library ((pkg epkg-package))
+  (or (oref pkg library)
+      (let ((load-suffixes '(".el" ".el.in" ".el.tmpl"))
+            (load-file-rep-suffixes '("")))
+        (ignore-errors
+          (packed-main-library default-directory (oref pkg name) nil t)))))
 
 (cl-defmethod emir--license ((pkg epkg-package))
   (let ((name (oref pkg name)))
