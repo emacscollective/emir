@@ -154,7 +154,7 @@ This variable should only be used as a last resort."
 
 ;;;###autoload
 (defun emir-import-ewiki-packages (&optional drew-only)
-  (interactive "p")
+  (interactive "P")
   (with-epkg-repository 'epkg-wiki-package
     (magit-git "checkout" "master")
     (magit-git "pull" "--ff-only" "origin")
