@@ -477,7 +477,8 @@ This variable should only be used as a last resort."
 
 (cl-defmethod emir-clone :after ((pkg epkg-subtree-package))
   (with-epkg-repository pkg
-    (magit-git "branch" "--unset-upstream" "master"))
+    (magit-git "branch" "--unset-upstream"
+               (or (oref pkg upstream-branch) "master")))
   (emir-pull pkg))
 
 (cl-defmethod emir-clone ((pkg epkg-file-package))
@@ -531,14 +532,15 @@ This variable should only be used as a last resort."
 
 (cl-defmethod emir-pull ((pkg epkg-subtree-package))
   (with-epkg-repository pkg
-    (magit-git "fetch"    "origin")
-    (magit-git "checkout" "origin/master")
-    (message "Filtering subtree...")
-    (magit-git "branch" "-f" "master"
-               (magit-git-string "subtree" "-P"
-                                 (oref pkg upstream-tree) "split"))
-    (message "Filtering subtree...done")
-    (magit-git "checkout" "master")))
+    (let ((branch (or (oref pkg upstream-branch) "master")))
+      (magit-git "fetch"    "origin")
+      (magit-git "checkout" (concat "origin/" branch))
+      (message "Filtering subtree...")
+      (magit-git "branch" "-f" branch
+                 (magit-git-string "subtree" "-P"
+                                   (oref pkg upstream-tree) "split"))
+      (message "Filtering subtree...done")
+      (magit-git "checkout" branch))))
 
 (cl-defmethod emir-pull ((pkg epkg-subset-package))
   (with-epkg-repository pkg
@@ -621,9 +623,9 @@ This variable should only be used as a last resort."
         (epkg-file-package)
         (epkg-minority-package)
         (epkg-subtree-package
-         (magit-git "branch" "--unset-upstream" "master"))
+         (magit-git "branch" "--unset-upstream" branch))
         (epkg-shelved-package
-         (magit-git "branch" "--unset-upstream" "master"))
+         (magit-git "branch" "--unset-upstream" branch))
         (t
          (magit-git "branch" (format "--set-upstream-to=%s/%s"
                                      origin branch)))))))
