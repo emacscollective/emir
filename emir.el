@@ -271,7 +271,7 @@ This variable should only be used as a last resort."
        (message "Update error: %s" (error-message-string err))))))
 
 ;;;###autoload
-(defun emir-update-packages (&optional from)
+(defun emir-update-packages (&optional from recreate)
   (interactive (list (and current-prefix-arg
                           (epkg-read-package "Limit to packages after: "))))
   (dolist (name (epkgs 'name 'epkg-mirrored-package--eieio-childp))
@@ -279,7 +279,9 @@ This variable should only be used as a last resort."
       (if (assoc name emir-suspended-packages)
           (message "Skipping suspended %s" name)
         (message "Updating %s..." name)
-        (emir-update-package name)
+        (if recreate
+            (emir-update (epkg name) t)
+          (emir-update-package name))
         (message "Updating %s...done" name))))
   (emir--commit "update"))
 
@@ -683,20 +685,22 @@ This variable should only be used as a last resort."
 
 ;;;; Update
 
-(cl-defmethod emir-update ((pkg epkg-package))
+(cl-defmethod emir-update ((pkg epkg-package) &optional recreate)
   (with-epkg-repository pkg
     (with-slots (name hash libraries library) pkg
-      (setf hash (magit-rev-parse "HEAD"))
-      (when (epkg-builtin-package-p pkg)
-        (setf libraries
-              (mapcar #'car (epkg-sql [:select library :from builtin-libraries
-                                       :where (= name $s1)]
-                                      name)))
-        (unless (equal name "emacs")
-          (setf library
-                (or (let ((main (concat "/" name ".el")))
-                      (--first (string-suffix-p main it) libraries))
-                    library))))
+      (unless recreate
+        (setf hash (magit-rev-parse "HEAD"))
+        (when (epkg-builtin-package-p pkg)
+          (setf libraries
+                (mapcar #'car (epkg-sql [:select library
+                                         :from builtin-libraries
+                                         :where (= name $s1)]
+                                        name)))
+          (unless (equal name "emacs")
+            (setf library
+                  (or (let ((main (concat "/" name ".el")))
+                        (--first (string-suffix-p main it) libraries))
+                      library)))))
       (--if-let (or library
                     (ignore-errors
                       (let ((load-suffixes '(".el" ".el.in" ".el.tmpl"))
