@@ -753,7 +753,7 @@ This variable should only be used as a last resort."
 (cl-defmethod emir--wikipage ((pkg epkg-package))
   (--when-let (or (and (epkg-wiki-package-p pkg) (elx-wikipage))
                   (caar (epkg-sql [:select page :from pkg-wikipages
-                                   :where [(= package $s1)]]
+                                   :where (= package $s1)]
                                   (oref pkg name)))
                   (let ((name (emir--normalize-wikipage (oref pkg name))))
                     (or (caar (epkg-sql [:select page :from raw-wikipages
