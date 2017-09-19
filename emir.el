@@ -687,10 +687,14 @@ This variable should only be used as a last resort."
 
 (cl-defmethod emir--main-library ((pkg epkg-package))
   (or (oref pkg library)
-      (let ((load-suffixes '(".el" ".el.in" ".el.tmpl"))
+      (let ((name (oref pkg name))
+            (load-suffixes '(".el" ".el.in" ".el.tmpl"))
             (load-file-rep-suffixes '("")))
-        (ignore-errors
-          (packed-main-library default-directory (oref pkg name) nil t)))))
+        (or (ignore-errors
+              (packed-main-library default-directory name nil t))
+            (and (epkg-shelved-package-p pkg)
+                 (let ((file (expand-file-name (concat name ".el"))))
+                   (and (file-exists-p file) file)))))))
 
 (cl-defmethod emir--license ((pkg epkg-package))
   (let ((name (oref pkg name)))
