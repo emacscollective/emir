@@ -741,6 +741,16 @@ This variable should only be used as a last resort."
     (magit-git "push" "attic")))
 
 ;;;; Commit
+
+(defun emir--commit (verb)
+  (with-epkg-repository t
+    (let ((count (length (magit-staged-files nil "mirror"))))
+      (when (> count 0)
+        (magit-git "commit"
+                   "-m" (format "%s %s %s" verb count
+                                (if (> count 1) "packages" "package"))
+                   "-i" ".gitmodules" "epkg.sqlite")))))
+
 ;;; Database
 ;;;; Add
 ;;;; Update
@@ -937,15 +947,6 @@ This variable should only be used as a last resort."
 
 (defun emir-read-url (prompt)
   (magit-read-string prompt nil 'emir-url-history nil nil t))
-
-(defun emir--commit (verb)
-  (with-epkg-repository t
-    (let ((count (length (magit-staged-files nil "mirror"))))
-      (when (> count 0)
-        (magit-git "commit"
-                   "-m" (format "%s %s %s" verb count
-                                (if (> count 1) "packages" "package"))
-                   "-i" ".gitmodules" "epkg.sqlite")))))
 
 (defun emir--normalize-wikipage (string)
   (->> string
