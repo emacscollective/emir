@@ -86,7 +86,8 @@
                (plist-put plist :status 'new))))
     (mapcar (lambda (row)
               (plist-get plist (intern (format ":%s" row))))
-            (cl-coerce (closql--slot-get 'epkg-package 'melpa-recipes :columns)
+            (cl-coerce (closql--slot-get 'epkg-package 'melpa-recipes
+                                         :closql-columns)
                        'list))))
 
 (defun emir--melpa-get (name select)

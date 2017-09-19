@@ -37,6 +37,7 @@
 (require 'elx)
 (require 'emacsql-sqlite)
 (require 'epkg)
+(require 'epkg-util)
 (require 'finder)
 (require 'ghub)
 (require 'magit)
@@ -394,7 +395,7 @@ This variable should only be used as a last resort."
             (magit-git "rm" "-f" module-dir))))
       (with-demoted-errors "Error: %S"
         (emir-gh-delete pkg)))
-    (closql-delete (epkg-db) pkg)
+    (closql-delete pkg)
     (with-epkg-repository t
       (magit-call-git "add" "epkg.sqlite"))
     (when (epkg-wiki-package-p pkg)
@@ -821,7 +822,7 @@ This variable should only be used as a last resort."
                  :set    (= closql-id $s2)
                  :where  (= closql-id $s3)]
                 slot nil emir--dummy-package)
-      (closql-delete db dummy-epkg))))
+      (closql-delete dummy-epkg))))
 
 (defun emir--lookup-url (url)
   (caar (epkg-sql [:select name :from packages :where (= url $s1)] url)))
@@ -1007,20 +1008,6 @@ This variable should only be used as a last resort."
     (replace-regexp-in-string "\\+" "plus")
     (replace-regexp-in-string "-" "")
     downcase))
-
-(defmacro emir--with-org-header (header &rest body)
-  (declare (indent defun))
-  `(-when-let (rows (progn ,@body))
-     (let ((header ',header)
-           (n 0) prev)
-       (dolist (row rows)
-         (unless (equal (car row) prev)
-           (cl-incf n))
-         (setq prev (car row)))
-       (append (list (cons (format "%s (%s)" (car header) n)
-                           (cdr header)))
-               (list 'hline)
-               rows))))
 
 (provide 'emir)
 (require 'emir-gelpa)
