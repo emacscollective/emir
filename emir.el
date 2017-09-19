@@ -710,7 +710,7 @@ This variable should only be used as a last resort."
             (insert-file-contents it)
             (oset pkg summary     (elx-summary nil t))
             (oset pkg keywords    (elx-keywords-list nil t t))
-            (oset pkg license     (elx-license))
+            (oset pkg license     (emir--license pkg))
             (oset pkg created     (elx-created))
             (oset pkg updated     (emir--updated pkg))
             (oset pkg authors     (emir--authors))
@@ -729,6 +729,19 @@ This variable should only be used as a last resort."
       (kill-buffer it))))
 
 ;;; Extract
+
+(cl-defmethod emir--license ((pkg epkg-package))
+  (let ((name (oref pkg name)))
+    (or (elx-license nil (epkg-repository pkg) name)
+        (and (string-match "-theme" name)
+             (let ((file (expand-file-name
+                          (concat (substring name 0 (match-beginning 0))
+                                  ".el"))))
+               (and (file-exists-p file)
+                    (elx-license file))))
+        (let ((license (oref pkg license)))
+          (and (member license '("failure" "failure(p)" "pending" "none"))
+               license)))))
 
 (cl-defmethod emir--updated ((_pkg epkg-package))
   (replace-regexp-in-string
