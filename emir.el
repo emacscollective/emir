@@ -352,30 +352,6 @@ This variable should only be used as a last resort."
 ;;;; Shelve
 
 ;;;###autoload
-(defun emir-remove-package (name)
-  (interactive (list (epkg-read-package "Remove package: ")))
-  (let ((pkg (epkg name)))
-    (unless (epkg-builtin-package-p pkg)
-      (with-epkg-repository t
-        (magit-git "add" ".gitmodules")
-        (let ((module-dir (epkg-repository pkg)))
-          (when (file-exists-p module-dir)
-            (magit-git "rm" "-f" module-dir))))
-      (with-demoted-errors "Error: %S"
-        (emir-gh-delete pkg)))
-    (closql-delete pkg)
-    (with-epkg-repository t
-      (magit-call-git "add" "epkg.sqlite"))
-    (when (epkg-wiki-package-p pkg)
-      (with-epkg-repository 'epkg-wiki-package
-        (magit-call-git "branch" "-D" name)))
-    (with-demoted-errors "Error: %S"
-      (with-epkg-repository t
-        (delete-directory (magit-git-dir (concat "modules/" name)) t)))))
-
-;;;; Remove
-
-;;;###autoload
 (defun emir-shelve-package (name)
   (interactive (list (epkg-read-package "Shelve package: ")))
   (let ((pkg (epkg name)))
@@ -400,6 +376,30 @@ This variable should only be used as a last resort."
     (emir-update  pkg)
     (emir-gh-init pkg)
     (emir-push    pkg)))
+
+;;;; Remove
+
+;;;###autoload
+(defun emir-remove-package (name)
+  (interactive (list (epkg-read-package "Remove package: ")))
+  (let ((pkg (epkg name)))
+    (unless (epkg-builtin-package-p pkg)
+      (with-epkg-repository t
+        (magit-git "add" ".gitmodules")
+        (let ((module-dir (epkg-repository pkg)))
+          (when (file-exists-p module-dir)
+            (magit-git "rm" "-f" module-dir))))
+      (with-demoted-errors "Error: %S"
+        (emir-gh-delete pkg)))
+    (closql-delete pkg)
+    (with-epkg-repository t
+      (magit-call-git "add" "epkg.sqlite"))
+    (when (epkg-wiki-package-p pkg)
+      (with-epkg-repository 'epkg-wiki-package
+        (magit-call-git "branch" "-D" name)))
+    (with-demoted-errors "Error: %S"
+      (with-epkg-repository t
+        (delete-directory (magit-git-dir (concat "modules/" name)) t)))))
 
 ;;;; Convenience
 ;;; Git
