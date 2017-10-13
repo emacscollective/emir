@@ -897,22 +897,24 @@ This variable should only be used as a last resort."
 (cl-defmethod emir-gh-unsubscribe :after ((pkg epkg-package))
   (let ((org  (if (epkg-shelved-package-p pkg) "emacsattic" "emacsmirror"))
         (name (oref pkg mirror-name)))
-    (with-demoted-errors
-        (format "Failed to unsubscribe from %s/%s: %%S" org name)
-      (ghub-delete (format "/repos/%s/%s/subscription" org name)))))
+    (condition-case-unless-debug err
+        (ghub-delete (format "/repos/%s/%s/subscription" org name))
+      (error (message "Error: Failed to unsubscribe from %s/%s: %S"
+                      org name err)))))
 
 (cl-defmethod emir-gh-update ((pkg epkg-package) &optional _clone)
   (let ((org  (if (epkg-shelved-package-p pkg) "emacsattic" "emacsmirror"))
         (name (oref pkg mirror-name)))
-    (with-demoted-errors
-        (format "Failed to update metadata for %s/%s: %%S" org name)
-      (ghub-patch (format "/repos/%s/%s" org name)
-                  nil `((name           . ,name)
-                        (description    . ,(oref pkg summary))
-                        (homepage       . ,(oref pkg homepage))
-                        (has_issues     . nil)
-                        (has_wiki       . nil)
-                        (has_downloads  . nil))))))
+    (condition-case-unless-debug err
+        (ghub-patch (format "/repos/%s/%s" org name)
+                    nil `((name           . ,name)
+                          (description    . ,(oref pkg summary))
+                          (homepage       . ,(oref pkg homepage))
+                          (has_issues     . nil)
+                          (has_wiki       . nil)
+                          (has_downloads  . nil)))
+      (error (message "Error: Failed to update metadata for %s/%s: %S"
+                      org name err)))))
 
 (cl-defmethod emir-gh-update :after ((pkg epkg-github-package) &optional clone)
   (when clone
