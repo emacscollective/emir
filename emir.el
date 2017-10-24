@@ -683,20 +683,16 @@ This variable should only be used as a last resort."
 
 (cl-defmethod emir-update ((pkg epkg-package) &optional recreate)
   (with-epkg-repository pkg
-    (with-slots (name hash libraries library) pkg
+    (with-slots (name hash builtin-libraries library) pkg
       (unless recreate
         (setf hash (magit-rev-parse "HEAD"))
-        (when (epkg-builtin-package-p pkg)
-          (setf libraries
-                (mapcar #'car (epkg-sql [:select library
-                                         :from builtin-libraries
-                                         :where (= package $s1)]
-                                        name)))
-          (unless (equal name "emacs")
-            (setf library
-                  (or (let ((main (concat "/" name ".el")))
-                        (--first (string-suffix-p main it) libraries))
-                      library)))))
+        (when (and (epkg-builtin-package-p pkg)
+                   (not (equal name "emacs")))
+          (setf library
+                (or (let ((main (concat "/" name ".el")))
+                      (car (--first (string-suffix-p main (car it))
+                                    builtin-libraries)))
+                    library))))
       (--if-let (emir--main-library pkg)
           (with-temp-buffer
             (insert-file-contents it)
@@ -797,7 +793,7 @@ This variable should only be used as a last resort."
           (name (oref pkg name))
           provided hard soft)
       (dolist (lib (if (epkg-builtin-package-p pkg)
-                       (oref pkg libraries)
+                       (mapcar #'car (oref pkg builtin-libraries))
                      (packed-libraries default-directory)))
         (with-temp-buffer
           (insert-file-contents lib)
