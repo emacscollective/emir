@@ -690,7 +690,7 @@ This variable should only be used as a last resort."
           (setf libraries
                 (mapcar #'car (epkg-sql [:select library
                                          :from builtin-libraries
-                                         :where (= name $s1)]
+                                         :where (= package $s1)]
                                         name)))
           (unless (equal name "emacs")
             (setf library
