@@ -137,6 +137,7 @@ This variable should only be used as a last resort."
 
 ;;;###autoload
 (defun emir-import-emacs-packages ()
+  (interactive)
   (let ((default-directory emir-emacs-repository)
         (alist (emir--builtin-packages-alist)))
     (magit-git "checkout" emir-emacs-reference)
