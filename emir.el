@@ -837,46 +837,49 @@ This variable should only be used as a last resort."
 
 (defun emir--builtin-packages-alist ()
   (let ((default-directory emir-emacs-repository))
-    (-group-by
-     #'car
-     (cl-sort
-      (cl-mapcan
-       (lambda (file)
-         (message "Importing %s..." file)
-         (and (string-suffix-p ".el" file)
-              (not (string-match-p finder-no-scan-regexp file))
-              (not (member file
-                           '("lisp/gnus/.dir-locals.el"
-                             ;; Old versions:
-                             "lisp/obsolete/old-emacs-lock.el"
-                             "lisp/obsolete/old-whitespace.el"
-                             "lisp/obsolete/otodo-mode.el"
-                             ;; Moved to GNU Elpa:
-                             "lisp/obsolete/crisp.el"
-                             "lisp/obsolete/landmark.el")))
-              (with-temp-buffer
-                (insert-file-contents file)
-                (let ((package
-                       (cond
-                        ((not features) "emacs")
-                        ((string-prefix-p "lisp/term/"     file) "emacs")
-                        ((string-prefix-p "lisp/leim/"     file) "emacs")
-                        ((string-prefix-p "lisp/obsolete/" file) "emacs")
-                        ((lm-header "Package"))
-                        ((--when-let (assoc (-> file
-                                                file-name-directory
-                                                directory-file-name
-                                                file-name-nondirectory)
-                                            finder--builtins-alist)
-                           (symbol-name (cdr it))))
-                        ((-> file
-                             file-name-nondirectory
-                             file-name-sans-extension)))))
-                  (--map (list package file it)
-                         (or (packed-provided)
-                             (list nil)))))))
-       (magit-git-items "ls-tree" "-z" "-r" "--name-only" "HEAD" "lisp/"))
-      #'string< :key #'car))))
+    (mapcar
+     (lambda (elt)
+       (cons (car elt) (mapcar #'cdr (cdr elt))))
+     (-group-by
+      #'car
+      (cl-sort
+       (cl-mapcan
+        (lambda (file)
+          (message "Importing %s..." file)
+          (and (string-suffix-p ".el" file)
+               (not (string-match-p finder-no-scan-regexp file))
+               (not (member file
+                            '("lisp/gnus/.dir-locals.el"
+                              ;; Old versions:
+                              "lisp/obsolete/old-emacs-lock.el"
+                              "lisp/obsolete/old-whitespace.el"
+                              "lisp/obsolete/otodo-mode.el"
+                              ;; Moved to GNU Elpa:
+                              "lisp/obsolete/crisp.el"
+                              "lisp/obsolete/landmark.el")))
+               (with-temp-buffer
+                 (insert-file-contents file)
+                 (let ((package
+                        (cond
+                         ((not features) "emacs")
+                         ((string-prefix-p "lisp/term/"     file) "emacs")
+                         ((string-prefix-p "lisp/leim/"     file) "emacs")
+                         ((string-prefix-p "lisp/obsolete/" file) "emacs")
+                         ((lm-header "Package"))
+                         ((--when-let (assoc (-> file
+                                                 file-name-directory
+                                                 directory-file-name
+                                                 file-name-nondirectory)
+                                             finder--builtins-alist)
+                            (symbol-name (cdr it))))
+                         ((-> file
+                              file-name-nondirectory
+                              file-name-sans-extension)))))
+                   (--map (list package file it)
+                          (or (packed-provided)
+                              (list nil)))))))
+        (magit-git-items "ls-tree" "-z" "-r" "--name-only" "HEAD" "lisp/"))
+       #'string< :key #'car)))))
 
 ;;; Github
 
