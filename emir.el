@@ -49,6 +49,8 @@
 (defvar finder--builtins-alist)
 (declare-function org-publish 'ox-publish)
 
+(defconst emir-github-token-scopes '(repo delete_repo))
+
 (cl-pushnew (expand-file-name
              "bin" (file-name-directory (or load-file-name buffer-file-name)))
             exec-path :test #'equal)
@@ -882,8 +884,10 @@ This variable should only be used as a last resort."
 (cl-defmethod emir-gh-init ((pkg epkg-package))
   (let ((org  (if (epkg-shelved-package-p pkg) "emacsattic" "emacsmirror"))
         (name (oref pkg mirror-name)))
-    (ghub-post (format "/orgs/%s/repos" org) nil `((name . ,name)))
-    (ghub-wait (format "/repos/%s/%s" org name))))
+    (ghub-post (format "/orgs/%s/repos" org)
+               `((name . ,name)) :auth 'emir)
+    (ghub-wait (format "/repos/%s/%s" org name)
+               nil :auth 'emir)))
 
 (cl-defmethod emir-gh-init ((pkg epkg-github-package))
   (with-slots (mirror-name upstream-user upstream-name) pkg
@@ -894,24 +898,27 @@ This variable should only be used as a last resort."
                       (lambda (fork)
                         (equal (cdr (assq 'login (cdr (assq 'owner fork))))
                                "emacsmirror"))
-                      (ghub-get (format "/repos/%s/forks" it))))))
+                      (ghub-get (format "/repos/%s/forks" it)
+                                nil :auth 'emir)))))
           (let ((rsp (ghub-get (format "/repos/%s/%s"
-                                       upstream-user upstream-name))))
+                                       upstream-user upstream-name)
+                               nil :auth 'emir)))
             (or (forked rsp 'source)
                 (forked rsp 'parent))))
         (cl-call-next-method)
       (ghub-post (format "/repos/%s/%s/forks" upstream-user upstream-name)
-                 nil '((organization . "emacsmirror")))
+                 '((organization . "emacsmirror")) :auth 'emir)
       (ghub-wait (format "/repos/emacsmirror/%s" upstream-name))
       (unless (equal mirror-name upstream-name)
         (ghub-patch (format "/repos/emacsmirror/%s" upstream-name)
-                    nil `((name . ,mirror-name)))))))
+                    `((name . ,mirror-name)) :auth 'emir)))))
 
 (cl-defmethod emir-gh-unsubscribe :after ((pkg epkg-package))
   (let ((org  (if (epkg-shelved-package-p pkg) "emacsattic" "emacsmirror"))
         (name (oref pkg mirror-name)))
     (condition-case-unless-debug err
-        (ghub-delete (format "/repos/%s/%s/subscription" org name))
+        (ghub-delete (format "/repos/%s/%s/subscription" org name)
+                     nil :auth 'emir)
       (error (message "Error: Failed to unsubscribe from %s/%s: %S"
                       org name err)))))
 
@@ -920,12 +927,13 @@ This variable should only be used as a last resort."
         (name (oref pkg mirror-name)))
     (condition-case-unless-debug err
         (ghub-patch (format "/repos/%s/%s" org name)
-                    nil `((name           . ,name)
-                          (description    . ,(oref pkg summary))
-                          (homepage       . ,(oref pkg homepage))
-                          (has_issues     . nil)
-                          (has_wiki       . nil)
-                          (has_downloads  . nil)))
+                    `((name           . ,name)
+                      (description    . ,(oref pkg summary))
+                      (homepage       . ,(oref pkg homepage))
+                      (has_issues     . nil)
+                      (has_wiki       . nil)
+                      (has_downloads  . nil))
+                    :auth 'emir)
       (error (message "Error: Failed to update metadata for %s/%s: %S"
                       org name err)))))
 
@@ -940,7 +948,8 @@ This variable should only be used as a last resort."
                        (if (epkg-shelved-package-p pkg)
                            "emacsattic"
                          "emacsmirror")
-                       (oref pkg mirror-name))))
+                       (oref pkg mirror-name))
+               nil :auth 'emir))
 
 ;;; Urls
 
