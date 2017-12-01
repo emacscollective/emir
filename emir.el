@@ -886,8 +886,7 @@ This variable should only be used as a last resort."
         (name (oref pkg mirror-name)))
     (ghub-post (format "/orgs/%s/repos" org)
                `((name . ,name)) :auth 'emir)
-    (ghub-wait (format "/repos/%s/%s" org name)
-               nil :auth 'emir)))
+    (ghub-wait (format "/repos/%s/%s" org name) nil 'emir)))
 
 (cl-defmethod emir-gh-init ((pkg epkg-github-package))
   (with-slots (mirror-name upstream-user upstream-name) pkg
