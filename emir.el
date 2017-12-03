@@ -581,7 +581,7 @@ This variable should only be used as a last resort."
       (magit-git "push" "mirror"))))
 
 (cl-defmethod emir-push ((pkg epkg-subset-package))
-  (with-epkg-repository (eieio-object-class pkg)
+  (with-epkg-repository (type-of pkg)
     (magit-git "push" (oref pkg mirror-url)
                (format (cl-typecase pkg
                          (epkg-wiki-package                  "%s:master")

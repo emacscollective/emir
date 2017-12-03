@@ -51,7 +51,7 @@
          (plist (emir-melpa--recipe-plist name))
          (class (intern (format "melpa-%s-recipe"
                                 (plist-get plist :fetcher)))))
-    (when (and rcp (not (eq (eieio-object-class rcp) class)))
+    (when (and rcp (not (eq (type-of rcp) class)))
       (closql-delete rcp)
       (setq rcp nil))
     (unless rcp

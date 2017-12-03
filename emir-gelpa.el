@@ -50,7 +50,7 @@
                   ('core     'gelpa-builtin-recipe)
                   ('subtree  'gelpa-subtree-recipe)
                   ('external 'gelpa-external-recipe))))
-    (when (and rcp (not (eq (eieio-object-class rcp) class)))
+    (when (and rcp (not (eq (type-of rcp) class)))
       (closql-delete rcp)
       (setq rcp nil))
     (unless rcp
