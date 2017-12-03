@@ -25,34 +25,6 @@
 (require 'emir)
 
 ;;;###autoload
-(defun emir-find-file (filename &optional wildcards)
-  (interactive (emir-find-file-read-args "Find file: "))
-  (emir-find-file-noselect filename #'switch-to-buffer wildcards))
-
-;;;###autoload
-(defun emir-find-file-other-window (filename &optional wildcards)
-  (interactive (emir-find-file-read-args "Find file in other window: "))
-  (emir-find-file-noselect filename #'switch-to-buffer-other-window wildcards))
-
-;;;###autoload
-(defun emir-find-file-other-frame (filename &optional wildcards)
-  (interactive (emir-find-file-read-args "Find file in other frame: "))
-  (emir-find-file-noselect filename #'switch-to-buffer-other-frame wildcards))
-
-(defun emir-find-file-read-args (prompt)
-  (with-epkg-repository (epkg (epkg-read-package "Find file of package: "))
-    (find-file-read-args prompt (confirm-nonexistent-file-or-buffer))))
-
-(defun emir-find-file-noselect (filename:s switch &optional wildcards)
-  (let ((value (find-file-noselect filename:s nil nil wildcards)))
-    (if (listp value)
-	(let ((buffers (nreverse value)))
-	  (funcall switch (car buffers))
-	  (mapc #'switch-to-buffer (cdr buffers))
-	  buffers)
-      (funcall switch value))))
-
-;;;###autoload
 (defun emir-find-org-file (name)
   (interactive
    (list (completing-read "Find org file: "

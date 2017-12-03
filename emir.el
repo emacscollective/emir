@@ -37,7 +37,8 @@
 (require 'elx)
 (require 'emacsql-sqlite)
 (require 'epkg)
-(require 'epkg-util)
+(require 'epkg-org)
+(require 'epkg-utils)
 (require 'finder)
 (require 'ghub)
 (require 'magit)
@@ -104,33 +105,14 @@ This variable should only be used as a last resort."
 (defconst emir-ewiki-repository "~/git/emacs/ewiki/")
 (defconst emir-stats-repository "~/git/emacs/stats/")
 
-(defmacro with-epkg-repository (arg &rest body)
-  (declare (indent defun))
-  `(let ((default-directory
-           ,(if (eq arg t)
-                'epkg-repository
-              `(or (epkg-repository ,arg)
-                   (error "Need package or string")))))
-     ,@body))
-
-(cl-defmethod epkg-repository ((pkg epkg-mirrored-package))
-  (expand-file-name (format "mirror/%s/" (oref pkg name)) epkg-repository))
-
-(cl-defmethod epkg-repository ((pkg epkg-shelved-package))
-  (expand-file-name (format "attic/%s/" (oref pkg name)) epkg-repository))
-
 (cl-defmethod epkg-repository ((_pkg epkg-builtin-package))
   emir-emacs-repository)
-
 (cl-defmethod epkg-repository ((_class (subclass epkg-elpa-package)))
   emir-gelpa-repository)
-
 (cl-defmethod epkg-repository ((_class (subclass epkg-elpa-branch-package)))
   emir-gelpa-repository)
-
 (cl-defmethod epkg-repository ((_class (subclass epkg-wiki-package)))
   emir-ewiki-repository)
-
 (cl-defmethod epkg-repository ((_class (subclass epkg-builtin-package)))
   emir-emacs-repository)
 
