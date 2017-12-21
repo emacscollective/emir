@@ -299,6 +299,21 @@ This variable should only be used as a last resort."
               (oset pkg license (emir--license pkg)))))
         (message "Updating %s...done" name)))))
 
+;;;###autoload
+(defun emir-update-github-stars ()
+  (interactive)
+  (dolist (pkg (epkgs nil 'epkg-github-package--eieio-childp))
+    (with-slots (name upstream-user upstream-name) pkg
+      (message "Updating %s..." name)
+      (condition-case-unless-debug err
+          (--when-let
+              (ghub-get (format "/repos/%s/%s" upstream-user upstream-name)
+                        nil :auth 'emir)
+            (oset pkg stars (cdr (assq 'stargazers_count it))))
+        (error (message "Error: Failed to update stars for %s/%s: %S"
+                        upstream-user upstream-name err)))
+      (message "Updating %s...done" name))))
+
 ;;;; Patch
 
 ;;;###autoload

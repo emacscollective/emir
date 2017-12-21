@@ -21,6 +21,9 @@
 ;;; Code:
 
 (require 'emir)
+(require 'url)
+
+(defvar url-http-end-of-headers)
 
 ;;;###autoload
 (defun emir-import-melpa-recipes (&optional fetch)
@@ -44,7 +47,8 @@
         (message "Removing %s..." name)
         (closql-delete (melpa-get name))
         (message "Removing %s...done" name)))
-    (message "Importing Melpa recipes...done")))
+    (message "Importing Melpa recipes...done"))
+  (emir-import-melpa-downloads))
 
 (defun emir-import-melpa-recipe (name)
   (let* ((rcp   (melpa-get name))
@@ -81,6 +85,23 @@
   (ignore-errors
     (--when-let (eieio-oref-default rcp slot)
       (format-spec it `((?r . ,(oref rcp repo)))))))
+
+(defun emir-import-melpa-downloads ()
+  (message "Importing Melpa downloads...")
+  (with-current-buffer
+      (url-retrieve-synchronously "https://melpa.org/download_counts.json")
+    (goto-char (1+ url-http-end-of-headers))
+    (emacsql-with-transaction (epkg-db)
+      (pcase-dolist (`(,name . ,count)
+                     (cl-sort
+                      (json-read-from-string
+                       (decode-coding-string
+                        (buffer-substring-no-properties (point) (point-max))
+                        'utf-8))
+                      #'string< :key #'car))
+        (-when-let (pkg (epkg (symbol-name name)))
+          (oset pkg downloads count)))))
+  (message "Importing Melpa downloads..."))
 
 (provide 'emir-melpa)
 ;;; emir-melpa.el ends here
