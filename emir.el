@@ -99,7 +99,7 @@ This variable should only be used as a last resort."
 
 ;;; Repositories
 
-(defconst emir-emacs-repository "~/git/src/emacs/")
+(defconst emir-emacs-repository "~/git/src/emacs/emacs-26/")
 (defconst emir-gelpa-repository "~/git/emacs/gelpa/")
 (defconst emir-melpa-repository "~/git/emacs/melpa/")
 (defconst emir-ewiki-repository "~/git/emacs/ewiki/")
