@@ -284,12 +284,13 @@ This variable should only be used as a last resort."
   (emir--commit "update"))
 
 ;;;###autoload
-(defun emir-update-licenses ()
-  (interactive)
+(defun emir-update-licenses (&optional all)
+  (interactive "P")
   (dolist (pkg (epkgs))
     (let ((name (oref pkg name)))
-      (when (member (oref pkg license)
-                    '(nil "failure" "failure(p)" "pending" "none"))
+      (when (or all
+                (member (oref pkg license)
+                        '(nil "failure" "failure(p)" "pending" "none")))
         (message "Updating %s..." name)
         (let* ((pkg (epkg name))
                (default-directory (epkg-repository pkg)))
