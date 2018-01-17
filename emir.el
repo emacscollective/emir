@@ -62,7 +62,7 @@
   "Maintain the Emacsmirror."
   :group 'local)
 
-(defcustom emir-emacs-reference "emacs-26.0.90"
+(defcustom emir-emacs-reference "emacs-26.0.91"
   "The Emacs reference used to extract builtin packages."
   :group 'emir
   :type 'string)
