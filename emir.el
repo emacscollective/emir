@@ -292,7 +292,7 @@ This variable should only be used as a last resort."
     (let ((name (oref pkg name)))
       (when (or all
                 (member (oref pkg license)
-                        '(nil "failure" "failure(p)" "pending" "none")))
+                        '(nil "failure" "failure" "pending" "none")))
         (message "Updating %s..." name)
         (let* ((pkg (epkg name))
                (default-directory (epkg-repository pkg)))
@@ -745,7 +745,7 @@ This variable should only be used as a last resort."
                (and (file-exists-p file)
                     (elx-license file))))
         (let ((license (oref pkg license)))
-          (and (member license '("failure" "failure(p)" "pending" "none"))
+          (and (member license '("failure" "pending" "none"))
                license)))))
 
 (cl-defmethod emir--updated ((_pkg epkg-package))
