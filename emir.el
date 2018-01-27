@@ -257,7 +257,7 @@ This variable should only be used as a last resort."
          (tip (oref pkg hash)))
     (condition-case err
         (with-epkg-repository pkg
-          (when (cl-typep pkg 'epkg-mirrored-package)
+          (when (or force (cl-typep pkg 'epkg-mirrored-package))
             (emir-pull pkg))
           (emir-update pkg)
           (unless (epkg-builtin-package-p pkg)
@@ -571,6 +571,10 @@ This variable should only be used as a last resort."
   (with-epkg-repository class
     (magit-git "checkout" "master")
     (magit-git "pull" "--ff-only" "origin")))
+
+(cl-defmethod emir-pull ((pkg epkg-shelved-package))
+  (with-epkg-repository pkg
+    (magit-git "pull" "--ff-only" "attic" "master")))
 
 ;;;; Push
 
