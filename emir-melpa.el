@@ -48,7 +48,8 @@
         (closql-delete (melpa-get name))
         (message "Removing %s...done" name)))
     (message "Importing Melpa recipes...done"))
-  (emir-import-melpa-downloads))
+  (when fetch
+    (emir-import-melpa-downloads)))
 
 (defun emir-import-melpa-recipe (name)
   (let* ((rcp   (melpa-get name))
