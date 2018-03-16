@@ -309,9 +309,7 @@ This variable should only be used as a last resort."
     (with-slots (name upstream-user upstream-name) pkg
       (message "Updating %s..." name)
       (condition-case-unless-debug err
-          (--when-let
-              (ghub-get (format "/repos/%s/%s" upstream-user upstream-name)
-                        nil :auth 'emir)
+          (--when-let (emir-gh pkg "GET" "/repos/%u/%n")
             (oset pkg stars (cdr (assq 'stargazers_count it))))
         (error (message "Error: Failed to update stars for %s/%s: %S"
                         upstream-user upstream-name err)))
@@ -885,60 +883,69 @@ This variable should only be used as a last resort."
 
 ;;; Github
 
+(cl-defmethod emir-gh ((pkg epkg-package)
+                       method resource
+                       &optional params
+                       &key callback errorback)
+  (setq resource
+        (format-spec resource
+                     (format-spec-make
+                      ?u (oref pkg upstream-user)
+                      ?n (oref pkg upstream-name)
+                      ?o (if (epkg-shelved-package-p pkg)
+                             "emacsattic"
+                           "emacsmirror")
+                      ?m (oref pkg mirror-name))))
+  (let ((url-show-status nil))
+    (if (equal method "WAIT")
+        (ghub-wait resource nil :auth 'emir)
+      (ghub-request method resource params
+                    :silent t
+                    :auth 'emir
+                    :callback callback
+                    :errorback errorback))))
+
 (cl-defmethod emir-gh-init ((pkg epkg-package))
-  (let ((org  (if (epkg-shelved-package-p pkg) "emacsattic" "emacsmirror"))
-        (name (oref pkg mirror-name)))
-    (ghub-post (format "/orgs/%s/repos" org)
-               `((name . ,name)) :auth 'emir)
-    (ghub-wait (format "/repos/%s/%s" org name) nil 'emir)))
+  (emir-gh pkg "POST" "/orgs/%o/repos" `((name . ,(oref pkg mirror-name))))
+  (emir-gh pkg "WAIT" "/repos/%o/%m"))
 
 (cl-defmethod emir-gh-init ((pkg epkg-github-package))
-  (with-slots (mirror-name upstream-user upstream-name) pkg
-    (if (cl-flet ((forked
-                   (rsp key)
-                   (--when-let (cdr (assq 'full_name (cdr (assq key rsp))))
-                     (cl-find-if
-                      (lambda (fork)
-                        (equal (cdr (assq 'login (cdr (assq 'owner fork))))
-                               "emacsmirror"))
-                      (ghub-get (format "/repos/%s/forks" it)
-                                nil :auth 'emir)))))
-          (let ((rsp (ghub-get (format "/repos/%s/%s"
-                                       upstream-user upstream-name)
-                               nil :auth 'emir)))
-            (or (forked rsp 'source)
-                (forked rsp 'parent))))
-        (cl-call-next-method)
-      (ghub-post (format "/repos/%s/%s/forks" upstream-user upstream-name)
-                 '((organization . "emacsmirror")) :auth 'emir)
-      (ghub-wait (format "/repos/emacsmirror/%s" upstream-name))
-      (unless (equal mirror-name upstream-name)
-        (ghub-patch (format "/repos/emacsmirror/%s" upstream-name)
-                    `((name . ,mirror-name)) :auth 'emir)))))
+  (if (cl-flet ((forked
+                 (rsp key)
+                 (--when-let (cdr (assq 'full_name (cdr (assq key rsp))))
+                   (cl-find-if
+                    (lambda (fork)
+                      (equal (cdr (assq 'login (cdr (assq 'owner fork))))
+                             "emacsmirror"))
+                    (emir-gh pkg "GET" (format "/repos/%s/forks" it))))))
+        (let ((rsp (emir-gh pkg "GET" "/repos/%u/%n")))
+          (or (forked rsp 'source)
+              (forked rsp 'parent))))
+      (cl-call-next-method)
+    (emir-gh pkg "POST" "/repos/%u/%n/forks" '((organization . "emacsmirror")))
+    (emir-gh pkg "WAIT" "/repos/%o/%n")
+    (unless (equal (oref pkg mirror-name)
+                   (oref pkg upstream-name))
+      (emir-gh pkg "PATCH" "/repos/%o/%n" `((name . ,(oref pkg mirror-name)))))))
 
 (cl-defmethod emir-gh-unsubscribe :after ((pkg epkg-package))
-  (let ((org  (if (epkg-shelved-package-p pkg) "emacsattic" "emacsmirror"))
-        (name (oref pkg mirror-name)))
-    (condition-case-unless-debug err
-        (ghub-delete (format "/repos/%s/%s/subscription" org name)
-                     nil :auth 'emir)
-      (error (message "Error: Failed to unsubscribe from %s/%s: %S"
-                      org name err)))))
+  (emir-gh pkg "DELETE" "/repos/%o/%m/subscription"
+           :errorback (lambda (err &rest _)
+                        (message "Error: Failed to unsubscribe from %s/%s: %S"
+                                 (oref pkg upstream-user)
+                                 (oref pkg upstream-name) err))))
 
 (cl-defmethod emir-gh-update ((pkg epkg-package) &optional _clone)
-  (let ((org  (if (epkg-shelved-package-p pkg) "emacsattic" "emacsmirror"))
-        (name (oref pkg mirror-name)))
-    (condition-case-unless-debug err
-        (ghub-patch (format "/repos/%s/%s" org name)
-                    `((name           . ,name)
-                      (description    . ,(oref pkg summary))
-                      (homepage       . ,(oref pkg homepage))
-                      (has_issues     . nil)
-                      (has_wiki       . nil)
-                      (has_downloads  . nil))
-                    :auth 'emir)
-      (error (message "Error: Failed to update metadata for %s/%s: %S"
-                      org name err)))))
+  (emir-gh pkg "PATCH" "/repos/%o/%m"
+           `((name           . ,(oref pkg mirror-name))
+             (description    . ,(oref pkg summary))
+             (homepage       . ,(oref pkg homepage))
+             (has_issues     . nil)
+             (has_wiki       . nil)
+             (has_downloads  . nil))
+           :errorback (lambda (err &rest _)
+                        (message "Error: Failed to publish metadata for %s: %S"
+                                 (oref pkg mirror-name) err))))
 
 (cl-defmethod emir-gh-update :after ((pkg epkg-github-package) &optional clone)
   (when clone
@@ -947,12 +954,7 @@ This variable should only be used as a last resort."
         (magit-git "push" "mirror" (--map (concat ":" it) it))))))
 
 (cl-defmethod emir-gh-delete ((pkg epkg-package))
-  (ghub-delete (format "/repos/%s/%s"
-                       (if (epkg-shelved-package-p pkg)
-                           "emacsattic"
-                         "emacsmirror")
-                       (oref pkg mirror-name))
-               nil :auth 'emir))
+  (emir-gh pkg "DELETE" "/repos/%o/%m"))
 
 ;;; Urls
 
