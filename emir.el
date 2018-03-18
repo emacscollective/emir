@@ -232,7 +232,6 @@ This variable should only be used as a last resort."
     (pcase-dolist (`(,name ,class ,url ,branch)
                    (melpa-recipes [name class url branch]))
       (unless (or (epkg name)
-                  (memq class '(bzr cvs darcs fossil svn))
                   (member url mirrored)
                   (assoc name emir-pending-packages)
                   (assoc name emir-secondary-packages))
