@@ -1,4 +1,8 @@
-ELS   = emir.el
+-include .config.mk
+
+PKG = emir
+
+ELS   = $(PKG).el
 ELS  += emir-gelpa.el
 ELS  += emir-melpa.el
 ELS  += emir-utils.el
@@ -13,28 +17,62 @@ DEPS += emacsql
 DEPS += finalize
 DEPS += ghub
 DEPS += magit/lisp
+DEPS += magit-popup
 DEPS += packed
 DEPS += with-editor
 
-DFLAGS  = $(addprefix -L ../,$(DEPS))
-EFLAGS ?= $(DFLAGS)
-EMACS  ?= emacs
-BATCH   = $(EMACS) -batch -Q -L . $(EFLAGS)
+EMACS      ?= emacs
+EMACS_ARGS ?=
 
-.PHONY: help clean
-
-help:
-	$(info make lisp   - create *.elc)
-	$(info make clean  - remove *.elc)
-	@printf "\n"
+LOAD_PATH  ?= $(addprefix -L ../,$(DEPS))
+LOAD_PATH  += -L .
 
 all: lisp
 
-lisp: $(ELCS)
+help:
+	$(info make all          - generate byte-code and autoloads)
+	$(info make lisp         - generate byte-code and autoloads)
+	$(info make clean        - remove generated files)
+	@printf "\n"
+
+lisp: $(ELCS) loaddefs
+
+loaddefs: $(PKG)-autoloads.el
+
 %.elc: %.el
-	@printf "Compiling %s\n" $<
-	@$(BATCH) -f batch-byte-compile $<
+	@printf "Compiling $<\n"
+	@$(EMACS) -Q --batch $(EMACS_ARGS) $(LOAD_PATH) -f batch-byte-compile $<
+
+CLEAN  = $(ELCS) $(PKG)-autoloads.el
 
 clean:
 	@printf "Cleaning...\n"
-	@rm -f $(ELCS)
+	@rm -rf $(CLEAN)
+
+define LOADDEFS_TMPL
+;;; $(PKG)-autoloads.el --- automatically extracted autoloads
+;;
+;;; Code:
+(add-to-list 'load-path (directory-file-name \
+(or (file-name-directory #$$) (car load-path))))
+
+;; Local Variables:
+;; version-control: never
+;; no-byte-compile: t
+;; no-update-autoloads: t
+;; End:
+;;; $(PKG)-autoloads.el ends here
+endef
+export LOADDEFS_TMPL
+#'
+
+$(PKG)-autoloads.el: $(ELS)
+	@printf "Generating $@\n"
+	@printf "%s" "$$LOADDEFS_TMPL" > $@
+	@$(EMACS) -Q --batch --eval "(progn\
+	(setq make-backup-files nil)\
+	(setq vc-handled-backends nil)\
+	(setq default-directory (file-truename default-directory))\
+	(setq generated-autoload-file (expand-file-name \"$@\"))\
+	(setq find-file-visit-truename t)\
+	(update-directory-autoloads default-directory))"
