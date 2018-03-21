@@ -65,33 +65,15 @@
       (let ((epkg-describe-package-slots-width 14))
         (epkg-describe-package-1
          (epkg package)
-         '(type
-           hash
-           url
-           mirror-url
-           mirror-name
-           upstream-user
-           upstream-name
-           upstream-branch
-           upstream-tree
-           library
-           epkg-insert-repopage
-           epkg-insert-homepage
-           epkg-insert-mirrorpage
-           epkg-insert-wikipage
-           license
-           created
-           updated
-           summary
-           libraries
-           provided
-           required
-           epkg-insert-keywords
-           epkg-insert-authors
-           epkg-insert-maintainers
-           epkg-insert-commentary
-           epkg-insert-dependencies
-           epkg-insert-reverse-dependencies))))))
+         (pcase-let ((`(,a ,b) (--split-when (eq it 'epkg-insert-commentary)
+                                             epkg-describe-package-slots)))
+           (append a
+                   '(nil
+                     hash
+                     url
+                     libraries
+                     nil)
+                   b)))))))
 
 ;;; _
 (provide 'emir-utils)
