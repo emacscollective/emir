@@ -65,15 +65,28 @@
       (let ((epkg-describe-package-slots-width 14))
         (epkg-describe-package-1
          (epkg package)
-         (pcase-let ((`(,a ,b) (--split-when (eq it 'epkg-insert-commentary)
-                                             epkg-describe-package-slots)))
+         (pcase-let ((`(,a ,b) (--split-when
+                                (eq it 'epkg-insert-commentary)
+                                epkg-describe-package-slots)))
            (append a
                    '(nil
                      hash
                      url
+                     emir--insert-melpa-info
                      libraries
+                     patched
                      nil)
                    b)))))))
+
+(defun emir--insert-melpa-info (pkg)
+  (epkg--insert-slot 'melpa)
+  (-if-let (rcp (melpa-get (oref pkg name)))
+      (-if-let (url (oref rcp repopage))
+          (insert-button url
+                         'type 'help-url
+                         'help-args (list url))
+        (insert "(?)"))
+    "no recipe"))
 
 ;;; _
 (provide 'emir-utils)
