@@ -576,10 +576,13 @@ This variable should only be used as a last resort."
 ;;;; Push
 
 (cl-defmethod emir-push ((pkg epkg-mirrored-package))
-  (with-epkg-repository pkg
-    (if (oref pkg patched)
-        (magit-git "push" "--force" "mirror")
-      (magit-git "push" "mirror"))))
+  (let ((tags (and (not (cl-typep pkg 'epkg-orphaned-package)) ; FIXME
+                   (not (cl-typep pkg 'epkg-subtree-package))
+                   "--tags")))
+    (with-epkg-repository pkg
+      (if (oref pkg patched)
+          (magit-git "push" "--force" tags "mirror")
+        (magit-git "push" tags "mirror")))))
 
 (cl-defmethod emir-push ((pkg epkg-subset-package))
   (with-epkg-repository (type-of pkg)
@@ -592,7 +595,7 @@ This variable should only be used as a last resort."
 
 (cl-defmethod emir-push ((pkg epkg-shelved-package))
   (with-epkg-repository pkg
-    (magit-git "push" "attic")))
+    (magit-git "push" "--follow-tags" "attic")))
 
 ;;;; Commit
 
