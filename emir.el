@@ -581,8 +581,8 @@ This variable should only be used as a last resort."
                    "--tags")))
     (with-epkg-repository pkg
       (if (oref pkg patched)
-          (magit-git "push" "--force" tags "mirror")
-        (magit-git "push" tags "mirror")))))
+          (magit-git "push" "--force" tags "mirror" "master")
+        (magit-git "push" tags "mirror" "master")))))
 
 (cl-defmethod emir-push ((pkg epkg-subset-package))
   (with-epkg-repository (type-of pkg)
