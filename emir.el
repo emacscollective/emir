@@ -336,7 +336,9 @@ This variable should only be used as a last resort."
   (interactive
    (let* ((pkg      (epkg (epkg-read-package "Package: ")))
           (features (oref pkg provided))
-          (feature  (intern (completing-read "Drop provide: " features nil t)))
+          (feature  (intern (completing-read "Drop provide: "
+                                             (mapcar #'car features)
+                                             nil t)))
           (reason   (read-string "Reason: " (nth 1 (assq feature features)))))
      (list pkg feature
            (and (not (equal reason "")) reason))))
@@ -350,7 +352,9 @@ This variable should only be used as a last resort."
   (interactive
    (let* ((pkg      (epkg (epkg-read-package "Package: ")))
           (features (oref pkg required))
-          (feature  (intern (completing-read "Drop required: " features nil t)))
+          (feature  (intern (completing-read "Drop required: "
+                                             (mapcar #'car features)
+                                             nil t)))
           (reason   (read-string "Reason: " (nth 3 (assq feature features)))))
      (list pkg feature
            (and (not (equal reason "")) reason))))
