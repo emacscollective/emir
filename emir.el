@@ -62,7 +62,7 @@
   "Maintain the Emacsmirror."
   :group 'local)
 
-(defcustom emir-emacs-reference "emacs-26.0.91"
+(defcustom emir-emacs-reference "emacs-26.1"
   "The Emacs reference used to extract builtin packages."
   :group 'emir
   :type 'string)
@@ -99,7 +99,7 @@ This variable should only be used as a last resort."
 
 ;;; Repositories
 
-(defconst emir-emacs-repository "~/git/src/emacs/emacs-26/")
+(defconst emir-emacs-repository "~/git/src/emacs/emacsmirror/")
 (defconst emir-gelpa-repository "~/git/emacs/gelpa/")
 (defconst emir-melpa-repository "~/git/emacs/melpa/")
 (defconst emir-ewiki-repository "~/git/emacs/ewiki/")
