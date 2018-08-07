@@ -304,15 +304,46 @@ This variable should only be used as a last resort."
 ;;;###autoload
 (defun emir-update-github-stars ()
   (interactive)
-  (dolist (pkg (epkgs nil 'epkg-github-package--eieio-childp))
-    (with-slots (name upstream-user upstream-name) pkg
-      (message "Updating %s..." name)
-      (condition-case-unless-debug err
-          (--when-let (emir-gh pkg "GET" "/repos/%u/%n")
-            (oset pkg stars (cdr (assq 'stargazers_count it))))
-        (error (message "Error: Failed to update stars for %s/%s: %S"
-                        upstream-user upstream-name err)))
-      (message "Updating %s...done" name))))
+  (let ((i 0)
+        (result nil)
+        (groups
+         ;; Trying to do it in one go results in a server-side timeout.
+         (-partition-all
+          200
+          (mapcar (pcase-lambda (`(,owner ,repo ,package))
+                    ;; Package names may contain characters that are
+                    ;; invalid here.  Identifiers also may not begin
+                    ;; with a number or contain an equal sign.
+                    (format "_%s: repository(owner: %S, name: %S) %s"
+                            (replace-regexp-in-string
+                             "=" "_" (base64-encode-string package))
+                            owner repo
+                            "{ nameWithOwner stargazers { totalCount }}"))
+                  (epkgs [upstream-user upstream-name name]
+                         'epkg-github-package--eieio-childp)))))
+    (cl-labels
+        ((cb (&optional data _headers _status _req)
+             (message "Fetching github star page %s..." (cl-incf i))
+             (setq result (nconc result (cdar data)))
+             (if groups
+                 (ghub-graphql
+                  (format "query {\n%s}"
+                          (mapconcat #'identity (pop groups) "\n"))
+                  nil :callback #'cb :auth 'emir)
+               (message "Fetching %s github star pages...done" i)
+               (message "Storing github stars...")
+               (emacsql-with-transaction (epkg-db)
+                 (dolist (e result)
+                   (let-alist e
+                     (when (stringp .nameWithOwner)
+                       ;; The repository still exits.
+                       (oset (epkg (base64-decode-string
+                                    (replace-regexp-in-string
+                                     "_" "="
+                                     (substring (symbol-name (car e)) 1))))
+                             stars .stargazers.totalCount)))))
+               (message "Storing github stars...done"))))
+      (cb))))
 
 ;;;; Patch
 
