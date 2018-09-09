@@ -781,10 +781,7 @@ This variable should only be used as a last resort."
                     (elx-license file))))
         (let ((license (oref pkg license)))
           (and (member license '("failure" "pending" "none" "custom"))
-               license))
-        (let ((file (expand-file-name "LICENSE" (epkg-repository pkg))))
-          (when (file-exists-p file)
-            (elx-license file))))))
+               license)))))
 
 (cl-defmethod emir--updated ((_pkg epkg-package))
   (replace-regexp-in-string
