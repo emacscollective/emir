@@ -270,6 +270,26 @@ This variable should only be used as a last resort."
        (message "Update error: %s" (error-message-string err))))))
 
 ;;;###autoload
+(defun emir-update-github-packages ()
+  (interactive)
+  (emir-gh-foreach-query
+   (lambda (pkg)
+     (format "{ ref (qualifiedName: \"refs/heads/%s\") { target { oid }}}"
+             (or (oref pkg upstream-branch) "master")))
+   (lambda (data)
+     (pcase-dolist (`(,name . ,data) data)
+       (let ((pkg (epkg name))
+             (rev (let-alist data .ref.target.oid)))
+         (cond ((not rev)
+                (message "Skipping removed %s" name))
+               ;; FIXME This is always true for patched packages.
+               ((not (equal rev (oref pkg hash)))
+                (message "Updating %s..." name)
+                (emir-update-package name)
+                (message "Updating %s...done" name)))))
+     (emir--commit "update"))))
+
+;;;###autoload
 (defun emir-update-packages (&optional from recreate)
   (interactive (list (and current-prefix-arg
                           (epkg-read-package "Limit to packages after: "))))
