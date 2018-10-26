@@ -959,16 +959,19 @@ This variable should only be used as a last resort."
          (groups
           (-partition-all
            100 ; Should be small enough to prevent timeout.
-           (mapcar (pcase-lambda (`(,owner ,repo ,package))
+           (mapcar (lambda (pkg)
                      ;; Package names may contain characters that are
                      ;; invalid here.  Identifiers also may not begin
                      ;; with a number or contain an equal sign.
                      (format "_%s: repository(owner: %S, name: %S) %s"
                              (replace-regexp-in-string
-                              "=" "_" (base64-encode-string package))
-                             owner repo query))
-                   (epkgs [upstream-user upstream-name name]
-                          'epkg-github-package--eieio-childp))))
+                              "=" "_" (base64-encode-string (oref pkg name)))
+                             (oref pkg upstream-user)
+                             (oref pkg upstream-name)
+                             (if (functionp query)
+                                 (funcall query pkg)
+                               query)))
+                   (epkgs nil 'epkg-github-package--eieio-childp))))
          (length (length groups)))
     (cl-labels
         ((cb (&optional data _headers _status _req)
