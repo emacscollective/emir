@@ -994,9 +994,10 @@ This variable should only be used as a last resort."
 (cl-defmethod emir--set-urls ((pkg epkg-mirrored-package))
   (-if-let (url (oref pkg url))
       (progn
-        (-when-let (conflict (and url (cadr (assoc url (epkgs [url name])))))
-          (user-error "Another package, %s, is already mirrored from %s"
-                      conflict url))
+        (let ((conflict (and url (cadr (assoc url (epkgs [url name]))))))
+          (when (and conflict (not (equal conflict (oref pkg name))))
+            (user-error "Another package, %s, is already mirrored from %s"
+                        conflict url)))
         (-when-let (url-format (oref pkg url-format))
           (pcase-dolist (`(,slot . ,value) (emir--match-url url-format url))
             (eieio-oset pkg slot value))))
