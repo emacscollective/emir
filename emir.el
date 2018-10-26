@@ -304,46 +304,13 @@ This variable should only be used as a last resort."
 ;;;###autoload
 (defun emir-update-github-stars ()
   (interactive)
-  (let ((i 0)
-        (result nil)
-        (groups
-         ;; Trying to do it in one go results in a server-side timeout.
-         (-partition-all
-          200
-          (mapcar (pcase-lambda (`(,owner ,repo ,package))
-                    ;; Package names may contain characters that are
-                    ;; invalid here.  Identifiers also may not begin
-                    ;; with a number or contain an equal sign.
-                    (format "_%s: repository(owner: %S, name: %S) %s"
-                            (replace-regexp-in-string
-                             "=" "_" (base64-encode-string package))
-                            owner repo
-                            "{ nameWithOwner stargazers { totalCount }}"))
-                  (epkgs [upstream-user upstream-name name]
-                         'epkg-github-package--eieio-childp)))))
-    (cl-labels
-        ((cb (&optional data _headers _status _req)
-             (message "Fetching github star page %s..." (cl-incf i))
-             (setq result (nconc result (cdar data)))
-             (if groups
-                 (ghub-graphql
-                  (format "query {\n%s}"
-                          (mapconcat #'identity (pop groups) "\n"))
-                  nil :callback #'cb :auth 'emir)
-               (message "Fetching %s github star pages...done" i)
-               (message "Storing github stars...")
-               (emacsql-with-transaction (epkg-db)
-                 (dolist (e result)
-                   (let-alist e
-                     (when (stringp .nameWithOwner)
-                       ;; The repository still exits.
-                       (oset (epkg (base64-decode-string
-                                    (replace-regexp-in-string
-                                     "_" "="
-                                     (substring (symbol-name (car e)) 1))))
-                             stars .stargazers.totalCount)))))
-               (message "Storing github stars...done"))))
-      (cb))))
+  (emir-gh-foreach-query
+   "{ stargazers { totalCount }}"
+   (lambda (data)
+     (emacsql-with-transaction (epkg-db)
+       (pcase-dolist (`(,name . ,data) data)
+         (oset (epkg name) stars
+               (or (let-alist data .stargazers.totalCount) 0)))))))
 
 ;;;; Patch
 
@@ -993,6 +960,42 @@ This variable should only be used as a last resort."
 
 (cl-defmethod emir-gh-delete ((pkg epkg-package))
   (emir-gh pkg "DELETE" "/repos/%o/%m"))
+
+(defun emir-gh-foreach-query (query callback)
+  (let* ((page 0)
+         (result nil)
+         (groups
+          (-partition-all
+           100 ; Should be small enough to prevent timeout.
+           (mapcar (pcase-lambda (`(,owner ,repo ,package))
+                     ;; Package names may contain characters that are
+                     ;; invalid here.  Identifiers also may not begin
+                     ;; with a number or contain an equal sign.
+                     (format "_%s: repository(owner: %S, name: %S) %s"
+                             (replace-regexp-in-string
+                              "=" "_" (base64-encode-string package))
+                             owner repo query))
+                   (epkgs [upstream-user upstream-name name]
+                          'epkg-github-package--eieio-childp))))
+         (length (length groups)))
+    (cl-labels
+        ((cb (&optional data _headers _status _req)
+             (setq result (nconc result (cdar data)))
+             (cond
+              (groups
+               (message "Fetching page %s/%s..." (cl-incf page) length)
+               (ghub-graphql
+                (format "query {\n%s}"
+                        (mapconcat #'identity (pop groups) "\n"))
+                nil :callback #'cb :auth 'emir))
+              (t
+               (message "Fetching page %s/%s...done" page length)
+               (dolist (elt result)
+                 (setcar elt (base64-decode-string
+                              (replace-regexp-in-string
+                               "_" "=" (substring (symbol-name (car elt)) 1)))))
+               (funcall callback result)))))
+      (cb))))
 
 ;;; Urls
 
