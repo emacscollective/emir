@@ -657,15 +657,7 @@ This variable should only be used as a last resort."
 ;;;; Add
 
 (cl-defmethod emir-add ((pkg epkg-mirrored-package))
-  (-if-let (url (oref pkg url))
-      (progn
-        (-when-let (conflict (and url (cadr (assoc url (epkgs [url name])))))
-          (user-error "Another package, %s, is already mirrored from %s"
-                      conflict url))
-        (-when-let (url-format (oref pkg url-format))
-          (pcase-dolist (`(,slot . ,value) (emir--match-url url-format url))
-            (eieio-oset pkg slot value))))
-    (oset pkg url (oref-default pkg url-format)))
+  (emir--set-urls pkg)
   (oset pkg mirror-name
         (replace-regexp-in-string "\\+" "-plus" (oref pkg name)))
   (when (epkg-orphaned-package-p pkg)
@@ -998,6 +990,17 @@ This variable should only be used as a last resort."
       (cb))))
 
 ;;; Urls
+
+(cl-defmethod emir--set-urls ((pkg epkg-mirrored-package))
+  (-if-let (url (oref pkg url))
+      (progn
+        (-when-let (conflict (and url (cadr (assoc url (epkgs [url name])))))
+          (user-error "Another package, %s, is already mirrored from %s"
+                      conflict url))
+        (-when-let (url-format (oref pkg url-format))
+          (pcase-dolist (`(,slot . ,value) (emir--match-url url-format url))
+            (eieio-oset pkg slot value))))
+    (oset pkg url (oref-default pkg url-format))))
 
 (cl-defmethod emir--format-url ((pkg epkg-package) slot)
   (--when-let (eieio-oref-default pkg slot)
