@@ -56,46 +56,28 @@
              "bin" (file-name-directory (or load-file-name buffer-file-name)))
             exec-path :test #'equal)
 
-;;; Options
+;;; Variables
 
-(defgroup emir nil
-  "Maintain the Emacsmirror."
-  :group 'local)
+(defconst emir-emacs-reference "emacs-26.1"
+  "The Emacs reference used to extract builtin packages.")
 
-(defcustom emir-emacs-reference "emacs-26.1"
-  "The Emacs reference used to extract builtin packages."
-  :group 'emir
-  :type 'string)
-
-(defcustom emir-pending-packages nil
+(defvar emir-pending-packages nil
   "List of packages that might eventually be imported.
 These package only will be imported if and when upstream
-has fixed known outstanding issues."
-  :group 'emir
-  :type '(repeat (list (string :tag "Name")
-                       (string :tag "Reason"))))
+has fixed known outstanding issues.")
 
-(defcustom emir-secondary-packages nil
+(defvar emir-secondary-packages nil
   "List of packages that share a repository with another package.
 In most cases this is detected automatically.  This variable
 should only be used if the Emacsmirror and Melpa import from
-a different repository."
-  :group 'emir
-  :type '(repeat (list (string :tag "Secondary package")
-                       (string :tag "Primary package"))))
+a different repository.")
 
-(defcustom emir-suspended-packages nil
-  "List of packages that are temporarily not being updated."
-  :group 'emir
-  :type '(repeat (list (string :tag "Name")
-                       (string :tag "Reason"))))
+(defvar emir-suspended-packages nil
+  "List of packages that are temporarily not being updated.")
 
-(defcustom emir-renamed-files nil
+(defvar emir-renamed-files nil
   "List of files that have to be renamed after fetching with curl.
-This variable should only be used as a last resort."
-  :group 'emir
-  :type '(repeat (list (string :tag "Name")
-                       (string :tag "Filename"))))
+This variable should only be used as a last resort.")
 
 ;;; Repositories
 
@@ -290,10 +272,10 @@ This variable should only be used as a last resort."
      (emir--commit "update"))))
 
 ;;;###autoload
-(defun emir-update-packages (&optional from recreate)
+(defun emir-update-other-packages (&optional from recreate)
   (interactive (list (and current-prefix-arg
                           (epkg-read-package "Limit to packages after: "))))
-  (dolist (name (epkgs 'name 'epkg-mirrored-package--eieio-childp))
+  (dolist (name (epkgs 'name 'epkg-wiki-package--eieio-childp))
     (when (or (not from) (string< from name))
       (if (assoc name emir-suspended-packages)
           (message "Skipping suspended %s" name)
