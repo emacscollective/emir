@@ -256,19 +256,22 @@ This variable should only be used as a last resort.")
   (interactive)
   (emir-gh-foreach-query
    (lambda (pkg)
-     (format "{ ref (qualifiedName: \"refs/heads/%s\") { target { oid }}}"
+     (format "{ ref (qualifiedName: \"refs/heads/%s\") { target { oid }}
+                stargazers { totalCount }}"
              (or (oref pkg upstream-branch) "master")))
    (lambda (data)
      (pcase-dolist (`(,name . ,data) data)
-       (let ((pkg (epkg name))
-             (rev (let-alist data .ref.target.oid)))
-         (cond ((not rev)
-                (message "Skipping removed %s" name))
-               ;; FIXME This is always true for patched packages.
-               ((not (equal rev (oref pkg hash)))
-                (message "Updating %s..." name)
-                (emir-update-package name)
-                (message "Updating %s...done" name)))))
+       (let-alist data
+         (let ((pkg (epkg name))
+               (rev .ref.target.oid))
+           (if (not rev)
+               (message "Skipping removed %s" name)
+             (oset pkg stars (or .stargazers.totalCount 0))
+             ;; FIXME This is always true for patched packages.
+             (unless (equal rev (oref pkg hash))
+               (message "Updating %s..." name)
+               (emir-update-package name)
+               (message "Updating %s...done" name))))))
      (emir--commit "update"))))
 
 ;;;###autoload
@@ -304,17 +307,6 @@ This variable should only be used as a last resort.")
               (insert-file-contents it)
               (oset pkg license (emir--license pkg)))))
         (message "Updating %s...done" name)))))
-
-;;;###autoload
-(defun emir-update-github-stars ()
-  (interactive)
-  (emir-gh-foreach-query
-   "{ stargazers { totalCount }}"
-   (lambda (data)
-     (emacsql-with-transaction (epkg-db)
-       (pcase-dolist (`(,name . ,data) data)
-         (oset (epkg name) stars
-               (or (let-alist data .stargazers.totalCount) 0)))))))
 
 ;;;; Patch
 
