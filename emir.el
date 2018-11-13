@@ -551,15 +551,16 @@ This variable should only be used as a last resort.")
 
 (cl-defmethod emir-pull ((pkg epkg-subtree-package))
   (with-epkg-repository pkg
-    (let ((branch (or (oref pkg upstream-branch) "master")))
+    (let ((name (oref pkg name))
+          (branch (or (oref pkg upstream-branch) "master")))
       (magit-git "fetch"    "origin")
       (magit-git "checkout" (concat "origin/" branch))
-      (message "Filtering subtree...")
+      (message "Filtering %s's subtree..." name)
       (magit-git "branch" "-f" branch
                  (or (magit-git-string "subtree" "-P"
                                        (oref pkg upstream-tree) "split")
                      (error "git-subtree failed or is missing")))
-      (message "Filtering subtree...done")
+      (message "Filtering %s's subtree...done" name)
       (magit-git "checkout" branch))))
 
 (cl-defmethod emir-pull ((pkg epkg-subset-package))
