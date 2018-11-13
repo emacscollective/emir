@@ -275,15 +275,17 @@ This variable should only be used as a last resort.")
 (defun emir-update-other-packages (&optional from recreate)
   (interactive (list (and current-prefix-arg
                           (epkg-read-package "Limit to packages after: "))))
-  (dolist (name (epkgs 'name 'epkg-wiki-package--eieio-childp))
-    (when (or (not from) (string< from name))
-      (if (assoc name emir-suspended-packages)
-          (message "Skipping suspended %s" name)
-        (message "Updating %s..." name)
-        (if recreate
-            (emir-update (epkg name) t)
-          (emir-update-package name))
-        (message "Updating %s...done" name))))
+  (dolist (pkg (epkgs nil 'epkg-mirrored-package--eieio-childp))
+    (unless (cl-typep pkg 'epkg-github-package)
+      (let ((name (oref pkg name)))
+        (when (or (not from) (string< from name))
+          (if (assoc name emir-suspended-packages)
+              (message "Skipping suspended %s" name)
+            (message "Updating %s..." name)
+            (if recreate
+                (emir-update (epkg name) t)
+              (emir-update-package name))
+            (message "Updating %s...done" name))))))
   (emir--commit "update"))
 
 ;;;###autoload
