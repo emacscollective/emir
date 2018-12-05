@@ -549,8 +549,8 @@ This variable should only be used as a last resort.")
       (magit-git "checkout" (concat "origin/" branch))
       (message "Filtering %s's subtree..." name)
       (magit-git "branch" "-f" branch
-                 (or (magit-git-string "subtree" "-P"
-                                       (oref pkg upstream-tree) "split")
+                 (or (magit-git-string-ng "subtree" "-P"
+                                          (oref pkg upstream-tree) "split")
                      (error "git-subtree failed or is missing")))
       (message "Filtering %s's subtree...done" name)
       (magit-git "checkout" branch))))
