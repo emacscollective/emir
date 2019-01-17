@@ -48,7 +48,7 @@
                (rcp   (gelpa-get name))
                (`(,url ,type ,method ,released) spec)
                (class (pcase type
-                        ('core     'gelpa-builtin-recipe)
+                        ('core     'gelpa-core-recipe)
                         ('subtree  'gelpa-subtree-recipe)
                         ('external 'gelpa-external-recipe))))
     (when (and rcp (not (eq (type-of rcp) class)))
