@@ -16,9 +16,13 @@ DEPS += epkg
 DEPS += emacsql
 DEPS += finalize
 DEPS += ghub
+DEPS += graphql
+DEPS += hydra # for lv
 DEPS += magit/lisp
 DEPS += magit-popup
 DEPS += packed
+DEPS += transient/lisp
+DEPS += treepy
 DEPS += with-editor
 
 EMACS      ?= emacs
