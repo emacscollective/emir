@@ -672,6 +672,7 @@ This variable should only be used as a last resort.")
 
 (cl-defmethod emir-add ((pkg epkg-builtin-package))
   (oset pkg mirror-name (oref pkg name))
+  (oset pkg url      (emir--format-url pkg 'url-format))
   (oset pkg repopage (emir--format-url pkg 'repopage-format))
   (oset pkg homepage (emir--format-url pkg 'homepage-format))
   (closql-insert (epkg-db) pkg)
