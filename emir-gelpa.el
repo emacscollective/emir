@@ -91,9 +91,8 @@
      (pcase-lambda (`(,name ,type ,url))
        (let ((method nil)
              (released t))
-         (pcase type
-           (:core
-            (setq url nil))
+         (cl-ecase type
+           (:core)
            (:subtree
             (unless (file-exists-p
                      (expand-file-name (concat "packages/" name)))

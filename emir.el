@@ -191,19 +191,45 @@ This variable should only be used as a last resort.")
 (defun emir-add-gelpa-packages (&optional dry-run)
   (interactive "P")
   (emir-pull 'epkg-elpa-package)
-  (pcase-dolist (`(,name ,class)
-                 (gelpa-recipes [name class]
-                                '(gelpa-subtree-recipe
-                                  gelpa-external-recipe)))
-    (unless (or (epkg name)
-                (assoc name emir-pending-packages))
-      (message "Adding %s..." name)
-      (unless dry-run
-        (emir-add (cl-case class
-                    (subtree  (epkg-elpa-package        :name name))
-                    (external (epkg-elpa-branch-package :name name))))
-        (oset (gelpa-get name) epkg-package name))
-      (message "Adding %s...done" name)))
+  (pcase-dolist (`(,name ,class ,url)
+                 (gelpa-recipes [name class url]))
+    (let ((pkg (epkg name)))
+      (when (and (not (assoc name emir-pending-packages))
+                 (or (not pkg)
+                     (and (epkg-builtin-package-p pkg)
+                          (eq class 'core)
+                          ;; `epkg-elpa-core-package' derives from
+                          ;; `epkg-file-package', which only supports
+                          ;; a single file.
+                          (or (stringp url)
+                              (prog1 nil
+                                (message "Skipping multi-file core package %s"
+                                         name)))
+                          (or dry-run
+                              (y-or-n-p (format "\
+%s is already being tracked as an `epkg-builtin-package'.
+Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
+        (message "Adding %s..." name)
+        (unless dry-run
+          (let ((libs (and (epkg-builtin-package-p pkg)
+                           (oref pkg builtin-libraries))))
+            (when libs
+              (closql-delete pkg))
+            (setq pkg (cl-ecase class
+                        (subtree  (epkg-elpa-package :name name))
+                        (external (epkg-elpa-branch-package :name name))
+                        (core
+                         (epkg-elpa-core-package
+                          :name name
+                          ;; Cannot use `emir--format-url' here.
+                          :url (format (oref-default 'epkg-elpa-core-package
+                                                     url-format)
+                                       url)))))
+            (emir-add pkg)
+            (when libs
+              (oset pkg builtin-libraries libs)))
+          (oset (gelpa-get name) epkg-package name))
+        (message "Adding %s...done" name))))
   (unless dry-run
     (emir--commit "add")))
 
