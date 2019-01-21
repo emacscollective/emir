@@ -575,8 +575,8 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
       (magit-git "checkout" (concat "origin/" branch))
       (message "Filtering %s's subtree..." name)
       (magit-git "branch" "-f" branch
-                 (or (magit-git-string-ng "subtree" "-P"
-                                          (oref pkg upstream-tree) "split")
+                 (or (magit-git-string "subtree" "-P"
+                                       (oref pkg upstream-tree) "split")
                      (error "git-subtree failed or is missing")))
       (message "Filtering %s's subtree...done" name)
       (magit-git "checkout" branch))))
