@@ -1,10 +1,9 @@
-* _
-
+:PREAMBLE:
 #+STARTUP: overview
 #+STARTUP: hideblocks
 #+STARTUP: noindent
 #+PROPERTY: header-args :results value table :noweb yes
-
+:END:
 * list tables
 #+BEGIN_SRC emacs-lisp
   (epkg-sql [:select name :from sqlite_master
