@@ -25,6 +25,12 @@
 (require 'emir)
 
 ;;;###autoload
+(defun emir-report ()
+  (interactive)
+  (find-file-other-frame
+   (expand-file-name "compare.org" emir-stats-repository)))
+
+;;;###autoload
 (defun emir-find-org-file (name)
   (interactive
    (list (completing-read "Find org file: "
