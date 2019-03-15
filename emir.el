@@ -215,16 +215,14 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
                            (oref pkg builtin-libraries))))
             (when libs
               (closql-delete pkg))
-            (setq pkg (cl-ecase class
-                        (subtree  (epkg-elpa-package :name name))
-                        (external (epkg-elpa-branch-package :name name))
-                        (core
-                         (epkg-elpa-core-package
-                          :name name
-                          ;; Cannot use `emir--format-url' here.
-                          :url (format (oref-default 'epkg-elpa-core-package
-                                                     url-format)
-                                       url)))))
+            (cl-ecase class
+              (subtree (setq pkg (epkg-elpa-package :name name)))
+              (external (setq pkg (epkg-elpa-branch-package :name name)))
+              (core (setq pkg (epkg-elpa-core-package
+                               :name name
+                               :upstream-name name
+                               :library url))
+                    (oset pkg url (emir--format-url pkg 'url-format))))
             (emir-add pkg)
             (when libs
               (oset pkg builtin-libraries libs)))
@@ -1034,7 +1032,8 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
   (--when-let (eieio-oref-default pkg slot)
     (format-spec it `((?m . ,(oref pkg mirror-name))
                       (?n . ,(oref pkg upstream-name))
-                      (?u . ,(oref pkg upstream-user))))))
+                      (?u . ,(oref pkg upstream-user))
+                      (?l . ,(oref pkg library))))))
 
 (defun emir--match-url (format url)
   (with-temp-buffer
