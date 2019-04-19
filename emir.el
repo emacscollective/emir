@@ -736,7 +736,7 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
                  (emir--features pkg)))
       (oset pkg required required)
       (oset pkg provided provided))
-    (--when-let (magit-mode-get-buffer 'magit-process-mode)
+    (--when-let (magit-get-mode-buffer 'magit-process-mode)
       (kill-buffer it))))
 
 ;;; Extract
