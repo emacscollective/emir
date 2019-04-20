@@ -546,10 +546,11 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
         (magit-call-process "curl" "-O" (oref pkg url))
         (--when-let (cadr (assoc name emir-renamed-files))
           (rename-file it (concat name ".el") t)))
-      (when (or (magit-anything-unstaged-p) force)
+      (when (or (magit-anything-modified-p) force)
         (magit-git "add" ".")
         (let ((process-environment process-environment)
-              (mainlib (or (oref pkg library)
+              (mainlib (or (and (not (cl-typep pkg 'epkg-elpa-core-package))
+                                (oref pkg library))
                            (ignore-errors
                              (packed-main-library
                               default-directory name t t)))))
@@ -742,7 +743,8 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
 ;;; Extract
 
 (cl-defmethod emir--main-library ((pkg epkg-package))
-  (or (oref pkg library)
+  (or (and (not (cl-typep pkg 'epkg-elpa-core-package))
+           (oref pkg library))
       (let ((name (oref pkg name))
             (load-suffixes '(".el" ".el.in" ".el.tmpl"))
             (load-file-rep-suffixes '("")))
