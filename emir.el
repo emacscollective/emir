@@ -87,6 +87,26 @@ This variable should only be used as a last resort.")
 (defconst emir-ewiki-repository "~/git/emacs/ewiki/")
 (defconst emir-stats-repository "~/git/emacs/stats/")
 
+(defmacro with-emir-repository (arg &rest body)
+  "Evaluate BODY in the repository specified by ARG.
+Determine the repository by calling function `epkg-repository'
+with ARG as only argument.  When ARG is t then evaluate in the
+repository specified by variable `epkg-repository'."
+  (declare (indent defun))
+  `(let ((default-directory
+           ,(if (eq arg t)
+                'epkg-repository
+              `(or (epkg-repository ,arg)
+                   (error "Need package or string")))))
+     ;; BODY could call `magit-git', which could cause the
+     ;; `magit-process-mode' buffer to be created, which could
+     ;; cause a prompt about unsafe directory-local variables.
+     ;; Prevent that be creating the process buffer upfront
+     ;; local variables disabled.
+     (let ((enable-local-variables nil))
+       (magit-process-buffer t))
+     ,@body))
+
 (cl-defmethod epkg-repository ((_pkg epkg-builtin-package))
   emir-emacs-repository)
 (cl-defmethod epkg-repository ((_class (subclass epkg-elpa-package)))
@@ -137,7 +157,7 @@ This variable should only be used as a last resort.")
 ;;;###autoload
 (defun emir-import-ewiki-packages (&optional drew-only)
   (interactive "P")
-  (with-epkg-repository 'epkg-wiki-package
+  (with-emir-repository 'epkg-wiki-package
     (magit-git "checkout" "master")
     (magit-git "pull" "--ff-only" "origin")
     (magit-process-buffer)
@@ -181,7 +201,7 @@ This variable should only be used as a last resort.")
          (user-error "Package %s is on hold" name)))
   (let ((pkg (apply class :name name :url url plist)))
     (emir-add pkg)
-    (with-epkg-repository t
+    (with-emir-repository t
       (borg--sort-submodule-sections (magit-git-dir "config"))
       (borg--sort-submodule-sections ".gitmodules")
       (magit-call-git "add" "epkg.sqlite" ".gitmodules"
@@ -261,12 +281,12 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
   (let* ((pkg (epkg package))
          (tip (oref pkg hash)))
     (condition-case err
-        (with-epkg-repository pkg
+        (with-emir-repository pkg
           (when (or force (cl-typep pkg 'epkg-mirrored-package))
             (emir-pull pkg))
           (emir-update pkg)
           (unless (epkg-builtin-package-p pkg)
-            (with-epkg-repository t
+            (with-emir-repository t
               (magit-call-git "add" (epkg-repository pkg))))
           (when (or force (not (equal (oref pkg hash) tip)))
             (emir-gh-update pkg)
@@ -390,19 +410,19 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
     (with-demoted-errors "Error: %S"
       ;; The Github api does not support repository transfers.
       (emir-gh-delete pkg))
-    (with-epkg-repository pkg
+    (with-emir-repository pkg
       (magit-git "reset" "--hard" "HEAD"))
-    (with-epkg-repository t
+    (with-emir-repository t
       (magit-git "mv"
                  (concat "mirror/" name)
                  (concat "attic/" name)))
     (closql--set-object-class (epkg-db) pkg 'epkg-shelved-package)
     (oset pkg mirror-url (emir--format-url pkg 'mirror-url-format))
     (oset pkg mirrorpage (emir--format-url pkg 'mirrorpage-format))
-    (with-epkg-repository pkg
+    (with-emir-repository pkg
       (magit-git "remote" "rename" "mirror" "attic")
       (magit-git "remote" "set-url" "attic" (oref pkg mirror-url)))
-    (with-epkg-repository t
+    (with-emir-repository t
       (magit-git "config" "-f" ".gitmodules"
                  (concat "submodule." name ".url")
                  (oref pkg mirror-url))
@@ -418,7 +438,7 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
   (interactive (list (epkg-read-package "Remove package: ")))
   (let ((pkg (epkg name)))
     (unless (epkg-builtin-package-p pkg)
-      (with-epkg-repository t
+      (with-emir-repository t
         (magit-git "add" ".gitmodules")
         (let ((module-dir (epkg-repository pkg)))
           (when (file-exists-p module-dir)
@@ -426,13 +446,13 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
       (with-demoted-errors "Error: %S"
         (emir-gh-delete pkg)))
     (closql-delete pkg)
-    (with-epkg-repository t
+    (with-emir-repository t
       (magit-call-git "add" "epkg.sqlite"))
     (when (epkg-wiki-package-p pkg)
-      (with-epkg-repository 'epkg-wiki-package
+      (with-emir-repository 'epkg-wiki-package
         (magit-call-git "branch" "-D" name)))
     (with-demoted-errors "Error: %S"
-      (with-epkg-repository t
+      (with-emir-repository t
         (delete-directory (magit-git-dir (concat "modules/" name)) t)))))
 
 ;;;; Fixup
@@ -454,14 +474,14 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
 ;;;; Import
 
 (cl-defmethod emir-import ((pkg epkg-wiki-package))
-  (with-epkg-repository 'epkg-wiki-package
+  (with-emir-repository 'epkg-wiki-package
     (with-slots (name) pkg
       (message "Importing %s..." name)
       (magit-git "filter-emacswiki" "--tag" "--notes" name)
       (message "Importing %s...done" name))))
 
 (cl-defmethod emir-import ((pkg epkg-elpa-package))
-  (with-epkg-repository 'epkg-elpa-package
+  (with-emir-repository 'epkg-elpa-package
     (with-slots (name) pkg
       (message "Importing %s..." name)
       (magit-git "branch" "-f" (concat "directory/" name) "master")
@@ -477,7 +497,7 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
   (emir-import pkg))
 
 (cl-defmethod emir-clone ((pkg epkg-mirrored-package))
-  (with-epkg-repository t
+  (with-emir-repository t
     (let* ((name  (oref pkg name))
            (repo  (cl-typecase pkg
                     (epkg-wiki-package
@@ -507,11 +527,11 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
       (magit-git "config" "-f" ".gitmodules"
                  (concat "submodule." name ".url")
                  (oref pkg mirror-url))))
-  (with-epkg-repository pkg
+  (with-emir-repository pkg
     (magit-git "remote" "add" "mirror" (oref pkg mirror-url))))
 
 (cl-defmethod emir-clone :after ((pkg epkg-subtree-package))
-  (with-epkg-repository pkg
+  (with-emir-repository pkg
     (magit-git "branch" "--unset-upstream"
                (or (oref pkg upstream-branch) "master")))
   (emir-pull pkg))
@@ -520,12 +540,12 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
   (let* ((name (oref pkg name))
          (repo (oref pkg mirror-url))
          (path (concat "mirror/" name)))
-    (with-epkg-repository t
+    (with-emir-repository t
       (magit-git "init" path))
     (emir-pull pkg t)
-    (with-epkg-repository t
+    (with-emir-repository t
       (magit-git "submodule" "add" "--name" name repo path))
-    (with-epkg-repository pkg
+    (with-emir-repository pkg
       (magit-git "remote" "add" "mirror" repo)
       (magit-git "config" "branch.master.remote" "mirror")
       (magit-git "config" "branch.master.merge" "refs/heads/master"))))
@@ -533,14 +553,14 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
 ;;;; Pull
 
 (cl-defmethod emir-pull ((pkg epkg-mirrored-package))
-  (with-epkg-repository pkg
+  (with-emir-repository pkg
     (if (oref pkg patched)
         (progn (magit-git "fetch" "origin")
                (magit-git "rebase" "@{upstream}"))
       (magit-git "pull" "--ff-only" "origin"))))
 
 (cl-defmethod emir-pull ((pkg epkg-file-package) &optional force)
-  (with-epkg-repository pkg
+  (with-emir-repository pkg
     (let ((name (oref pkg name)))
       (let ((magit-process-raise-error t))
         (magit-call-process "curl" "-O" (oref pkg url))
@@ -567,7 +587,7 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
             (magit-git "commit" "-m" "updates")))))))
 
 (cl-defmethod emir-pull ((pkg epkg-subtree-package))
-  (with-epkg-repository pkg
+  (with-emir-repository pkg
     (let ((name (oref pkg name))
           (branch (or (oref pkg upstream-branch) "master")))
       (magit-git "fetch"    "origin")
@@ -581,21 +601,21 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
       (magit-git "checkout" branch))))
 
 (cl-defmethod emir-pull ((pkg epkg-subset-package))
-  (with-epkg-repository pkg
+  (with-emir-repository pkg
     (magit-git "pull" "--ff-only" "import")))
 
 (cl-defmethod emir-pull ((pkg epkg-elpa-branch-package))
-  (with-epkg-repository pkg
+  (with-emir-repository pkg
     (magit-git "pull" "--ff-only" "import"
                (concat "externals/" (oref pkg name)))))
 
 (cl-defmethod emir-pull ((class (subclass epkg-elpa-package)))
-  (with-epkg-repository class
+  (with-emir-repository class
     (magit-git "checkout" "master")
     (magit-git "pull" "--ff-only" "origin")))
 
 (cl-defmethod emir-pull ((pkg epkg-shelved-package))
-  (with-epkg-repository pkg
+  (with-emir-repository pkg
     (magit-git "pull" "--ff-only" "attic" "master")))
 
 ;;;; Push
@@ -604,13 +624,13 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
   (let ((tags (and (not (cl-typep pkg 'epkg-orphaned-package)) ; FIXME
                    (not (cl-typep pkg 'epkg-subtree-package))
                    "--tags")))
-    (with-epkg-repository pkg
+    (with-emir-repository pkg
       (if (oref pkg patched)
           (magit-git "push" "--force" tags "mirror" "master")
         (magit-git "push" tags "mirror" "master")))))
 
 (cl-defmethod emir-push ((pkg epkg-subset-package))
-  (with-epkg-repository (type-of pkg)
+  (with-emir-repository (type-of pkg)
     (magit-git "push" (oref pkg mirror-url)
                (format (cl-typecase pkg
                          (epkg-wiki-package                  "%s:master")
@@ -619,13 +639,13 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
                        (oref pkg name)))))
 
 (cl-defmethod emir-push ((pkg epkg-shelved-package))
-  (with-epkg-repository pkg
+  (with-emir-repository pkg
     (magit-git "push" "--follow-tags" "attic")))
 
 ;;;; Commit
 
 (defun emir--commit (verb)
-  (with-epkg-repository t
+  (with-emir-repository t
     (let ((count (length (magit-staged-files nil "mirror"))))
       (when (> count 0)
         (magit-git "commit"
@@ -648,7 +668,7 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
                    (epkg-elpa-package        (concat "directory/" name))
                    (epkg-elpa-branch-package (concat "externals/" name))
                    (t (or (oref pkg upstream-branch) "master")))))
-    (with-epkg-repository pkg
+    (with-emir-repository pkg
       (magit-git "update-ref" "refs/heads/master" (oref pkg hash))
       (magit-git "checkout" "master")
       (magit-git "remote" "rename" "origin" mirror)
@@ -706,7 +726,7 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
 ;;;; Update
 
 (cl-defmethod emir-update ((pkg epkg-package) &optional recreate)
-  (with-epkg-repository pkg
+  (with-emir-repository pkg
     (with-slots (name hash builtin-libraries library) pkg
       (unless recreate
         (setf hash (magit-rev-parse "HEAD"))
@@ -811,7 +831,7 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
                         :test #'equal :key #'car))
 
 (cl-defmethod emir--features ((pkg epkg-package))
-  (with-epkg-repository pkg
+  (with-emir-repository pkg
     (let ((enable-local-variables nil)
           (load-suffixes '(".el" ".el.in" ".el.tmpl"))
           (load-file-rep-suffixes '(""))
@@ -970,7 +990,7 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
 
 (cl-defmethod emir-gh-update :after ((pkg epkg-github-package) &optional clone)
   (when clone
-    (with-epkg-repository pkg
+    (with-emir-repository pkg
       (--when-let (delete "master" (magit-list-remote-branches "mirror"))
         (magit-git "push" "mirror" (--map (concat ":" it) it))))))
 
