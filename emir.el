@@ -627,7 +627,7 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
                (and (not (cl-typep pkg 'epkg-orphaned-package)) ; FIXME
                     (not (cl-typep pkg 'epkg-subtree-package))
                     "--tags")
-               "mirror" "master")))
+               "mirror" "refs/heads/master:refs/heads/master")))
 
 (cl-defmethod emir-push ((pkg epkg-subset-package))
   (with-emir-repository (type-of pkg)
