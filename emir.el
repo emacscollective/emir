@@ -101,7 +101,7 @@ repository specified by variable `epkg-repository'."
      ;; BODY could call `magit-git', which could cause the
      ;; `magit-process-mode' buffer to be created, which could
      ;; cause a prompt about unsafe directory-local variables.
-     ;; Prevent that be creating the process buffer upfront
+     ;; Prevent that by creating the process buffer upfront
      ;; local variables disabled.
      (let ((enable-local-variables nil))
        (magit-process-buffer t))
