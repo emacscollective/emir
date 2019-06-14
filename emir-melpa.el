@@ -102,7 +102,7 @@
                       #'string< :key #'car))
         (-when-let (pkg (epkg (symbol-name name)))
           (oset pkg downloads count)))))
-  (message "Importing Melpa downloads..."))
+  (message "Importing Melpa downloads...done"))
 
 ;;; _
 (provide 'emir-melpa)
