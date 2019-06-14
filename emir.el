@@ -621,13 +621,13 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
 ;;;; Push
 
 (cl-defmethod emir-push ((pkg epkg-mirrored-package))
-  (let ((tags (and (not (cl-typep pkg 'epkg-orphaned-package)) ; FIXME
-                   (not (cl-typep pkg 'epkg-subtree-package))
-                   "--tags")))
-    (with-emir-repository pkg
-      (if (oref pkg patched)
-          (magit-git "push" "--force" tags "mirror" "master")
-        (magit-git "push" tags "mirror" "master")))))
+  (with-emir-repository pkg
+    (magit-git "push"
+               (and (oref pkg patched) "--force")
+               (and (not (cl-typep pkg 'epkg-orphaned-package)) ; FIXME
+                    (not (cl-typep pkg 'epkg-subtree-package))
+                    "--tags")
+               "mirror" "master")))
 
 (cl-defmethod emir-push ((pkg epkg-subset-package))
   (with-emir-repository (type-of pkg)
