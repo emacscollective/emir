@@ -31,22 +31,6 @@
    (expand-file-name "compare.org" emir-stats-repository)))
 
 ;;;###autoload
-(defun emir-find-org-file (name)
-  (interactive
-   (list (completing-read "Find org file: "
-                          (append '("maint" "config")
-                                  (--map (substring it 0 -4)
-                                         (directory-files emir-stats-repository
-                                                          nil "\\.org\\'"))))))
-  (find-file-other-frame
-   (cond ((equal name "maint")
-          "~/.emacs.d/lib/emir/emir.org")
-         ((equal name "config")
-          (expand-file-name "emir.org" epkg-repository))
-         (t
-          (expand-file-name (concat name ".org") emir-stats-repository)))))
-
-;;;###autoload
 (defun emir-describe-package (package)
   (interactive
    (list (epkg-read-package "Describe package: "
