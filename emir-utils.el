@@ -47,17 +47,6 @@
           (expand-file-name (concat name ".org") emir-stats-repository)))))
 
 ;;;###autoload
-(defun emir-generate-reports ()
-  (interactive)
-  (let ((org-confirm-babel-evaluate nil))
-    (org-publish
-     `("emir"
-       :base-extension      "org"
-       :base-directory      ,emir-stats-repository
-       :publishing-function org-html-publish-to-html)
-     t)))
-
-;;;###autoload
 (defun emir-describe-package (package)
   (interactive
    (list (epkg-read-package "Describe package: "
