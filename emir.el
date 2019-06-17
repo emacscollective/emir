@@ -414,16 +414,16 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
                  (concat "mirror/" name)
                  (concat "attic/" name)))
     (closql--set-object-class (epkg-db) pkg 'epkg-shelved-package)
-    (oset pkg mirror-url (emir--format-url pkg 'mirror-url-format))
     (oset pkg mirrorpage (emir--format-url pkg 'mirrorpage-format))
-    (with-emir-repository pkg
-      (magit-git "remote" "rename" "mirror" "attic")
-      (magit-git "remote" "set-url" "attic" (oref pkg mirror-url)))
-    (with-emir-repository t
-      (magit-git "config" "-f" ".gitmodules"
-                 (concat "submodule." name ".url")
-                 (oref pkg mirror-url))
-      (magit-git "add" ".gitmodules" "epkg.sqlite"))
+    (let ((url (emir--format-url pkg 'mirror-url-format)))
+      (oset pkg mirror-url url)
+      (with-emir-repository pkg
+        (magit-git "remote" "set-url" "mirror" url))
+      (with-emir-repository t
+        (magit-git "config" "-f" ".gitmodules"
+                   (concat "submodule." name ".url")
+                   url)
+        (magit-git "add" ".gitmodules" "epkg.sqlite")))
     (emir-update  pkg)
     (emir-gh-init pkg)
     (emir-push    pkg)))
@@ -452,20 +452,26 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
       (with-emir-repository t
         (delete-directory (magit-git-dir (concat "modules/" name)) t)))))
 
-;;;; Fixup
+;;;; Setup
 
-(defun emir-fixup-modules ()
+;;;###autoload
+(defun emir-setup-module (name)
+  (interactive (list (epkg-read-package "Update package: ")))
+  (condition-case err
+      (progn (message "Setup module %s..." name)
+             (emir-setup (epkg name))
+             (message "Setup module %s...done" name))
+    (error (push name emir-failed)
+           (message "Update error: %s" (error-message-string err)))))
+
+;;;###autoload
+(defun emir-setup-modules ()
   (interactive)
-  (dolist (pkg (epkgs nil '(epkg-mirrored-package--eieio-childp
-                            epkg-shelved-package--eieio-childp)))
-    (let ((name (oref pkg name)))
-      (condition-case err
-          (progn (message "Fixing %s..." name)
-                 (emir-fixup-module pkg)
-                 (message "Fixing %s...done" name))
-        (error
-         (push name emir-failed-updates)
-         (message "Update error: %s" (error-message-string err)))))))
+  (setq emir-failed nil)
+  (setq message-log-max 20000)
+  (mapc #'emir-setup-module
+        (epkgs 'name '(epkg-mirrored-package--eieio-childp
+                       epkg-shelved-package--eieio-childp))))
 
 ;;; Git
 ;;;; Import
@@ -494,58 +500,54 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
   (emir-import pkg))
 
 (cl-defmethod emir-clone ((pkg epkg-mirrored-package))
-  (with-emir-repository t
-    (let* ((name  (oref pkg name))
-           (repo  (cl-typecase pkg
-                    (epkg-wiki-package
-                     (file-relative-name emir-ewiki-repository))
-                    (epkg-elpa-package
-                     (file-relative-name emir-gelpa-repository))
-                    (epkg-elpa-branch-package
-                     (file-relative-name emir-gelpa-repository))
-                    (t
-                     (oref pkg url))))
-           (path  (concat "mirror/" name)))
-      (magit-git
-       "clone"
-       "--single-branch"
-       "--branch" (cl-typecase pkg
-                    (epkg-wiki-package        name)
-                    (epkg-elpa-package        (concat "directory/" name))
-                    (epkg-elpa-branch-package (concat "externals/" name))
-                    (t (or (oref pkg upstream-branch) "master")))
-       "--origin" (cl-typecase pkg
-                    (epkg-subset-package  "import")
-                    (t                    "origin"))
-       repo
-       path)
-      (magit-git "submodule" "add" "--name" name repo path)
-      (magit-git "submodule" "absorbgitdirs" path)
-      (magit-git "config" "-f" ".gitmodules"
-                 (concat "submodule." name ".url")
-                 (oref pkg mirror-url))))
-  (with-emir-repository pkg
-    (magit-git "remote" "add" "mirror" (oref pkg mirror-url))))
+  (let* ((name   (oref pkg name))
+         (mirror (oref pkg mirror-url))
+         (origin (oref pkg url))
+         (branch (or (oref pkg upstream-branch) "master"))
+         (module (concat "mirror/" name)))
+    (with-emir-repository pkg
+      (cl-typecase pkg
+        (epkg-wiki-package
+         (setq origin (file-relative-name emir-ewiki-repository))
+         (setq branch name))
+        (epkg-elpa-package
+         (setq origin (file-relative-name emir-gelpa-repository))
+         (setq branch (concat "directory/" name)))
+        (epkg-elpa-branch-package
+         (setq origin (file-relative-name emir-gelpa-repository))
+         (setq branch (concat "externals/" name)))))
+    (with-emir-repository t
+      (magit-git "clone"
+                 (and (or (cl-typep pkg 'epkg-subtree-package)
+                          (cl-typep pkg 'epkg-subset-package))
+                      "--no-tags")
+                 "--single-branch" "--branch" branch origin module)
+      (magit-git "submodule" "add" "--name" name mirror module)
+      (magit-git "submodule" "absorbgitdirs" module))
+    (with-emir-repository pkg
+      (magit-git "remote" "add" "mirror" mirror)
+      (magit-git "config" "remote.pushDefault" "mirror")
+      (unless (equal branch "master")
+        (magit-git "branch" "--move" branch "master")))))
+
+(cl-defmethod emir-clone ((pkg epkg-file-package))
+  (let* ((name   (oref pkg name))
+         (mirror (oref pkg mirror-url))
+         (module (concat "mirror/" name)))
+    (with-emir-repository t
+      (magit-git "init" module))
+    (emir-pull pkg t)
+    (with-emir-repository t
+      (magit-git "submodule" "add" "--name" name mirror module)
+      (magit-git "submodule" "absorbgitdirs" module))
+    (with-emir-repository pkg
+      (magit-git "remote" "add" "mirror" mirror)
+      (magit-git "config" "remote.pushDefault" "mirror"))))
 
 (cl-defmethod emir-clone :after ((pkg epkg-subtree-package))
   (with-emir-repository pkg
-    (magit-git "branch" "--unset-upstream"
-               (or (oref pkg upstream-branch) "master")))
+    (magit-git "branch" "--unset-upstream"))
   (emir-pull pkg))
-
-(cl-defmethod emir-clone ((pkg epkg-file-package))
-  (let* ((name (oref pkg name))
-         (repo (oref pkg mirror-url))
-         (path (concat "mirror/" name)))
-    (with-emir-repository t
-      (magit-git "init" path))
-    (emir-pull pkg t)
-    (with-emir-repository t
-      (magit-git "submodule" "add" "--name" name repo path))
-    (with-emir-repository pkg
-      (magit-git "remote" "add" "mirror" repo)
-      (magit-git "config" "branch.master.remote" "mirror")
-      (magit-git "config" "branch.master.merge" "refs/heads/master"))))
 
 ;;;; Pull
 
@@ -587,57 +589,33 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
   (with-emir-repository pkg
     (let ((name (oref pkg name))
           (branch (or (oref pkg upstream-branch) "master")))
-      (magit-git "fetch"    "origin")
+      (magit-git "fetch" "origin")
       (magit-git "checkout" (concat "origin/" branch))
-      (message "Filtering %s's subtree..." name)
-      (magit-git "branch" "-f" branch
+      (message "Filtering subtree of %s..." name)
+      (magit-git "branch" "--force" branch
                  (or (magit-git-string "subtree" "-P"
                                        (oref pkg upstream-tree) "split")
                      (error "git-subtree failed or is missing")))
-      (message "Filtering %s's subtree...done" name)
+      (message "Filtering subtree of %s...done" name)
       (magit-git "checkout" branch))))
 
-(cl-defmethod emir-pull ((pkg epkg-subset-package))
+(cl-defmethod emir-pull ((pkg epkg-shelved-package))
   (with-emir-repository pkg
-    (magit-git "pull" "--ff-only" "import")))
-
-(cl-defmethod emir-pull ((pkg epkg-elpa-branch-package))
-  (with-emir-repository pkg
-    (magit-git "pull" "--ff-only" "import"
-               (concat "externals/" (oref pkg name)))))
+    (magit-git "pull" "--ff-only" "mirror" "master")))
 
 (cl-defmethod emir-pull ((class (subclass epkg-elpa-package)))
   (with-emir-repository class
     (magit-git "checkout" "master")
     (magit-git "pull" "--ff-only" "origin")))
 
-(cl-defmethod emir-pull ((pkg epkg-shelved-package))
-  (with-emir-repository pkg
-    (magit-git "pull" "--ff-only" "attic" "master")))
-
 ;;;; Push
 
-(cl-defmethod emir-push ((pkg epkg-mirrored-package))
+(cl-defmethod emir-push ((pkg epkg-package))
   (with-emir-repository pkg
     (magit-git "push"
                (and (oref pkg patched) "--force")
-               (and (not (cl-typep pkg 'epkg-orphaned-package)) ; FIXME
-                    (not (cl-typep pkg 'epkg-subtree-package))
-                    "--tags")
-               "mirror" "refs/heads/master:refs/heads/master")))
-
-(cl-defmethod emir-push ((pkg epkg-subset-package))
-  (with-emir-repository (type-of pkg)
-    (magit-git "push" (oref pkg mirror-url)
-               (format (cl-typecase pkg
-                         (epkg-wiki-package                  "%s:master")
-                         (epkg-elpa-package        "directory/%s:master")
-                         (epkg-elpa-branch-package "externals/%s:master"))
-                       (oref pkg name)))))
-
-(cl-defmethod emir-push ((pkg epkg-shelved-package))
-  (with-emir-repository pkg
-    (magit-git "push" "--follow-tags" "attic")))
+               (and (not (cl-typep pkg 'epkg-subset-package)) "--follow-tags")
+               "mirror" "master")))
 
 ;;;; Commit
 
@@ -650,47 +628,46 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
                                 (if (> count 1) "packages" "package"))
                    "-i" ".gitmodules" "epkg.sqlite")))))
 
-;;;; Fixup
+;;;; Setup
 
-(cl-defmethod emir-fixup-module ((pkg epkg-package))
-  (let* ((name   (oref pkg name))
-         (mirror (cl-typecase pkg
-                   (epkg-shelved-package "attic")
-                   (t                    "mirror")))
-         (origin (cl-typecase pkg
-                   (epkg-subset-package  "import")
-                   (t                    "origin")))
-         (branch (cl-typecase pkg
-                   (epkg-wiki-package        name)
-                   (epkg-elpa-package        (concat "directory/" name))
-                   (epkg-elpa-branch-package (concat "externals/" name))
-                   (t (or (oref pkg upstream-branch) "master")))))
+(cl-defmethod emir-setup ((pkg epkg-package))
+  (let ((name   (oref pkg name))
+        (hash   (oref pkg hash))
+        (origin (oref pkg url))
+        (branch (or (oref pkg upstream-branch) "master")))
     (with-emir-repository pkg
-      (magit-git "update-ref" "refs/heads/master" (oref pkg hash))
+      (cl-typecase pkg
+        (epkg-wiki-package
+         (setq origin (file-relative-name emir-ewiki-repository))
+         (setq branch name))
+        (epkg-elpa-package
+         (setq origin (file-relative-name emir-gelpa-repository))
+         (setq branch (concat "directory/" name)))
+        (epkg-elpa-branch-package
+         (setq origin (file-relative-name emir-gelpa-repository))
+         (setq branch (concat "externals/" name))))
+      (magit-git "reset" "--hard" "HEAD")
+      (magit-git "update-ref" "refs/heads/master" hash)
       (magit-git "checkout" "master")
-      (magit-git "remote" "rename" "origin" mirror)
+      (magit-git "remote" "rename" "origin" "mirror")
+      (magit-git "config" "remote.pushDefault" "mirror")
       (cl-typecase pkg
-        (epkg-file-package)
-        (epkg-minority-package)
-        (epkg-shelved-package)
-        (t
-         (magit-git
-          "remote" "add" "-f" "-t" branch origin
-          (cl-typecase pkg
-            (epkg-wiki-package        (file-relative-name emir-ewiki-repository))
-            (epkg-elpa-package        (file-relative-name emir-gelpa-repository))
-            (epkg-elpa-branch-package (file-relative-name emir-gelpa-repository))
-            (t (oref pkg url))))))
-      (cl-typecase pkg
-        (epkg-file-package)
-        (epkg-minority-package)
-        (epkg-subtree-package
-         (magit-git "branch" "--unset-upstream" branch))
         (epkg-shelved-package
-         (magit-git "branch" "--unset-upstream" branch))
+         (magit-git "branch" "--unset-upstream"))
+        (epkg-file-package
+         (magit-git "branch" "--unset-upstream"))
+        (epkg-subtree-package
+         (magit-git "remote" "add" "-f" "--no-tags"
+                    "-t" branch "origin" origin)
+         (magit-git "branch" "--unset-upstream"))
+        (epkg-subset-package
+         (magit-git "remote" "add" "-f" "--no-tags"
+                    "-t" branch "origin" origin)
+         (magit-git "branch" (concat "--set-upstream-to=origin/" branch)))
         (t
-         (magit-git "branch" (format "--set-upstream-to=%s/%s"
-                                     origin branch)))))))
+         (magit-git "remote" "add" "-f"
+                    "-t" branch "origin" origin)
+         (magit-git "branch" (concat "--set-upstream-to=origin/" branch)))))))
 
 ;;; Database
 ;;;; Add
