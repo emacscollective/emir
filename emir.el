@@ -238,10 +238,7 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
             (cl-ecase class
               (subtree (setq pkg (epkg-elpa-package :name name)))
               (external (setq pkg (epkg-elpa-branch-package :name name)))
-              (core (setq pkg (epkg-elpa-core-package
-                               :name name
-                               :upstream-name name
-                               :library url))
+              (core (setq pkg (epkg-elpa-core-package :name name :library url))
                     (oset pkg url (emir--format-url pkg 'url-format))))
             (emir-add pkg)
             (when libs
