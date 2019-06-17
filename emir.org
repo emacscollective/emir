@@ -512,7 +512,7 @@
   (emacsql-with-transaction (epkg-db)
     (epkg-sql [:drop-table-if-exists raw-wikipages])
     (epkg-sql [:create-table raw-wikipages $S1] emir--db-schema-raw-wikipages)
-    (with-epkg-repository 'epkg-wiki-package
+    (with-emir-repository 'epkg-wiki-package
       (dolist (page (magit-list-files))
         (unless (string-match-p "\\." page)
           (epkg-sql [:insert-into raw-wikipages :values $v1]
@@ -520,7 +520,7 @@
 #+END_SRC
 * set variable ~epkg-db-version~
 #+BEGIN_SRC emacs-lisp :results silent
-  (setq epkg-db-version 1)
+  (setq epkg-db-version 4)
   (epkg-sql "PRAGMA user_version = %s" epkg-db-version)
 #+END_SRC
 
