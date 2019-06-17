@@ -272,10 +272,10 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
 (defvar emir-failed-updates nil)
 
 ;;;###autoload
-(defun emir-update-package (package &optional force)
+(defun emir-update-package (name &optional force)
   (interactive (list (epkg-read-package "Update package: ")
                      current-prefix-arg))
-  (let* ((pkg (epkg package))
+  (let* ((pkg (epkg name))
          (tip (oref pkg hash)))
     (condition-case err
         (with-emir-repository pkg
