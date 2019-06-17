@@ -269,7 +269,7 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
 
 ;;;; Update
 
-(defvar emir-failed-updates nil)
+(defvar emir-failed nil)
 
 ;;;###autoload
 (defun emir-update-package (name &optional force)
@@ -289,7 +289,7 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
             (emir-gh-update pkg)
             (emir-push pkg)))
       (error
-       (push (oref pkg name) emir-failed-updates)
+       (push (oref pkg name) emir-failed)
        (message "Update error: %s" (error-message-string err))))))
 
 ;;;###autoload
