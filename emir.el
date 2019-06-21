@@ -505,7 +505,7 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
          (origin (oref pkg url))
          (branch (or (oref pkg upstream-branch) "master"))
          (module (concat "mirror/" name)))
-    (with-emir-repository pkg
+    (with-emir-repository t
       (cl-typecase pkg
         (epkg-wiki-package
          (setq origin (file-relative-name emir-ewiki-repository))
@@ -515,8 +515,7 @@ Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
          (setq branch (concat "directory/" name)))
         (epkg-elpa-branch-package
          (setq origin (file-relative-name emir-gelpa-repository))
-         (setq branch (concat "externals/" name)))))
-    (with-emir-repository t
+         (setq branch (concat "externals/" name))))
       (magit-git "clone"
                  (and (or (cl-typep pkg 'epkg-subtree-package)
                           (cl-typep pkg 'epkg-subset-package))
