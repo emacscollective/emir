@@ -224,6 +224,8 @@ repository specified by variable `epkg-repository'."
                           ;; `epkg-file-package', which only supports
                           ;; a single file.
                           (or (stringp url)
+                              (and (not (cdr url))
+                                   (setq url (car url)))
                               (prog1 nil
                                 (message "Skipping multi-file core package %s"
                                          name)))
