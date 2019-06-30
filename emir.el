@@ -58,7 +58,9 @@
 
 ;;; Variables
 
-(defconst emir-emacs-reference "emacs-26.1"
+;; Values are set in "<epkg-repository>/emir.org".
+
+(defvar emir-emacs-reference nil
   "The Emacs reference used to extract builtin packages.")
 
 (defvar emir-pending-packages nil
