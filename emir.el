@@ -220,15 +220,6 @@ repository specified by variable `epkg-repository'."
                  (or (not pkg)
                      (and (epkg-builtin-package-p pkg)
                           (eq class 'core)
-                          ;; `epkg-elpa-core-package' derives from
-                          ;; `epkg-file-package', which only supports
-                          ;; a single file.
-                          (or (stringp url)
-                              (and (not (cdr url))
-                                   (setq url (car url)))
-                              (prog1 nil
-                                (message "Skipping multi-file core package %s"
-                                         name)))
                           (or dry-run
                               (y-or-n-p (format "\
 %s is already being tracked as an `epkg-builtin-package'.
@@ -242,8 +233,24 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
             (cl-ecase class
               (subtree (setq pkg (epkg-elpa-package :name name)))
               (external (setq pkg (epkg-elpa-branch-package :name name)))
-              (core (setq pkg (epkg-elpa-core-package :name name :library url))
-                    (oset pkg url (emir--format-url pkg 'url-format))))
+              (core
+               (setq pkg (epkg-elpa-core-package :name name :library url))
+               ;; Allowing multiple libraries is a hack on top of a
+               ;; hack.  We want to avoid this second-order hack if
+               ;; the single library was improperly specified in
+               ;; "externals-list" using a list instead of an atom.
+               (when (and (listp url) (not (cdr url)))
+                 (setq url (car url)))
+               (if (atom url)
+                   (oset pkg url (emir--format-url pkg 'url-format))
+                 ;; Keep this in sync with `emir--format-url'.
+                 (oset pkg url (--map (format-spec
+                                       (oref pkg url-format)
+                                       `((?m . ,(oref pkg mirror-name))
+                                         (?n . ,(oref pkg upstream-name))
+                                         (?u . ,(oref pkg upstream-user))
+                                         (?l . ,it)))
+                                      url)))))
             (emir-add pkg)
             (when libs
               (oset pkg builtin-libraries libs)))
@@ -563,11 +570,15 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
 
 (cl-defmethod emir-pull ((pkg epkg-file-package) &optional force)
   (with-emir-repository pkg
-    (let ((name (oref pkg name)))
+    (let ((name (oref pkg name))
+          (url  (oref pkg url)))
       (let ((magit-process-raise-error t))
-        (magit-call-process "curl" "-O" (oref pkg url))
-        (--when-let (cadr (assoc name emir-renamed-files))
-          (rename-file it (concat name ".el") t)))
+        ;; `epkg-elpa-core-package's are allowed
+        ;; to consist of more than one library.
+        (dolist (url (if (listp url) url (list url)))
+          (magit-call-process "curl" "-O" url)
+          (--when-let (cadr (assoc name emir-renamed-files))
+            (rename-file it (concat name ".el") t))))
       (when (or (magit-anything-modified-p) force)
         (magit-git "add" ".")
         (let ((process-environment process-environment)
@@ -1026,6 +1037,9 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
           (pcase-dolist (`(,slot . ,value) (emir--match-url url-format url))
             (eieio-oset pkg slot value))))
     (oset pkg url (oref-default pkg url-format))))
+
+(cl-defmethod emir--set-urls ((_pkg epkg-elpa-core-package))
+  ) ; Noop.  May be multiple urls.  See `emir-add-gelpa-packages'.
 
 (cl-defmethod emir--format-url ((pkg epkg-package) slot)
   (--when-let (eieio-oref-default pkg slot)
