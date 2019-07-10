@@ -232,7 +232,7 @@ repository specified by variable `epkg-repository'."
                           (or dry-run
                               (y-or-n-p (format "\
 %s is already being tracked as an `epkg-builtin-package'.
-Mirror as an `epkg-elpa-core-package' instead? %s" name class))))))
+Mirror as an `epkg-elpa-core-package' instead? " name))))))
         (message "Adding %s..." name)
         (unless dry-run
           (let ((libs (and (epkg-builtin-package-p pkg)
