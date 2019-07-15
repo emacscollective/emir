@@ -605,12 +605,15 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
           (branch (or (oref pkg upstream-branch) "master")))
       (magit-git "fetch" "origin")
       (magit-git "checkout" (concat "origin/" branch))
-      (message "Filtering subtree of %s..." name)
-      (magit-git "branch" "--force" branch
-                 (or (magit-git-string "subtree" "-P"
-                                       (oref pkg upstream-tree) "split")
-                     (error "git-subtree failed or is missing")))
-      (message "Filtering subtree of %s...done" name)
+      (let ((time (current-time)))
+        (message "Filtering subtree of %s... (%s)" name
+                 (format-time-string "%T"))
+        (magit-git "branch" "--force" branch
+                   (or (magit-git-string "subtree" "-P"
+                                         (oref pkg upstream-tree) "split")
+                       (error "git-subtree failed or is missing")))
+        (message "Filtering subtree of %s...done (%.1fs)" name
+                 (float-time (time-subtract (current-time) time))))
       (magit-git "checkout" branch))))
 
 (cl-defmethod emir-pull ((pkg epkg-shelved-package))
