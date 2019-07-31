@@ -62,7 +62,7 @@
     (unless rcp
       (setq rcp (funcall class :name name))
       (closql-insert (epkg-db) rcp))
-    (dolist (slot '(url repo files branch commit module version-regexp old-names))
+    (dolist (slot '(url repo files branch commit version-regexp old-names))
       (eieio-oset rcp slot (plist-get plist (intern (format ":%s" slot)))))
     (unless (oref rcp url)
       (oset rcp url    (emir--format-url rcp 'url-format)))
