@@ -1041,6 +1041,11 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
             (eieio-oset pkg slot value))))
     (oset pkg url (oref-default pkg url-format))))
 
+(cl-defmethod emir--set-urls :after ((pkg epkg-hg-package))
+  (let ((url (oref pkg url)))
+    (unless (string-prefix-p "hg::" url)
+      (oset pkg url (concat "hg::" url)))))
+
 (cl-defmethod emir--set-urls ((_pkg epkg-elpa-core-package))
   ) ; Noop.  May be multiple urls.  See `emir-add-gelpa-packages'.
 
