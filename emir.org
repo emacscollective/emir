@@ -778,7 +778,7 @@
 | wid-keymap                       | upstream: abandoned                                                                              |
 | wid-table                        | upstream: abandoned                                                                              |
 | wiki-dot                         | no feature                                                                                       |
-| window-grid                      | part of chumpy-windows (possibily under a different name)                                        |
+| window-grid                      | part of chumpy-windows (possibly under a different name)                                         |
 | write-subdirs-el                 | no feature                                                                                       |
 | x-face                           | obsolete                                                                                         |
 | xbase                            | mirror: unmaintained; also no feature provided                                                   |
