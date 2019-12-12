@@ -67,6 +67,18 @@
         (insert "(?)"))
     "no recipe"))
 
+(defun emir-remove-obsolete-wiki-branches ()
+  (interactive)
+  (with-epkg-repository 'epkg-wiki-package
+    (dolist (branch (magit-list-local-branch-names))
+      (let ((pkg (epkg branch)))
+        (when (and (not (equal branch "master"))
+                   (or (not pkg)
+                       (cl-typep pkg 'epkg-shelved-package)))
+          (message "Removing %s..." branch)
+          (magit-call-git "branch" "-D" branch)
+          (message "Removing %s...done" branch))))))
+
 ;;; _
 (provide 'emir-utils)
 ;;; emir-utils.el ends here
