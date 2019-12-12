@@ -308,9 +308,10 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
   (interactive)
   (emir-gh-foreach-query
    (lambda (pkg)
-     (format "{ ref (qualifiedName: \"refs/heads/%s\") { target { oid }}
-                stargazers { totalCount }}"
-             (or (oref pkg upstream-branch) "master")))
+     `((ref [(qualifiedName
+              ,(concat "refs/heads/" (or (oref pkg upstream-branch) "master")))]
+            (target oid))
+       (stargazers totalCount)))
    (lambda (data)
      (pcase-dolist (`(,name . ,data) data)
        (let-alist data
@@ -998,14 +999,16 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
                      ;; Package names may contain characters that are
                      ;; invalid here.  Identifiers also may not begin
                      ;; with a number or contain an equal sign.
-                     (format "_%s: repository(owner: %S, name: %S) %s"
-                             (replace-regexp-in-string
-                              "=" "_" (base64-encode-string (oref pkg name)))
-                             (oref pkg upstream-user)
-                             (oref pkg upstream-name)
-                             (if (functionp query)
-                                 (funcall query pkg)
-                               query)))
+                     `((,(concat "_"
+                                 (replace-regexp-in-string
+                                  "=" "_"
+                                  (base64-encode-string (oref pkg name))))
+                        repository)
+                       [(owner ,(oref pkg upstream-user))
+                        (name  ,(oref pkg upstream-name))]
+                       ,@(if (functionp query)
+                             (funcall query pkg)
+                           query)))
                    (epkgs nil 'epkg-github-package--eieio-childp))))
          (length (length groups)))
     (cl-labels
@@ -1015,8 +1018,9 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
               (groups
                (message "Fetching page %s/%s..." (cl-incf page) length)
                (ghub-graphql
-                (format "query {\n%s}"
-                        (mapconcat #'identity (pop groups) "\n"))
+                (gsexp-encode
+                 (ghub--graphql-prepare-query
+                  (cons 'query (pop groups))))
                 nil :callback #'cb :auth 'emir))
               (t
                (message "Fetching page %s/%s...done" page length)
