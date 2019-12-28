@@ -110,7 +110,6 @@
 | filenames-in-env          | http://www.cb1.com/~john/computing/emacs/lisp/file-handling                  |
 | find-commands             | http://www.cb1.com/~john/computing/emacs/lisp/elisp-dev-tools                |
 | find-empty-el-files       | http://www.cb1.com/~john/computing/emacs/lisp/elisp-dev-tools                |
-| find-file-suggest         | http://code.google.com/p/find-file-suggest                                   |
 | flame                     | http://www.splode.com/~friedman/software/emacs-lisp                          |
 | flash-paren               | http://www.splode.com/~friedman/software/emacs-lisp                          |
 | flatten-saved-pages       | http://www.cb1.com/~john/computing/emacs/lisp/webstuff                       |
@@ -127,7 +126,6 @@
 | geek                      | http://www.splode.com/~friedman/software/emacs-lisp                          |
 | geiser                    | http://www.nongnu.org/geiser                                                 |
 | gentext-bindings          | http://www.cb1.com/~john/computing/emacs/lisp/editing                        |
-| gentext-models            | http://www.cb1.com/~john/computing/emacs/lisp/editing                        |
 | gnus-checker              | http://www.shellarchive.co.uk/content/emacs.html                             |
 | gnus-highlight            | http://www.hardakers.net/elisp                                               |
 | google                    | http://edward.oconnor.cx/elisp                                               |
@@ -145,7 +143,6 @@
 | host-fns                  | http://www.splode.com/~friedman/software/emacs-lisp                          |
 | html-chooser-mode         | http://www.dur.ac.uk/p.j.heslin/Software/Emacs                               |
 | html-phrase-list          | http://www.cb1.com/~john/computing/emacs/lisp/natural-language               |
-| html-toc                  | http://www.pvv.org/~rolfn                                                    |
 | html5                     | http://edward.oconnor.cx/elisp                                               |
 | hyde                      | http://nibrahim.net.in/2010/11/11/hyde_:_an_emacs_mode_for_jekyll_blogs.html |
 | hyphenate                 | http://www.cb1.com/~john/computing/emacs/lisp/editing                        |
@@ -162,7 +159,6 @@
 | invoice                   | http://www.splode.com/~friedman/software/emacs-lisp                          |
 | ion3                      | http://www.xsteve.at/prg/emacs                                               |
 | ipp                       | http://emarsden.chez.com/downloads                                           |
-| iuscheme                  | http://www.cs.indiana.edu/chezscheme/emacs                                   |
 | java-find                 | http://www.northbound-train.com                                              |
 | jfolding                  | http://homepages.cs.ncl.ac.uk/phillip.lord/emacs.html                        |
 | journal-search            | http://www.cb1.com/~john/computing/emacs/lisp/webstuff                       |
@@ -172,7 +168,6 @@
 | kbd-fns                   | http://www.splode.com/~friedman/software/emacs-lisp                          |
 | keymap-hacks              | http://www.cb1.com/~john/computing/emacs/lisp/misc                           |
 | keywiz                    | http://www.phys.au.dk/~harder                                                |
-| kibologize                | http://www.splode.com/~friedman/software/emacs-lisp                          |
 | kill-a-lawyer             | http://www.splode.com/~friedman/software/emacs-lisp                          |
 | labbook                   | http://homepages.cs.ncl.ac.uk/phillip.lord/emacs.html                        |
 | lat1conv                  | http://www.splode.com/~friedman/software/emacs-lisp                          |
@@ -208,7 +203,6 @@
 | motion-fns                | http://www.splode.com/~friedman/software/emacs-lisp                          |
 | mouse-embrace             | http://www.xsteve.at/prg/emacs                                               |
 | mouse-focus               | http://www.skamphausen.de/cgi-bin/ska/mouse-focus                            |
-| mpg123                    | http://www.gentei.org/~yuuji/software/mpg123el                               |
 | multi-find-file           | http://www.cb1.com/~john/computing/emacs/lisp/file-handling                  |
 | multiselect               | http://www.skamphausen.de/cgi-bin/ska/multiselect                            |
 | multr                     | http://lgarc.narod.ru/xemacs                                                 |
@@ -228,7 +222,6 @@
 | nukneval                  | http://www.davep.org/emacs                                                   |
 | obarray-fns               | http://www.splode.com/~friedman/software/emacs-lisp                          |
 | obfusurl                  | http://www.davep.org/emacs                                                   |
-| objc-c-mode               | http://www.foldr.org/~michaelw/objective-c/index.html#objc-mode              |
 | octal-chars               | http://www.cb1.com/~john/computing/emacs/lisp/natural-language               |
 | odf-mode                  | http://www.cb1.com/~john/computing/emacs/lisp/editing                        |
 | offlineimap               | https://julien.danjou.info/projects/emacs-packages#offlineimap               |
@@ -268,7 +261,6 @@
 | redshank                  | http://www.foldr.org/~michaelw/emacs/redshank                                |
 | regression                | http://www.cb1.com/~john/computing/emacs/lisp/misc                           |
 | removable-media           | http://www.cb1.com/~john/computing/emacs/lisp/file-handling                  |
-| revive                    | http://www.gentei.org/~yuuji/software                                        |
 | riece                     | http://www.nongnu.org/riece                                                  |
 | rijndael                  | http://josefsson.org/aes                                                     |
 | rmail-frobs               | http://www.splode.com/~friedman/software/emacs-lisp                          |
@@ -282,7 +274,6 @@
 | setq-trap                 | http://www.splode.com/~friedman/software/emacs-lisp                          |
 | shop                      | http://www.splode.com/~friedman/software/emacs-lisp                          |
 | show-functions            | http://aurelien.tisne.free.fr/emacs-pages/emacs.html                         |
-| silly-mail                | http://www.splode.com/~friedman/software/emacs-lisp                          |
 | skip-initial-comments     | http://www.cb1.com/~john/computing/emacs/lisp/editing                        |
 | slashdot                  | http://www.davep.org/emacs                                                   |
 | smallurl                  | http://www.shellarchive.co.uk/content/emacs.html                             |
@@ -302,11 +293,9 @@
 | swimmers                  | http://www.cb1.com/~john/computing/emacs/lisp/games                          |
 | swiss-move                | http://www.skamphausen.de/cgi-bin/ska/swiss-move                             |
 | sww                       | http://www.xsteve.at/prg/emacs                                               |
-| sysadmin                  | http://www.cb1.com/~john/computing/emacs/lisp/sysadmin                       |
 | task-mode                 | http://racin.free.fr/old/projects.html#task-mode                             |
 | taskjuggler-mode          | http://www.skamphausen.de/cgi-bin/ska/taskjuggler-mode                       |
 | technorati                | http://edward.oconnor.cx/elisp                                               |
-| tee                       | http://levana.de/emacs                                                       |
 | texletter                 | http://www.skamphausen.de/cgi-bin/ska/Software                               |
 | tiger                     | http://edward.oconnor.cx/elisp                                               |
 | timestamp                 | http://www.splode.com/~friedman/software/emacs-lisp                          |
@@ -325,19 +314,16 @@
 | u-appt                    | http://ulf.epplejasper.de/EmacsCalendarAndDiary.html                         |
 | u-color-cycle             | http://ulf.epplejasper.de/EmacsFunStuff.html                                 |
 | u-mandelbrot              | http://ulf.epplejasper.de/EmacsFunStuff.html                                 |
-| uboat                     | http://www.splode.com/~friedman/software/emacs-lisp                          |
 | unbind                    | http://www.davep.org/emacs                                                   |
 | uniesc                    | http://www.loveshack.ukfsn.org/emacs                                         |
 | unique                    | http://www.cb1.com/~john/computing/emacs/lisp/editing                        |
 | update-autoloads          | http://www.cb1.com/~john/computing/emacs/lisp/elisp-dev-tools                |
 | update-dns                | http://www.splode.com/~friedman/software/emacs-lisp                          |
 | upside-down               | http://www.splode.com/~friedman/software/emacs-lisp                          |
-| variant                   | http://homepages.cs.ncl.ac.uk/phillip.lord/emacs.html                        |
 | variant-abbc              | http://homepages.cs.ncl.ac.uk/phillip.lord/emacs.html                        |
 | viewtex                   | http://www.splode.com/~friedman/software/emacs-lisp                          |
 | vkill                     | http://www.splode.com/~friedman/software/emacs-lisp                          |
 | vorbiscomment             | http://www.phys.au.dk/~harder                                                |
-| warlord                   | http://www.splode.com/~friedman/software/emacs-lisp                          |
 | watch-sexp                | http://www.skamphausen.de/cgi-bin/ska/Software                               |
 | watson                    | http://emarsden.chez.com/downloads                                           |
 | wb-line-number            | http://homepage1.nifty.com/blankspace/emacs/elisp.html                       |
@@ -345,7 +331,6 @@
 | what-domain               | http://www.splode.com/~friedman/software/emacs-lisp                          |
 | who-calls                 | http://www.phys.au.dk/~harder                                                |
 | win-disp-util             | http://www.splode.com/~friedman/software/emacs-lisp                          |
-| windows                   | http://www.gentei.org/~yuuji/software                                        |
 | with-file                 | http://www.cb1.com/~john/computing/emacs/lisp/file-handling                  |
 | with-saved-messages       | http://www.cb1.com/~john/computing/emacs/lisp/elisp-dev-tools                |
 | woof                      | http://www.xsteve.at/prg/emacs                                               |
@@ -383,7 +368,6 @@
 | bm                  | VisibleBookmarks                     |
 | breadcrumb          | BreadcrumbForEmacs                   |
 | buqis               | BufferQuickSwitcher                  |
-| ca2                 | CaMode                               |
 | columnize           | ColumnizeWords                       |
 | corba               | CorbaImplementation                  |
 | coroutine           | CoRoutines                           |
@@ -404,7 +388,6 @@
 | ewb                 | EmacsWebBrowser                      |
 | fdlcap              | RotateWordCapitalization             |
 | flymake-for-csharp  | FlymakeCsharp                        |
-| gobject-class       | GObjectClassHelpers                  |
 | google              | GoogleInterface                      |
 | inertial-scroll     | InertialScrolling                    |
 | ipa                 | InPlaceAnnotations                   |
@@ -413,7 +396,6 @@
 | kdic                | KanjiDictionary                      |
 | loops               | LoopFindPackage                      |
 | magpie              | MagpieExpansion                      |
-| markerpen           | MarkerPens                           |
 | mc                  | MidnightCommanderMode                |
 | member-functions    | ExpandMemberFunctions                |
 | mhc                 | MessageHarmonizedCalendaring         |
