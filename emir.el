@@ -81,6 +81,12 @@ a different repository.")
   "List of files that have to be renamed after fetching with curl.
 This variable should only be used as a last resort.")
 
+(defvar emir--homepage-alist nil
+  "Alist of packages and their homepages.")
+
+(defvar emir--wikipage-alist nil
+  "Alist of packages and their wikipages.")
+
 ;;; Repositories
 
 (defconst emir-emacs-repository "~/git/src/emacs/emacsmirror/")
@@ -790,9 +796,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
 (cl-defmethod emir--updated ((_pkg epkg-builtin-package)))
 
 (cl-defmethod emir--homepage ((pkg epkg-package))
-  (or (caar (epkg-sql [:select page :from pkg-homepages
-                       :where [(= package $s1)]]
-                      (oref pkg name)))
+  (or (cadr (assoc (oref pkg name) emir--homepage-alist))
       (--when-let (lm-homepage)
         (if (string-match-p "/$" it)
             (substring it 0 -1)
@@ -801,9 +805,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
 
 (cl-defmethod emir--wikipage ((pkg epkg-package))
   (--when-let (or (and (epkg-wiki-package-p pkg) (elx-wikipage))
-                  (caar (epkg-sql [:select page :from pkg-wikipages
-                                   :where (= package $s1)]
-                                  (oref pkg name)))
+                  (cadr (assoc (oref pkg name) emir--wikipage-alist))
                   (let* ((name (emir--normalize-wikipage (oref pkg name)))
                          (alist (with-emir-repository 'epkg-wiki-package
                                   (mapcar (lambda (f)
