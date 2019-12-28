@@ -804,14 +804,17 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
                   (caar (epkg-sql [:select page :from pkg-wikipages
                                    :where (= package $s1)]
                                   (oref pkg name)))
-                  (let ((name (emir--normalize-wikipage (oref pkg name))))
-                    (or (caar (epkg-sql [:select page :from raw-wikipages
-                                         :where (= normalized $s1)] name))
-                        (caar (epkg-sql [:select page :from raw-wikipages
-                                         :where (= normalized $s1)]
-                                (if (string-match-p "mode$" name)
-                                    (substring name 0 -4)
-                                  (concat name "mode")))))))
+                  (let* ((name (emir--normalize-wikipage (oref pkg name)))
+                         (alist (with-emir-repository 'epkg-wiki-package
+                                  (mapcar (lambda (f)
+                                            (cons (emir--normalize-wikipage f)
+                                                  f))
+                                          (magit-list-files)))))
+                    (or (cdr (assoc name alist))
+                        (cdr (assoc (if (string-match-p "mode$" name)
+                                        (substring name 0 -4)
+                                      (concat name "mode"))
+                                    alist)))))
     (concat "https://emacswiki.org/" it)))
 
 (defun emir--authors ()

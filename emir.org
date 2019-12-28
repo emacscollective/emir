@@ -436,17 +436,3 @@
 | workgroups          | WorkgroupsForWindows                 |
 | xray                | XrayPackage                          |
 
-* recreate ~raw-wikipages~ table
-#+BEGIN_SRC emacs-lisp :results silent
-  (defconst emir--db-schema-raw-wikipages
-    '([(page       :not-null :primary-key)
-       (normalized :not-null)]))
-  (emacsql-with-transaction (epkg-db)
-    (epkg-sql [:drop-table-if-exists raw-wikipages])
-    (epkg-sql [:create-table raw-wikipages $S1] emir--db-schema-raw-wikipages)
-    (with-emir-repository 'epkg-wiki-package
-      (dolist (page (magit-list-files))
-        (unless (string-match-p "\\." page)
-          (epkg-sql [:insert-into raw-wikipages :values $v1]
-                    (vector page (emir--normalize-wikipage page)))))))
-#+END_SRC
