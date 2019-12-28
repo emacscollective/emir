@@ -79,6 +79,12 @@
           (magit-call-git "branch" "-D" branch)
           (message "Removing %s...done" branch))))))
 
+(defun emir--list-tables (db)
+  "Return a list of all tables in DB."
+  (emacsql db [:select name :from sqlite_master
+               :where (= type table)
+               :order-by [(asc name)]]))
+
 ;;; _
 (provide 'emir-utils)
 ;;; emir-utils.el ends here
