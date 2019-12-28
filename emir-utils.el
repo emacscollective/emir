@@ -125,6 +125,10 @@
                       (vconcat (-split-on '| (car (nthcdr 7 tbl))))))
               (read (current-buffer))))))
 
+(defun emir--set-db-version (db version)
+  (cl-assert (integerp version))
+  (emacsql db "PRAGMA user_version = %s" version))
+
 ;;; _
 (provide 'emir-utils)
 ;;; emir-utils.el ends here

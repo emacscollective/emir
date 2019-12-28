@@ -468,12 +468,6 @@
           (epkg-sql [:insert-into raw-wikipages :values $v1]
                     (vector page (emir--normalize-wikipage page)))))))
 #+END_SRC
-* set variable ~epkg-db-version~
-#+BEGIN_SRC emacs-lisp :results silent
-  (setq epkg-db-version 4)
-  (epkg-sql "PRAGMA user_version = %s" epkg-db-version)
-#+END_SRC
-
 * set variable ~emir-old-attic-reasons~
 #+BEGIN_SRC emacs-lisp :results silent :var value=emir-old-attic-reasons
   (setq emir-old-attic-reasons value) nil
