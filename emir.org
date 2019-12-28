@@ -4,35 +4,6 @@
 #+STARTUP: noindent
 #+PROPERTY: header-args :results value table :noweb yes
 :END:
-* print table schema
-#+BEGIN_SRC emacs-lisp :results scalar pp
-  ;; To verify `epkg--db-table-schemata' use:
-  ;; (setq temp-db (make-instance 'epkg-database :file "temp.sqlite"))
-  ;; (closql--db-init temp-db)
-  (let* ((db (epkg-db))
-         (str (emacsql-compile
-               db [:select * :from sqlite_master
-                   :where (= type table)])))
-    (emacsql-clear db)
-    (emacsql-send-message db str)
-    (emacsql-wait db)
-    (with-current-buffer (emacsql-buffer db)
-      (goto-char (point-min))
-      (save-excursion
-        (while (re-search-forward "\"" nil t)
-          (replace-match " " nil t)))
-      (save-excursion
-        (while (re-search-forward "'" nil t)
-          (replace-match "\"" nil t)))
-      (save-excursion
-        (while (search-forward "," nil t)
-          (replace-match " | " nil t)))
-      (mapcar (lambda (tbl)
-                (cons (cadr tbl)
-                      (-split-on '| (car (nthcdr 7 tbl)))))
-              (read (current-buffer)))))
-#+END_SRC
-
 * recreate ~packages~ table et al.
 #+BEGIN_SRC emacs-lisp :results silent
   (let (old new)

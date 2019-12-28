@@ -85,6 +85,46 @@
                :where (= type table)
                :order-by [(asc name)]]))
 
+(defun emir--table-schemata (db)
+  "Return the schemata of all tables in DB."
+  (let ((str (emacsql-compile
+              db [:select * :from sqlite_master
+                  :where (= type table)])))
+    (emacsql-clear db)
+    (emacsql-send-message db str)
+    (emacsql-wait db)
+    (with-current-buffer (emacsql-buffer db)
+      (goto-char (point-min))
+      (let* ((alist '(("\"" . " ")
+                      ("'"  . "\"")
+                      (","  . " | ")
+                      ("DEFAULT"     . ":default")
+                      ("PRIMARY KEY" . ":primary-key")
+                      ("FOREIGN KEY" . ":foreign-key")
+                      ("ON DELETE"   . ":on-delete")
+                      ("CASCADE"     . ":cascade")
+                      ("REFERENCES"  . ":references")
+                      ("NOT NULL"    . ":not-null")
+                      ("SET NULL"    . ":set-null")
+                      ("NULL"        . ":null")))
+             (regex (concat "\\(" (mapconcat #'car alist "\\|") "\\)")))
+        (save-excursion
+          (while (re-search-forward regex nil t)
+            (let ((key (match-string 0)))
+              (replace-match (cdr (assoc (match-string 0) alist)) t t)
+              (when (and (member key '("PRIMARY KEY" "FOREIGN KEY"))
+                         (looking-at " ([^)]+)"))
+                (replace-match
+                 (save-match-data
+                   (format " [%s]"
+                           (replace-regexp-in-string
+                            "," " " (substring (match-string 0) 2 -1))))
+                 nil t))))))
+      (mapcar (lambda (tbl)
+                (list (cadr tbl)
+                      (vconcat (-split-on '| (car (nthcdr 7 tbl))))))
+              (read (current-buffer))))))
+
 ;;; _
 (provide 'emir-utils)
 ;;; emir-utils.el ends here
