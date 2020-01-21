@@ -107,7 +107,8 @@
                       ("NOT NULL"    . ":not-null")
                       ("SET NULL"    . ":set-null")
                       ("NULL"        . ":null")))
-             (regex (concat "\\(" (mapconcat #'car alist "\\|") "\\)")))
+             (regex (concat "\\(" (mapconcat #'car alist "\\|") "\\)"))
+             (case-fold-search nil))
         (save-excursion
           (while (re-search-forward regex nil t)
             (let ((key (match-string 0)))
