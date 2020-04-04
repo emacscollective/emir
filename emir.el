@@ -150,7 +150,9 @@ repository specified by variable `epkg-repository'."
             (setq pkg (epkg-builtin-package :name name))
             (emir-add pkg))
           (oset pkg builtin-libraries value)
-          (emir-update pkg))
+          (if value
+              (emir-update pkg)
+            (message "  ! nothing left")))
         (message "Updating %s...done" name))
       (dolist (pkg (epkgs))
         (let ((name (oref pkg name)))
@@ -885,39 +887,41 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
       (cl-sort
        (cl-mapcan
         (lambda (file)
-          (message "Importing %s..." file)
           (and (string-suffix-p ".el" file)
-               (not (string-match-p finder-no-scan-regexp file))
-               (not (member file
-                            '("lisp/gnus/.dir-locals.el"
-                              ;; Old versions:
-                              "lisp/obsolete/old-emacs-lock.el"
-                              "lisp/obsolete/old-whitespace.el"
-                              "lisp/obsolete/otodo-mode.el"
-                              ;; Moved to GNU Elpa:
-                              "lisp/obsolete/crisp.el"
-                              "lisp/obsolete/landmark.el")))
-               (with-temp-buffer
-                 (insert-file-contents file)
-                 (let ((package
-                        (cond
-                         ((not features) "emacs")
-                         ((string-prefix-p "lisp/term/"     file) "emacs")
-                         ((string-prefix-p "lisp/leim/"     file) "emacs")
-                         ((string-prefix-p "lisp/obsolete/" file) "emacs")
-                         ((lm-header "Package"))
-                         ((--when-let (assoc (-> file
-                                                 file-name-directory
-                                                 directory-file-name
-                                                 file-name-nondirectory)
-                                             finder--builtins-alist)
-                            (symbol-name (cdr it))))
-                         ((-> file
-                              file-name-nondirectory
-                              file-name-sans-extension)))))
-                   (--map (list package file it)
-                          (or (packed-provided)
-                              (list nil)))))))
+               (if (or (string-match-p finder-no-scan-regexp file)
+                       (member file
+                               '("lisp/gnus/.dir-locals.el"
+                                 ;; Old versions:
+                                 "lisp/obsolete/old-emacs-lock.el"
+                                 "lisp/obsolete/old-whitespace.el"
+                                 "lisp/obsolete/otodo-mode.el"
+                                 ;; Moved to GNU Elpa:
+                                 "lisp/obsolete/crisp.el"
+                                 "lisp/obsolete/landmark.el")))
+                   (prog1 nil (message "Skipping %s...done" file))
+                 (message "Importing %s..." file)
+                 (with-temp-buffer
+                   (insert-file-contents file)
+                   (let ((package
+                          (cond
+                           ((not features) "emacs")
+                           ((string-prefix-p "lisp/term/"     file) "emacs")
+                           ((string-prefix-p "lisp/leim/"     file) "emacs")
+                           ((string-prefix-p "lisp/obsolete/" file) "emacs")
+                           ((lm-header "Package"))
+                           ((--when-let (assoc (-> file
+                                                   file-name-directory
+                                                   directory-file-name
+                                                   file-name-nondirectory)
+                                               finder--builtins-alist)
+                              (symbol-name (cdr it))))
+                           ((-> file
+                                file-name-nondirectory
+                                file-name-sans-extension)))))
+                     (prog1 (--map (list package file it)
+                                   (or (packed-provided)
+                                       (list nil)))
+                       (message "Importing %s...done" file)))))))
         (magit-git-items "ls-tree" "-z" "-r" "--name-only" "HEAD" "lisp/"))
        #'string< :key #'car)))))
 
