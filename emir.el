@@ -87,6 +87,9 @@ This variable should only be used as a last resort.")
 (defvar emir--wikipage-alist nil
   "Alist of packages and their wikipages.")
 
+(defvar emir--archived-packages nil
+  "List of packages whose upstream repositories are archived.")
+
 ;;; Repositories
 
 (defconst emir-emacs-repository "~/git/src/emacs/emacsmirror/")
