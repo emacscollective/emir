@@ -30,43 +30,6 @@
   (find-file-other-frame
    (expand-file-name "compare.org" emir-stats-repository)))
 
-;;;###autoload
-(defun emir-describe-package (package)
-  (interactive
-   (list (epkg-read-package "Describe package: "
-                            (or (tabulated-list-get-id)
-                                (--when-let (symbol-at-point)
-                                  (symbol-name it))))))
-  (help-setup-xref (list #'emir-describe-package package)
-                   (called-interactively-p 'interactive))
-  (with-help-window (help-buffer)
-    (with-current-buffer standard-output
-      (let ((epkg-describe-package-slots-width 14))
-        (epkg-describe-package-1
-         (epkg package)
-         (pcase-let ((`(,a ,b) (--split-when
-                                (eq it 'epkg-insert-commentary)
-                                epkg-describe-package-slots)))
-           (append a
-                   '(nil
-                     hash
-                     url
-                     emir--insert-melpa-info
-                     libraries
-                     patched
-                     nil)
-                   b)))))))
-
-(defun emir--insert-melpa-info (pkg)
-  (epkg--insert-slot 'melpa)
-  (-if-let (rcp (melpa-get (oref pkg name)))
-      (-if-let (url (oref rcp repopage))
-          (insert-button url
-                         'type 'help-url
-                         'help-args (list url))
-        (insert "(?)"))
-    "no recipe"))
-
 (defun emir-remove-obsolete-wiki-branches ()
   (interactive)
   (with-epkg-repository 'epkg-wiki-package
