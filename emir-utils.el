@@ -96,6 +96,33 @@
   (cl-assert (integerp version))
   (emacsql db "PRAGMA user_version = %s" version))
 
+(defun emir--recreate-db ()
+  (require 'epkg-schemata)
+  (when epkg--db-connection
+    (emacsql-close epkg--db-connection))
+  (message "Recreating Epkg database...")
+  (let* ((old-file (expand-file-name "epkg.sqlite" epkg-repository))
+         (new-file (expand-file-name "new.sqlite" epkg-repository))
+         (old (closql-db 'epkg-database nil old-file))
+         (new (closql-db 'epkg-database nil new-file)))
+    (emacsql new (format "PRAGMA user_version = %s" epkg-db-version))
+    (emacsql-with-transaction new
+      (dolist (obj (closql-entries old))
+        (let ((name (oref obj name)))
+          (message "Re-inserting %s..." name)
+          (closql--resolve-slots obj)
+          (closql--oset obj 'gelpa-recipes eieio-unbound)
+          (closql--oset obj 'melpa-recipes eieio-unbound)
+          (closql-insert new obj)
+          (message "Re-inserting %s...done" name))))
+    (emacsql-close old)
+    (emacsql-close new)
+    (rename-file new-file old-file t)
+    (epkg-db)
+    (emir-import-gelpa-recipes)
+    (emir-import-melpa-recipes))
+  (message "Recreating Epkg database...done"))
+
 ;;; _
 (provide 'emir-utils)
 ;;; emir-utils.el ends here
