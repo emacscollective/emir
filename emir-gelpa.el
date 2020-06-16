@@ -108,17 +108,6 @@
                method released)))
      (cl-sort alist #'string< :key #'car))))
 
-(defun emir-gelpa--subtree-method (name)
-  ;; This function isn't currently used.
-  ;; Also this heuristic might fail.
-  (if (or (--any-p (string-match-p "^[^ ]+ Merge commit" it)
-                   (magit-git-lines "log" "--oneline" "--"
-                                    (concat "packages/" name)))
-          ;; Correct false negatives.
-          (member name (list "loccur" "undo-tree")))
-      'squash
-    'merge))
-
 (defun emir-gelpa--subtree-released-p (name)
   ;; See section "Public incubation" in "<gelpa>/README".
   (not (equal (with-temp-buffer
