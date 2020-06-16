@@ -86,7 +86,10 @@
                  nil t))))))
       (mapcar (lambda (tbl)
                 (list (cadr tbl)
-                      (vconcat (-split-on '| (car (nthcdr 7 tbl))))))
+                      (let* ((seq (car (nthcdr 7 tbl)))
+                             (pos (seq-position seq '| #'eq)))
+                        (vector (seq-take seq pos)
+                                (seq-drop seq pos)))))
               (read (current-buffer))))))
 
 (defun emir--set-db-version (db version)

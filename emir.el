@@ -174,12 +174,13 @@ repository specified by variable `epkg-repository'."
     (magit-git "pull" "--ff-only" "origin")
     (magit-process-buffer)
     (if drew-only
-        (--each (epkg-sql [:select :distinct [packages:name]
-                           :from [packages authors]
-                           :where (and (= packages:name authors:package)
-                                       (= packages:class 'wiki)
-                                       (= authors:name "Drew Adams"))])
-          (emir-import (epkg-wiki-package :name (car it))))
+        (pcase-dolist (`(,name)
+                       (epkg-sql [:select :distinct [packages:name]
+                                  :from [packages authors]
+                                  :where (and (= packages:name authors:package)
+                                              (= packages:class 'wiki)
+                                              (= authors:name "Drew Adams"))]))
+          (emir-import (epkg-wiki-package :name name)))
       (message "Importing wiki packages asynchronously...")
       (magit-run-git-async "filter-emacswiki" "--tag" "--notes"))))
 
@@ -197,15 +198,15 @@ repository specified by variable `epkg-repository'."
   (interactive
    (let* ((url  (emir-read-url "Add package from url"))
           (type (epkg-read-type "Package type: "
-                                (--when-let (emir--url-to-class url)
-                                  (substring (symbol-name it) 5 -8))))
+                                (and-let* ((sym (emir--url-to-class url)))
+                                  (substring (symbol-name sym) 5 -8))))
           (name (magit-read-string
                  "Package name"
-                 (--when-let (emir--url-get url 'upstream-name)
-                   (->> it
-                        (replace-regexp-in-string "\\`emacs-" "")
-                        (replace-regexp-in-string "\\`elisp-" "")
-                        (replace-regexp-in-string "[.-]el\\'" ""))))))
+                 (and-let* ((name (emir--url-get url 'upstream-name)))
+                   (thread-last name
+                     (replace-regexp-in-string "\\`emacs-" "")
+                     (replace-regexp-in-string "\\`elisp-" "")
+                     (replace-regexp-in-string "[.-]el\\'" ""))))))
      (list name url (intern (format "epkg-%s-package" type)))))
   (cond ((epkg name)
          (user-error "Package %s already exists" name))
@@ -367,9 +368,9 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
         (message "Updating %s..." name)
         (let* ((pkg (epkg name))
                (default-directory (epkg-repository pkg)))
-          (--when-let (emir--main-library pkg)
+          (when-let ((lib (emir--main-library pkg)))
             (with-temp-buffer
-              (insert-file-contents it)
+              (insert-file-contents lib)
               (oset pkg license (emir--license pkg)))))
         (message "Updating %s...done" name)))))
 
@@ -590,8 +591,8 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
         ;; to consist of more than one library.
         (dolist (url (if (listp url) url (list url)))
           (magit-call-process "curl" "-O" url)
-          (--when-let (cadr (assoc name emir-renamed-files))
-            (rename-file it (concat name ".el") t))))
+          (when-let ((file (cadr (assoc name emir-renamed-files))))
+            (rename-file file (concat name ".el") t))))
       (when (or (magit-anything-modified-p) force)
         (magit-git "add" ".")
         (let ((process-environment process-environment)
@@ -738,12 +739,13 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
                    (not (equal name "emacs")))
           (setf library
                 (or (let ((main (concat "/" name ".el")))
-                      (car (--first (string-suffix-p main (car it))
-                                    builtin-libraries)))
+                      (car (cl-find-if (pcase-lambda (`(,lib))
+                                         (string-suffix-p main lib))
+                                       builtin-libraries)))
                     library))))
-      (--if-let (emir--main-library pkg)
+      (if-let ((lib (emir--main-library pkg)))
           (with-temp-buffer
-            (insert-file-contents it)
+            (insert-file-contents lib)
             (oset pkg summary     (elx-summary nil t))
             (oset pkg keywords    (elx-keywords-list nil t t))
             (oset pkg license     (emir--license pkg))
@@ -761,8 +763,8 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
                  (emir--features pkg)))
       (oset pkg required required)
       (oset pkg provided provided))
-    (--when-let (magit-get-mode-buffer 'magit-process-mode)
-      (kill-buffer it))))
+    (when-let ((buf (magit-get-mode-buffer 'magit-process-mode)))
+      (kill-buffer buf))))
 
 ;;; Extract
 
@@ -803,34 +805,39 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
 
 (cl-defmethod emir--homepage ((pkg epkg-package))
   (or (cadr (assoc (oref pkg name) emir--homepage-alist))
-      (--when-let (lm-homepage)
-        (if (string-match-p "/$" it)
-            (substring it 0 -1)
-          it))
+      (and-let* ((url (lm-homepage)))
+        (if (string-match-p "/$" url)
+            (substring url 0 -1)
+          url))
       (emir--format-url pkg 'homepage-format)))
 
 (cl-defmethod emir--wikipage ((pkg epkg-package))
-  (--when-let (or (and (epkg-wiki-package-p pkg) (elx-wikipage))
-                  (cadr (assoc (oref pkg name) emir--wikipage-alist))
-                  (let* ((name (emir--normalize-wikipage (oref pkg name)))
-                         (alist (with-emir-repository 'epkg-wiki-package
-                                  (mapcar (lambda (f)
-                                            (cons (emir--normalize-wikipage f)
-                                                  f))
-                                          (magit-list-files)))))
-                    (or (cdr (assoc name alist))
-                        (cdr (assoc (if (string-match-p "mode$" name)
-                                        (substring name 0 -4)
-                                      (concat name "mode"))
-                                    alist)))))
-    (concat "https://emacswiki.org/" it)))
+  (and-let*
+      ((page (or (and (epkg-wiki-package-p pkg) (elx-wikipage))
+                 (cadr (assoc (oref pkg name) emir--wikipage-alist))
+                 (let* ((name (emir--normalize-wikipage (oref pkg name)))
+                        (alist (with-emir-repository 'epkg-wiki-package
+                                 (mapcar (lambda (f)
+                                           (cons (emir--normalize-wikipage f)
+                                                 f))
+                                         (magit-list-files)))))
+                   (or (cdr (assoc name alist))
+                       (cdr (assoc (if (string-match-p "mode$" name)
+                                       (substring name 0 -4)
+                                     (concat name "mode"))
+                                   alist)))))))
+    (concat "https://emacswiki.org/" page)))
 
 (defun emir--authors ()
-  (cl-delete-duplicates (--map (list (car it) (cdr it)) (elx-authors))
+  (cl-delete-duplicates (mapcar (pcase-lambda (`(,name . ,email))
+                                  (list name email))
+                                (elx-authors))
                         :test #'equal :key #'car))
 
 (defun emir--maintainers ()
-  (cl-delete-duplicates (--map (list (car it) (cdr it)) (elx-maintainers))
+  (cl-delete-duplicates (mapcar (pcase-lambda (`(,name . ,email))
+                                  (list name email))
+                                (elx-maintainers))
                         :test #'equal :key #'car))
 
 (cl-defmethod emir--features ((pkg epkg-package))
@@ -848,8 +855,8 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
           (setq buffer-file-name lib)
           (set-buffer-modified-p nil)
           (with-syntax-table emacs-lisp-mode-syntax-table
-            (-let (((h s) (packed-required))
-                   (p     (packed-provided)))
+            (pcase-let ((`(,h ,s) (packed-required))
+                        (p        (packed-provided)))
               (dolist (h h) (cl-pushnew h hard))
               (dolist (s s) (cl-pushnew s soft))
               (dolist (p p) (cl-pushnew p provided))))))
@@ -858,9 +865,9 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
                               :where (and (= package $s1) (notnull drop))
                               :order-by [(asc feature)]]
                              name)))
-         (setq hard (-difference hard provided))
-         (setq soft (-difference soft provided))
-         (setq soft (-difference soft hard))
+         (setq hard (cl-set-difference hard provided))
+         (setq soft (cl-set-difference soft provided))
+         (setq soft (cl-set-difference soft hard))
          (nconc (--map (list it t   nil (cadr (assoc it drop))) hard)
                 (--map (list it nil nil (cadr (assoc it drop))) soft)))
        (let ((drop (epkg-sql [:select [feature drop] :from provided
@@ -873,18 +880,18 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
                              name)))
          (nconc (--map (list it (cadr (assoc it drop)) nil)
                        provided)
-                (-keep (-lambda ((feature reason))
-                         (unless (memq feature provided)
-                           (push feature provided)
-                           (list feature nil reason)))
-                       join)))))))
+                (mapcan (pcase-lambda (`(,feature ,reason))
+                          (unless (memq feature provided)
+                            (push feature provided)
+                            (list (list feature nil reason))))
+                        join)))))))
 
 (defun emir--builtin-packages-alist ()
   (let ((default-directory emir-emacs-repository))
     (mapcar
      (lambda (elt)
        (cons (car elt) (mapcar #'cdr (cdr elt))))
-     (-group-by
+     (seq-group-by
       #'car
       (cl-sort
        (cl-mapcan
@@ -911,15 +918,15 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
                            ((string-prefix-p "lisp/leim/"     file) "emacs")
                            ((string-prefix-p "lisp/obsolete/" file) "emacs")
                            ((lm-header "Package"))
-                           ((--when-let (assoc (-> file
-                                                   file-name-directory
-                                                   directory-file-name
-                                                   file-name-nondirectory)
-                                               finder--builtins-alist)
-                              (symbol-name (cdr it))))
-                           ((-> file
-                                file-name-nondirectory
-                                file-name-sans-extension)))))
+                           ((and-let* ((elt (assoc (thread-first file
+                                                     file-name-directory
+                                                     directory-file-name
+                                                     file-name-nondirectory)
+                                                   finder--builtins-alist)))
+                              (symbol-name (cdr elt))))
+                           ((thread-first file
+                              file-name-nondirectory
+                              file-name-sans-extension)))))
                      (prog1 (--map (list package file it)
                                    (or (packed-provided)
                                        (list nil)))
@@ -958,12 +965,12 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
 (cl-defmethod emir-gh-init ((pkg epkg-github-package))
   (if (cl-flet ((forked
                  (rsp key)
-                 (--when-let (cdr (assq 'full_name (cdr (assq key rsp))))
+                 (when-let ((name (cdr (assq 'full_name (cdr (assq key rsp))))))
                    (cl-find-if
                     (lambda (fork)
                       (equal (cdr (assq 'login (cdr (assq 'owner fork))))
                              "emacsmirror"))
-                    (emir-gh pkg "GET" (format "/repos/%s/forks" it))))))
+                    (emir-gh pkg "GET" (format "/repos/%s/forks" name))))))
         (let ((rsp (emir-gh pkg "GET" "/repos/%u/%n")))
           (or (forked rsp 'source)
               (forked rsp 'parent))))
@@ -996,8 +1003,9 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
 (cl-defmethod emir-gh-update :after ((pkg epkg-github-package) &optional clone)
   (when clone
     (with-emir-repository pkg
-      (--when-let (delete "master" (magit-list-remote-branches "mirror"))
-        (magit-git "push" "mirror" (--map (concat ":" it) it))))))
+      (when-let ((branches
+                  (delete "master" (magit-list-remote-branches "mirror"))))
+        (magit-git "push" "mirror" (mapcar (lambda (b) (concat ":" b)) branches))))))
 
 (cl-defmethod emir-gh-delete ((pkg epkg-package))
   (emir-gh pkg "DELETE" "/repos/%o/%m"))
@@ -1006,8 +1014,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
   (let* ((page 0)
          (result nil)
          (groups
-          (-partition-all
-           100 ; Should be small enough to prevent timeout.
+          (seq-partition
            (mapcar (lambda (pkg)
                      ;; Package names may contain characters that are
                      ;; invalid here.  Identifiers also may not begin
@@ -1022,7 +1029,8 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
                        ,@(if (functionp query)
                              (funcall query pkg)
                            query)))
-                   (epkgs nil 'epkg-github-package--eieio-childp))))
+                   (epkgs nil 'epkg-github-package--eieio-childp))
+           100)) ; Should be small enough to prevent timeout.
          (length (length groups)))
     (cl-labels
         ((cb (&optional data _headers _status _req)
@@ -1047,13 +1055,13 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
 ;;; Urls
 
 (cl-defmethod emir--set-urls ((pkg epkg-mirrored-package))
-  (-if-let (url (oref pkg url))
+  (if-let ((url (oref pkg url)))
       (progn
         (let ((conflict (and url (cadr (assoc url (epkgs [url name]))))))
           (when (and conflict (not (equal conflict (oref pkg name))))
             (user-error "Another package, %s, is already mirrored from %s"
                         conflict url)))
-        (-when-let (url-format (oref pkg url-format))
+        (when-let ((url-format (oref pkg url-format)))
           (pcase-dolist (`(,slot . ,value) (emir--match-url url-format url))
             (eieio-oset pkg slot value))))
     (oset pkg url (oref-default pkg url-format))))
@@ -1067,11 +1075,12 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
   ) ; Noop.  May be multiple urls.  See `emir-add-gelpa-packages'.
 
 (cl-defmethod emir--format-url ((pkg epkg-package) slot)
-  (--when-let (eieio-oref-default pkg slot)
-    (format-spec it `((?m . ,(oref pkg mirror-name))
-                      (?n . ,(oref pkg upstream-name))
-                      (?u . ,(oref pkg upstream-user))
-                      (?l . ,(oref pkg library))))))
+  (when-let ((format (eieio-oref-default pkg slot)))
+    (format-spec format
+                 `((?m . ,(oref pkg mirror-name))
+                   (?n . ,(oref pkg upstream-name))
+                   (?u . ,(oref pkg upstream-user))
+                   (?l . ,(oref pkg library))))))
 
 (defun emir--match-url (format url)
   (with-temp-buffer
@@ -1096,8 +1105,8 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
            (closql--list-subclasses 'epkg-package)))
 
 (defun emir--url-get (url slot)
-  (-when-let* ((class (emir--url-to-class url))
-               (slots (emir--match-url (oref-default class url-format) url)))
+  (when-let* ((class (emir--url-to-class url))
+              (slots (emir--match-url (oref-default class url-format) url)))
     (cdr (assoc slot slots))))
 
 (defun emir--lookup-url (url)
@@ -1109,7 +1118,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
   (magit-read-string prompt nil 'emir-url-history nil nil t))
 
 (defun emir--normalize-wikipage (string)
-  (->> string
+  (thread-last string
     (replace-regexp-in-string "\\+" "plus")
     (replace-regexp-in-string "-" "")
     downcase))

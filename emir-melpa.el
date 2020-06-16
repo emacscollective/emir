@@ -70,9 +70,9 @@
     (cond ((epkg name)
            (oset rcp epkg-package name))
           ((not (assoc name emir-pending-packages))
-           (--when-let (or (emir--lookup-url (oref rcp url))
-                           (cadr (assoc name emir-secondary-packages)))
-             (oset rcp epkg-package it))))))
+           (when-let ((name (or (emir--lookup-url (oref rcp url))
+                                (cadr (assoc name emir-secondary-packages)))))
+             (oset rcp epkg-package name))))))
 
 (defun emir-melpa--recipe-plist (name)
   (with-temp-buffer
@@ -84,8 +84,8 @@
 
 (cl-defmethod emir--format-url ((rcp melpa-recipe) slot)
   (ignore-errors
-    (--when-let (eieio-oref-default rcp slot)
-      (format-spec it `((?r . ,(oref rcp repo)))))))
+    (when-let ((format (eieio-oref-default rcp slot)))
+      (format-spec format `((?r . ,(oref rcp repo)))))))
 
 (defun emir-import-melpa-downloads ()
   (message "Importing Melpa downloads...")
@@ -100,7 +100,7 @@
                         (buffer-substring-no-properties (point) (point-max))
                         'utf-8))
                       #'string< :key #'car))
-        (-when-let (pkg (epkg (symbol-name name)))
+        (when-let ((pkg (epkg (symbol-name name))))
           (oset pkg downloads count)))))
   (message "Importing Melpa downloads...done"))
 
