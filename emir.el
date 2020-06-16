@@ -32,7 +32,6 @@
 (require 'cl-lib)
 (require 'closql)
 (require 'dash)
-(require 'dash-functional)
 (require 'eieio)
 (require 'elx)
 (require 'emacsql-sqlite)
