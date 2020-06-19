@@ -89,6 +89,9 @@ This variable should only be used as a last resort.")
 (defvar emir--archived-packages nil
   "List of packages whose upstream repositories are archived.")
 
+(defvar emir--moved-packages nil
+  "List of packages whose upstream repositories were moved or removed.")
+
 ;;; Repositories
 
 (defconst emir-emacs-repository "~/git/src/emacs/emacsmirror/")
@@ -497,6 +500,40 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
   (mapc #'emir-setup-module
         (epkgs 'name '(epkg-mirrored-package--eieio-childp
                        epkg-shelved-package--eieio-childp))))
+
+;;;; Fixup
+
+(defun emir-migrate-github-packages ()
+  (interactive)
+  (pcase-dolist (`(,name ,old ,new) emir--moved-packages)
+    (when new
+      (message "Migrating %s..." name)
+      (emir-migrate-github-package name new old)
+      (message "Migrating %s...done" name))))
+
+(defun emir-migrate-github-package (name new &optional old)
+  (interactive (list (epkg-read-package "Migrate github package: ")
+                     (emir-read-url "New repository url")))
+  (let* ((pkg (epkg name))
+         (rcp (expand-file-name (concat "recipes/" name) emir-melpa-repository))
+         (old (or old (emir--format-url pkg "%u/%n")))
+         (url new)
+         (new (if (string-match "\\`git@github\\.com:\\(.+\\)\\.git\\'" new)
+                  (match-string 1 new)
+                new))
+         (url (if (string-match "\\`git@github\\.com:\\(.+\\)\\.git\\'" url)
+                  url
+                (format "git@github.com:%s.git" new))))
+    (oset pkg url url)
+    (emir--set-urls pkg)
+    (oset pkg repopage (emir--format-url pkg 'repopage-format))
+    (with-epkg-repository pkg
+      (magit-call-git "config" "remote.origin.url" url))
+    (when (file-exists-p rcp)
+      (with-temp-file rcp
+        (insert-file-contents rcp)
+        (when (re-search-forward (format "\"%s\"" (regexp-quote old)) nil t)
+          (replace-match (format "\"%s\"" new) t t))))))
 
 ;;; Git
 ;;;; Import
