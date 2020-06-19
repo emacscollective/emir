@@ -1074,7 +1074,9 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
   ) ; Noop.  May be multiple urls.  See `emir-add-gelpa-packages'.
 
 (cl-defmethod emir--format-url ((pkg epkg-package) slot)
-  (when-let ((format (eieio-oref-default pkg slot)))
+  (when-let ((format (if (stringp slot)
+                         slot
+                       (eieio-oref-default pkg slot))))
     (format-spec format
                  `((?m . ,(oref pkg mirror-name))
                    (?n . ,(oref pkg upstream-name))
