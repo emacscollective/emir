@@ -47,9 +47,7 @@
         (message "Removing %s..." name)
         (closql-delete (melpa-get name))
         (message "Removing %s...done" name)))
-    (message "Importing Melpa recipes...done"))
-  (when fetch
-    (emir-import-melpa-downloads)))
+    (message "Importing Melpa recipes...done")))
 
 (defun emir-import-melpa-recipe (name)
   (let* ((rcp   (melpa-get name))
@@ -88,6 +86,7 @@
       (format-spec format `((?r . ,(oref rcp repo)))))))
 
 (defun emir-import-melpa-downloads ()
+  (interactive)
   (message "Importing Melpa downloads...")
   (with-current-buffer
       (url-retrieve-synchronously "https://melpa.org/download_counts.json")
