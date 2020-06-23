@@ -40,8 +40,9 @@
         (unless (assoc name alist)
           (message "Removing %s..." name)
           (closql-delete (gelpa-get name))
-          (message "Removing %s...done" name))))
-    (message "Importing Gelpa recipes...done")))
+          (message "Removing %s...done" name)))))
+  (emir-commit "Update Gelpa recipes" nil :dump)
+  (message "Importing Gelpa recipes...done"))
 
 (defun emir-import-gelpa-recipe (name spec)
   (pcase-let* ((default-directory emir-gelpa-repository)

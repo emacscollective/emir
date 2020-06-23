@@ -47,6 +47,7 @@
         (message "Removing %s..." name)
         (closql-delete (melpa-get name))
         (message "Removing %s...done" name))))
+  (emir-commit "Update Melpa recipes" nil :dump)
   (message "Importing Melpa recipes...done"))
 
 (defun emir-import-melpa-recipe (name)

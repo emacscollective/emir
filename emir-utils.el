@@ -93,30 +93,8 @@
               (read (current-buffer))))))
 
 (defun emir--set-db-version (db version)
-  (cl-assert (integerp version))
-  (emacsql db "PRAGMA user_version = %s" version))
-
-(defun emir--dump-db ()
-  (message "Dumping Epkg database...")
-  (let* ((bin (oref (epkg-db) file))
-         (txt (concat (file-name-sans-extension bin) ".sql")))
-    (when epkg--db-connection
-      (emacsql-close epkg--db-connection))
-    (with-temp-file txt
-      (unless (zerop (save-excursion
-                       (call-process "sqlite3" nil t nil
-                                     bin ".dump")))
-        (error "Failed to dump %s" bin))
-      (insert (format "PRAGMA user_version=%s;\n" epkg-db-version))
-      ;; Here the value of the `foreign_keys' pragma does not actually
-      ;; matter.  The dump *always* contains a line that disables it.
-      ;; That would be the case even if we extended the above command
-      ;; to explicitly enable it.  That is strange but does not really
-      ;; matter because `closql-db' always enables foreign key support.
-      ;; We do this just to avoid alarming observant users.
-      (when (re-search-forward "^PRAGMA foreign_keys=\\(OFF\\);" 1000 t)
-        (replace-match "ON" t t nil 1))))
-  (message "Dumping Epkg database...done"))
+  (closql--db-set-version db version)
+  (emir-commit (format "Bump database version to %s" version) nil :dump))
 
 (defun emir--recreate-db ()
   (require 'epkg-schemata)

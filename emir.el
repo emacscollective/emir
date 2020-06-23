@@ -55,6 +55,8 @@
              "bin" (file-name-directory (or load-file-name buffer-file-name)))
             exec-path :test #'equal)
 
+(setq epkg--db-prefer-binary t)
+
 ;;; Variables
 
 ;; Values are set in "<epkg-repository>/emir.org".
@@ -95,9 +97,9 @@ This variable should only be used as a last resort.")
 ;;; Repositories
 
 (defconst emir-emacs-repository "~/git/src/emacs/emacsmirror/")
-(defconst emir-gelpa-repository "~/git/emacs/gelpa/")
-(defconst emir-melpa-repository "~/git/emacs/melpa/")
-(defconst emir-ewiki-repository "~/git/emacs/ewiki/")
+(defconst emir-gelpa-repository (expand-file-name "gelpa/" epkg-repository))
+(defconst emir-melpa-repository (expand-file-name "melpa/" epkg-repository))
+(defconst emir-ewiki-repository (expand-file-name "ewiki/" epkg-repository))
 (defconst emir-stats-repository "~/git/emacs/stats/")
 
 (defmacro with-emir-repository (arg &rest body)
@@ -167,7 +169,8 @@ repository specified by variable `epkg-repository'."
             (if (epkg-builtin-package-p pkg)
                 (closql-delete pkg)
               (oset pkg builtin-libraries nil))
-            (message "Deleting %s...done" name)))))))
+            (message "Deleting %s...done" name)))))
+    (emir-commit "Update built-in packages" nil :dump)))
 
 ;;;###autoload
 (defun emir-import-ewiki-packages (&optional drew-only)
@@ -185,7 +188,8 @@ repository specified by variable `epkg-repository'."
                                               (= authors:name "Drew Adams"))]))
           (emir-import (epkg-wiki-package :name name)))
       (message "Importing wiki packages asynchronously...")
-      (magit-run-git-async "filter-emacswiki" "--tag" "--notes"))))
+      (magit-run-git-async "filter-emacswiki" "--tag" "--notes")))
+  (emir-stage))
 
 ;;;###autoload
 (defun emir-import-gelpa-packages ()
@@ -215,13 +219,9 @@ repository specified by variable `epkg-repository'."
          (user-error "Package %s already exists" name))
         ((assoc name emir-pending-packages)
          (user-error "Package %s is on hold" name)))
-  (let ((pkg (apply class :name name :url url plist)))
-    (emir-add pkg)
-    (with-emir-repository t
-      (borg--sort-submodule-sections (magit-git-dir "config"))
-      (borg--sort-submodule-sections ".gitmodules")
-      (magit-call-git "add" "epkg.sqlite" ".gitmodules"
-                      (epkg-repository pkg)))))
+  (emir-add (apply class :name name :url url plist))
+  (oset (melpa-get name) epkg-package name)
+  (emir-commit (format "Add %S package" name) name :dump :sort))
 
 ;;;###autoload
 (defun emir-add-gelpa-packages (&optional dry-run)
@@ -269,9 +269,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
             (when libs
               (oset pkg builtin-libraries libs)))
           (oset (gelpa-get name) epkg-package name))
-        (message "Adding %s...done" name))))
-  (unless dry-run
-    (emir--commit "add")))
+        (message "Adding %s...done" name)))))
 
 ;;;###autoload
 (defun emir-add-melpa-packages (&optional dry-run)
@@ -289,10 +287,8 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
                  (if (string-prefix-p "emacsorphanage/" repo)
                      'epkg-orphaned-package
                    (intern (format "epkg-%s-package" class)))
-                 (and branch (list :upstream-branch branch)))
-          (oset (melpa-get name) epkg-package name))
-        (message "Adding %s...done" name)))
-    (emir--commit "add")))
+                 (and branch (list :upstream-branch branch))))
+        (message "Adding %s...done" name)))))
 
 ;;;; Update
 
@@ -310,8 +306,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
             (emir-pull pkg))
           (emir-update pkg)
           (unless (epkg-builtin-package-p pkg)
-            (with-emir-repository t
-              (magit-call-git "add" (epkg-repository pkg))))
+            (emir-stage name :dump))
           (when (or force (not (equal (oref pkg hash) tip)))
             (emir-gh-update pkg)
             (emir-push pkg)))
@@ -341,7 +336,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
                (message "Updating %s..." name)
                (emir-update-package name)
                (message "Updating %s...done" name))))))
-     (emir--commit "update"))))
+     (emir-commit (emir--update-message) nil :dump))))
 
 ;;;###autoload
 (defun emir-update-other-packages (&optional from recreate)
@@ -358,7 +353,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
                 (emir-update (epkg name) t)
               (emir-update-package name))
             (message "Updating %s...done" name))))))
-  (emir--commit "update"))
+  (emir-commit (emir--update-message) nil :dump))
 
 ;;;###autoload
 (defun emir-update-licenses (&optional all)
@@ -375,56 +370,66 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
             (with-temp-buffer
               (insert-file-contents lib)
               (oset pkg license (emir--license pkg)))))
-        (message "Updating %s...done" name)))))
+        (message "Updating %s...done" name))))
+  (emir-commit "Update licenses" nil :dump))
 
 ;;;; Patch
 
 ;;;###autoload
-(defun emir-join-provided (pkg feature reason)
+(defun emir-join-provided (name feature reason)
   (interactive
-   (let* ((pkg      (epkg (epkg-read-package "Package: ")))
+   (let* ((name     (epkg-read-package "Package: "))
+          (pkg      (epkg name))
           (features (oref pkg provided))
           (feature  (intern (read-string "Join provide: ")))
           (reason   (read-string "Reason: " (nth 2 (assq feature features)))))
-     (list pkg feature reason)))
-  (let* ((val (oref pkg provided))
+     (list name feature reason)))
+  (let* ((pkg (epkg name))
+         (val (oref pkg provided))
          (elt (assq feature val)))
     (if elt
         (progn (setf (nth 2 elt) reason)
                (oset pkg provided val))
-      (oset pkg provided (cons (list feature nil reason) val)))))
+      (oset pkg provided (cons (list feature nil reason) val))))
+  (emir-stage name :dump))
 
 ;;;###autoload
-(defun emir-drop-provided (pkg feature reason)
+(defun emir-drop-provided (name feature reason)
   (interactive
-   (let* ((pkg      (epkg (epkg-read-package "Package: ")))
+   (let* ((name     (epkg-read-package "Package: "))
+          (pkg      (epkg name))
           (features (oref pkg provided))
           (feature  (intern (completing-read "Drop provide: "
                                              (mapcar #'car features)
                                              nil t)))
           (reason   (read-string "Reason: " (nth 1 (assq feature features)))))
-     (list pkg feature
+     (list name feature
            (and (not (equal reason "")) reason))))
-  (let* ((val (oref pkg provided))
+  (let* ((pkg (epkg name))
+         (val (oref pkg provided))
          (elt (assq feature val)))
     (setf (nth 1 elt) reason)
-    (oset pkg provided val)))
+    (oset pkg provided val))
+  (emir-stage name :dump))
 
 ;;;###autoload
-(defun emir-drop-required (pkg feature reason)
+(defun emir-drop-required (name feature reason)
   (interactive
-   (let* ((pkg      (epkg (epkg-read-package "Package: ")))
+   (let* ((name     (epkg-read-package "Package: "))
+          (pkg      (epkg name))
           (features (oref pkg required))
           (feature  (intern (completing-read "Drop required: "
                                              (mapcar #'car features)
                                              nil t)))
           (reason   (read-string "Reason: " (nth 3 (assq feature features)))))
-     (list pkg feature
+     (list name feature
            (and (not (equal reason "")) reason))))
-  (let* ((val (oref pkg required))
+  (let* ((pkg (epkg name))
+         (val (oref pkg required))
          (elt (assq feature val)))
     (setf (nth 3 elt) reason)
-    (oset pkg required val)))
+    (oset pkg required val))
+  (emir-stage name :dump))
 
 ;;;; Shelve
 
@@ -450,8 +455,8 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
       (with-emir-repository t
         (magit-git "config" "-f" ".gitmodules"
                    (concat "submodule." name ".url")
-                   url)
-        (magit-git "add" ".gitmodules" "epkg.sqlite")))
+                   url)))
+    (emir-commit (format "Shelve %S package" name) name :dump)
     (emir-update  pkg)
     (emir-gh-init pkg)
     (emir-push    pkg)))
@@ -471,14 +476,15 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
       (with-demoted-errors "Error: %S"
         (emir-gh-delete pkg)))
     (closql-delete pkg)
-    (with-emir-repository t
-      (magit-call-git "add" "epkg.sqlite"))
-    (when (epkg-wiki-package-p pkg)
-      (with-emir-repository 'epkg-wiki-package
-        (magit-call-git "branch" "-D" name)))
+    ;; Do not pass `name'.  The module was removed above.
+    (emir-commit (format "Remove %S package" name) nil :dump)
     (with-demoted-errors "Error: %S"
       (with-emir-repository t
-        (delete-directory (magit-git-dir (concat "modules/" name)) t)))))
+        (delete-directory (magit-git-dir (concat "modules/" name)) t)))
+    (with-demoted-errors "Error: %S"
+      (when (epkg-wiki-package-p pkg)
+        (with-emir-repository 'epkg-wiki-package
+          (magit-call-git "branch" "-D" name))))))
 
 ;;;; Setup
 
@@ -505,11 +511,12 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
 
 (defun emir-migrate-github-packages ()
   (interactive)
-  (pcase-dolist (`(,name ,old ,new) emir--moved-packages)
-    (when new
-      (message "Migrating %s..." name)
-      (emir-migrate-github-package name new old)
-      (message "Migrating %s...done" name))))
+  (when emir--moved-packages
+    (pcase-dolist (`(,name ,old ,new) emir--moved-packages)
+      (when new
+        (message "Migrating %s..." name)
+        (emir-migrate-github-package name new old)
+        (message "Migrating %s...done" name)))))
 
 (defun emir-migrate-github-package (name new &optional old)
   (interactive (list (epkg-read-package "Migrate github package: ")
@@ -533,7 +540,50 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
       (with-temp-file rcp
         (insert-file-contents rcp)
         (when (re-search-forward (format "\"%s\"" (regexp-quote old)) nil t)
-          (replace-match (format "\"%s\"" new) t t))))))
+          (replace-match (format "\"%s\"" new) t t))))
+    (emir-commit (format "Migrate %s within github" name) name :dump)))
+
+;;;; Stage
+
+(defun emir-stage (&optional name dump sort)
+  (interactive (list nil t t))
+  (with-emir-repository t
+    (when name
+      (let ((pkg (epkg name)))
+        (when (and pkg (not (epkg-builtin-package-p pkg)))
+          (let ((module (directory-file-name
+                         (file-relative-name (epkg-repository pkg)))))
+            (magit-git "update-index" "--no-assume-unchanged" module)
+            (magit-git "add" module)))))
+    (when dump
+      (emir-dump-database))
+    (when sort
+      (borg--sort-submodule-sections ".gitmodules"))
+    (magit-git "add" ".gitmodules" "epkg.sql" "ewiki" "gelpa" "melpa")))
+
+(defun emir-dump-database ()
+  (interactive)
+  (message "Dumping Epkg database...")
+  (with-emir-repository t
+    (let ((bin (expand-file-name "epkg.sqlite"))
+          (txt (expand-file-name "epkg.sql")))
+      (when epkg--db-connection
+        (emacsql-close epkg--db-connection))
+      (with-temp-file txt
+        (unless (zerop (save-excursion
+                         (call-process "sqlite3" nil t nil
+                                       bin ".dump")))
+          (error "Failed to dump %s" bin))
+        (insert (format "PRAGMA user_version=%s;\n" epkg-db-version))
+        ;; Here the value of the `foreign_keys' pragma does not actually
+        ;; matter.  The dump *always* contains a line that disables it.
+        ;; That would be the case even if we extended the above command
+        ;; to explicitly enable it.  That is strange but does not really
+        ;; matter because `closql-db' always enables foreign key support.
+        ;; We do this just to avoid alarming observant users.
+        (when (re-search-forward "^PRAGMA foreign_keys=\\(OFF\\);" 1000 t)
+          (replace-match "ON" t t nil 1)))))
+  (message "Dumping Epkg database...done"))
 
 ;;; Git
 ;;;; Import
@@ -687,14 +737,21 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
 
 ;;;; Commit
 
-(defun emir--commit (verb)
+(defun emir-commit (message &optional name dump sort)
+  (emir-stage name dump sort)
   (with-emir-repository t
-    (let ((count (length (magit-staged-files nil "mirror"))))
-      (when (> count 0)
-        (magit-git "commit"
-                   "-m" (format "%s %s %s" verb count
-                                (if (> count 1) "packages" "package"))
-                   "-i" ".gitmodules" "epkg.sqlite")))))
+    (if (magit-anything-staged-p)
+        (magit-git "commit" "-m" message)
+      (message "Nothing staged"))))
+
+(defun emir--update-message ()
+  (with-emir-repository t
+    (let ((count (length
+                  (cl-union
+                   (mapcar (##substring % 6) (magit-staged-files nil "attic"))
+                   (mapcar (##substring % 7) (magit-staged-files nil "mirror"))
+                   :test #'equal))))
+      (format "Update %s package%s" count (if (> count 1) "s" "")))))
 
 ;;;; Setup
 
