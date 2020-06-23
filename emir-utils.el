@@ -118,23 +118,6 @@
         (replace-match "ON" t t nil 1))))
   (message "Dumping Epkg database...done"))
 
-(defun emir--read-db ()
-  (message "Reading Epkg database...")
-  (let ((bin (expand-file-name "epkg.sqlite" epkg-repository))
-        (txt (expand-file-name "epkg.sql"    epkg-repository))
-        (log (expand-file-name "read.log"    epkg-repository)))
-    (when epkg--db-connection
-      (emacsql-close epkg--db-connection))
-    (when (file-exists-p bin)
-      (rename-file bin (concat bin ".old") t))
-    (with-temp-file txt
-      (insert-file-contents txt)
-      (unless (zerop (call-process-region (point-min) (point-max)
-                                          "sqlite3" nil `(:file ,log) nil
-                                          bin))
-        (error "Failed to read %s" txt))))
-  (message "Reading Epkg database...done"))
-
 (defun emir--recreate-db ()
   (require 'epkg-schemata)
   (when epkg--db-connection
