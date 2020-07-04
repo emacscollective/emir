@@ -105,7 +105,7 @@
          (new-file (expand-file-name "new.sqlite" epkg-repository))
          (old (closql-db 'epkg-database nil old-file))
          (new (closql-db 'epkg-database nil new-file)))
-    (emacsql new (format "PRAGMA user_version = %s" epkg-db-version))
+    (closql--db-set-version new epkg-db-version)
     (emacsql-with-transaction new
       (dolist (obj (closql-entries old))
         (let ((name (oref obj name)))
