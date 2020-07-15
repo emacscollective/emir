@@ -231,6 +231,7 @@ repository specified by variable `epkg-repository'."
                  (gelpa-recipes [name class url]))
     (let ((pkg (epkg name)))
       (when (and (not (assoc name emir-pending-packages))
+                 (not (member name '("counsel" "swiper"))) ; part of ivy
                  (or (not pkg)
                      (and (epkg-builtin-package-p pkg)
                           (eq class 'core)
