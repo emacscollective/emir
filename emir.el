@@ -270,6 +270,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
             (when libs
               (oset pkg builtin-libraries libs)))
           (oset (gelpa-get name) epkg-package name))
+        (emir-commit (format "Add %S package" name) name :dump :sort)
         (message "Adding %s...done" name)))))
 
 ;;;###autoload
