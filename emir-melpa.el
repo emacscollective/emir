@@ -102,6 +102,7 @@
                       #'string< :key #'car))
         (when-let ((pkg (epkg (symbol-name name))))
           (oset pkg downloads count)))))
+  (emir-commit "Update Melpa download counts" nil :dump)
   (message "Importing Melpa downloads...done"))
 
 ;;; _
