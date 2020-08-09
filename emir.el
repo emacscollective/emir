@@ -189,7 +189,7 @@ repository specified by variable `epkg-repository'."
           (emir-import (epkg-wiki-package :name name)))
       (message "Importing wiki packages asynchronously...")
       (magit-run-git-async "filter-emacswiki" "--tag" "--notes")))
-  (emir-stage))
+  (emir-commit "Update Emacswiki module"))
 
 ;;;###autoload
 (defun emir-import-gelpa-packages ()
