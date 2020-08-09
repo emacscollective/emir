@@ -222,6 +222,8 @@ repository specified by variable `epkg-repository'."
   (emir-add (apply class :name name :url url plist))
   (when-let ((recipe (melpa-get name)))
     (oset recipe epkg-package name))
+  (when-let ((recipe (gelpa-get name)))
+    (oset recipe epkg-package name))
   (emir-commit (format "Add %S package" name) name :dump :sort))
 
 ;;;###autoload
