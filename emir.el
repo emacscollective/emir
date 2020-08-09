@@ -220,7 +220,8 @@ repository specified by variable `epkg-repository'."
         ((assoc name emir-pending-packages)
          (user-error "Package %s is on hold" name)))
   (emir-add (apply class :name name :url url plist))
-  (oset (melpa-get name) epkg-package name)
+  (when-let ((recipe (melpa-get name)))
+    (oset recipe epkg-package name))
   (emir-commit (format "Add %S package" name) name :dump :sort))
 
 ;;;###autoload
