@@ -37,6 +37,7 @@
 (require 'epkg)
 (require 'epkg-org)
 (require 'epkg-utils)
+(require 'f)
 (require 'finder)
 (require 'ghub)
 (require 'llama)
@@ -230,7 +231,7 @@ repository specified by variable `epkg-repository'."
 (defun emir-add-gelpa-packages (&optional dry-run)
   (interactive "P")
   (emir-pull 'epkg-elpa-package)
-  (pcase-dolist (`(,name ,class ,url)
+  (pcase-dolist (`(,name ,class ,arg)
                  (gelpa-recipes [name class url]))
     (let ((pkg (epkg name)))
       (when (and (not (assoc name emir-pending-packages))
@@ -251,24 +252,8 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
             (cl-ecase class
               (subtree (setq pkg (epkg-elpa-package :name name)))
               (external (setq pkg (epkg-elpa-branch-package :name name)))
-              (core
-               (setq pkg (epkg-elpa-core-package :name name :library url))
-               ;; Allowing multiple libraries is a hack on top of a
-               ;; hack.  We want to avoid this second-order hack if
-               ;; the single library was improperly specified in
-               ;; "externals-list" using a list instead of an atom.
-               (when (and (listp url) (not (cdr url)))
-                 (setq url (car url)))
-               (if (atom url)
-                   (oset pkg url (emir--format-url pkg 'url-format))
-                 ;; Keep this in sync with `emir--format-url'.
-                 (oset pkg url
-                       (mapcar (##format-spec (oref pkg url-format)
-                                              `((?m . ,(oref pkg mirror-name))
-                                                (?n . ,(oref pkg upstream-name))
-                                                (?u . ,(oref pkg upstream-user))
-                                                (?l . ,%)))
-                               url)))))
+              (core (setq pkg (epkg-elpa-core-package :name name))
+                    (oset pkg url (emir--format-url pkg 'url-format))))
             (emir-add pkg)
             (when libs
               (oset pkg builtin-libraries libs)))
@@ -660,10 +645,11 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
     (with-emir-repository t
       (magit-git "submodule" "add" "--name" name mirror module)
       (magit-git "submodule" "absorbgitdirs" module)
-      (magit-git "clone" "--single-branch" "--branch" branch origin source)
-      (unless (equal branch "master")
-        (let ((default-directory (expand-file-name source)))
-          (magit-git "branch" "--move" branch "master"))))
+      (unless (cl-typep pkg 'epkg-elpa-core-package)
+        (magit-git "clone" "--single-branch" "--branch" branch origin source)
+        (unless (equal branch "master")
+          (let ((default-directory (expand-file-name source)))
+            (magit-git "branch" "--move" branch "master")))))
     (emir-pull pkg)
     (with-emir-repository pkg
       (magit-git "remote" "add" "mirror" mirror)
@@ -699,31 +685,35 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
 
 (cl-defmethod emir-pull ((pkg epkg-subrepo-package))
   (let* ((name   (oref pkg name))
-         (source (format ".git/modules/%s/unfiltered" name))
+         (core   (cl-typep pkg 'epkg-elpa-core-package))
+         (source (if core
+                     (expand-file-name
+                      "shallow/" (f-parent emir-emacs-repository))
+                   (format ".git/modules/%s/unfiltered" name)))
          (target (format "mirror/%s" name)))
     (with-emir-repository t
-      (let ((default-directory (expand-file-name source)))
-        (magit-git "pull" "--ff-only" "origin"))
+      (unless core
+        (let ((default-directory (expand-file-name source)))
+          (magit-git "pull" "--ff-only" "origin")))
       (magit-git "filter-repo"
                  "--force"
                  "--source" source
                  "--target" target
-                 ;; For this class this is a list of arguments.
-                 (oref pkg upstream-tree)
+                 (if core
+                     (list "--refs" "refs/heads/master"
+                           (emir-gelpa--core-filter-args name))
+                   ;; For this class this is a list of arguments.
+                   (oref pkg upstream-tree))
                  "--prune-empty=always"
                  "--prune-degenerate=always"))))
 
 (cl-defmethod emir-pull ((pkg epkg-file-package) &optional force)
   (with-emir-repository pkg
-    (let ((name (oref pkg name))
-          (url  (oref pkg url)))
+    (let ((name (oref pkg name)))
       (let ((magit-process-raise-error t))
-        ;; `epkg-elpa-core-package's are allowed
-        ;; to consist of more than one library.
-        (dolist (url (if (listp url) url (list url)))
-          (magit-call-process "curl" "-O" url)
-          (when-let ((file (cadr (assoc name emir-renamed-files))))
-            (rename-file file (concat name ".el") t))))
+        (magit-call-process "curl" "-O" (oref pkg url))
+        (when-let ((file (cadr (assoc name emir-renamed-files))))
+          (rename-file file (concat name ".el") t)))
       (when (or (magit-anything-modified-p) force)
         (magit-git "add" ".")
         (let ((process-environment process-environment)
@@ -799,6 +789,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
 
 ;;;; Setup
 
+;; TODO emir-setup: Handle epkg-subrepo-package
 (cl-defmethod emir-setup ((pkg epkg-package))
   (let ((name   (oref pkg name))
         (hash   (oref pkg hash))
@@ -1197,8 +1188,10 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
         (let ((conflict (and url (cadr (assoc url (epkgs [url name]))))))
           (when (and conflict
                      (not (equal conflict (oref pkg name)))
-                     (not (and (cl-typep (epkg conflict) 'epkg-subrepo-package)
-                               (cl-typep pkg 'epkg-subrepo-package))))
+                     (not (and (cl-typep pkg 'epkg-subrepo-package)
+                               (let ((old (epkg conflict)))
+                                 (cl-typep old 'epkg-subrepo-package)
+                                 (cl-typep old 'epkg-builtin-package)))))
             (user-error "Another package, %s, is already mirrored from %s"
                         conflict url)))
         (when-let ((url-format (oref pkg url-format)))
@@ -1210,9 +1203,6 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
   (let ((url (oref pkg url)))
     (unless (string-prefix-p "hg::" url)
       (oset pkg url (concat "hg::" url)))))
-
-(cl-defmethod emir--set-urls ((_pkg epkg-elpa-core-package))
-  ) ; Noop.  May be multiple urls.  See `emir-add-gelpa-packages'.
 
 (cl-defmethod emir--format-url ((pkg epkg-package) slot)
   (when-let ((format (if (stringp slot)
