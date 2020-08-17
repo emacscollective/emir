@@ -1177,8 +1177,10 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
                          slot
                        (eieio-oref-default pkg slot))))
     (format-spec format
-                 `((?m . ,(oref pkg mirror-name))
-                   (?n . ,(oref pkg upstream-name))
+                 `((?m . ,(or (oref pkg mirror-name)
+                              (oref pkg name)))
+                   (?n . ,(or (oref pkg upstream-name)
+                              (oref pkg name)))
                    (?u . ,(oref pkg upstream-user))
                    (?l . ,(oref pkg library))))))
 
