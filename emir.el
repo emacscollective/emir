@@ -646,6 +646,29 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
       (unless (equal branch "master")
         (magit-git "branch" "--move" branch "master")))))
 
+(cl-defmethod emir-clone ((pkg epkg-subrepo-package))
+  (let* ((name   (oref pkg name))
+         (mirror (oref pkg mirror-url))
+         (origin (oref pkg url))
+         (branch (or (oref pkg upstream-branch) "master"))
+         (source (format ".git/modules/%s/unfiltered" name))
+         (module (concat "mirror/" name)))
+    (with-emir-repository t
+      (magit-git "init" module))
+    (with-emir-repository pkg
+      (magit-git "commit" "--allow-empty" "-m" "dummy"))
+    (with-emir-repository t
+      (magit-git "submodule" "add" "--name" name mirror module)
+      (magit-git "submodule" "absorbgitdirs" module)
+      (magit-git "clone" "--single-branch" "--branch" branch origin source)
+      (unless (equal branch "master")
+        (let ((default-directory (expand-file-name source)))
+          (magit-git "branch" "--move" branch "master"))))
+    (emir-pull pkg)
+    (with-emir-repository pkg
+      (magit-git "remote" "add" "mirror" mirror)
+      (magit-git "config" "remote.pushDefault" "mirror"))))
+
 (cl-defmethod emir-clone ((pkg epkg-file-package))
   (let* ((name   (oref pkg name))
          (mirror (oref pkg mirror-url))
@@ -673,6 +696,22 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
         (progn (magit-git "fetch" "origin")
                (magit-git "rebase" "@{upstream}"))
       (magit-git "pull" "--ff-only" "origin"))))
+
+(cl-defmethod emir-pull ((pkg epkg-subrepo-package))
+  (let* ((name   (oref pkg name))
+         (source (format ".git/modules/%s/unfiltered" name))
+         (target (format "mirror/%s" name)))
+    (with-emir-repository t
+      (let ((default-directory (expand-file-name source)))
+        (magit-git "pull" "--ff-only" "origin"))
+      (magit-git "filter-repo"
+                 "--force"
+                 "--source" source
+                 "--target" target
+                 ;; For this class this is a list of arguments.
+                 (oref pkg upstream-tree)
+                 "--prune-empty=always"
+                 "--prune-degenerate=always"))))
 
 (cl-defmethod emir-pull ((pkg epkg-file-package) &optional force)
   (with-emir-repository pkg
@@ -1156,7 +1195,10 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
   (if-let ((url (oref pkg url)))
       (progn
         (let ((conflict (and url (cadr (assoc url (epkgs [url name]))))))
-          (when (and conflict (not (equal conflict (oref pkg name))))
+          (when (and conflict
+                     (not (equal conflict (oref pkg name)))
+                     (not (and (cl-typep (epkg conflict) 'epkg-subrepo-package)
+                               (cl-typep pkg 'epkg-subrepo-package))))
             (user-error "Another package, %s, is already mirrored from %s"
                         conflict url)))
         (when-let ((url-format (oref pkg url-format)))
