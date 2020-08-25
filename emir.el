@@ -220,6 +220,10 @@ repository specified by variable `epkg-repository'."
          (user-error "Package %s already exists" name))
         ((assoc name emir-pending-packages)
          (user-error "Package %s is on hold" name)))
+  (unless (plist-member plist :upstream-branch)
+    (let ((branch (emir--remote-head url)))
+      (unless (equal branch "master")
+        (setq plist (plist-put plist :upstream-branch branch)))))
   (emir-add (apply class :name name :url url plist))
   (when-let ((recipe (melpa-get name)))
     (oset recipe epkg-package name))
@@ -1257,6 +1261,12 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
     (replace-regexp-in-string "\\+" "plus")
     (replace-regexp-in-string "-" "")
     downcase))
+
+(defun emir--remote-head (url)
+  (match-string
+   1 (cl-find-if
+      (##string-match "\\`ref: refs/heads/\\([^\s\t]+\\)[\s\t]HEAD\\'" %)
+      (magit-git-lines "ls-remote" "--symref" url))))
 
 ;;; _
 (provide 'emir)
