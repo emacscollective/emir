@@ -366,6 +366,40 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
         (message "Updating %s...done" name))))
   (emir-commit "Update licenses" nil :dump))
 
+;;;###autoload
+(defun emir-update-branches (from)
+  (interactive (list (and current-prefix-arg
+                          (epkg-read-package "Limit to packages after: "))))
+  (dolist (pkg (epkgs nil '(epkg-git-package-p
+                            epkg-gitlab-package-p
+                            epkg-github-package-p)))
+    (with-slots (name url (value upstream-branch)) pkg
+      (when (or (not from) (string< from name))
+        (message "Updating %s..." name)
+        (with-emir-repository pkg
+          (let ((head (condition-case nil
+                          (emir--remote-head url)
+                        (error (message "%s failed" name)))))
+            (message "  %S %S" value head)
+            (if (equal value "master")
+                (when (equal head "master")
+                  (setf value nil))
+              (unless (or (equal head "master")
+                          (equal head value))
+                ;; TODO File bug report: This fails if previously unset.
+                (magit-git "remote" "set-branches" "origin" head)
+                ;; TODO File bug report: Pruning doesn't work here.
+                (magit-git "fetch" "--prune" "origin")
+                (magit-git "update-ref" "-d"
+                           (concat "refs/remotes/origin/" (or value "master")))
+                (magit-git "remote" "set-head" "origin" "--auto")
+                (magit-git "branch" "master"
+                           (concat "--set-upstream-to=origin/" head))
+                (setq value head)
+                (emir-update-package name)))))
+        (message "Updating %s...done" name))))
+  (emir-commit (emir--update-message) nil :dump))
+
 ;;;; Patch
 
 ;;;###autoload
