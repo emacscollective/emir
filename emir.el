@@ -523,7 +523,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
     (oset pkg url url)
     (emir--set-urls pkg)
     (oset pkg repopage (emir--format-url pkg 'repopage-format))
-    (with-epkg-repository pkg
+    (with-emir-repository pkg
       (magit-call-git "config" "remote.origin.url" url))
     (when (file-exists-p rcp)
       (with-temp-file rcp
