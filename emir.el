@@ -349,13 +349,12 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
 (defun emir-update-licenses (&optional all)
   (interactive "P")
   (dolist (pkg (epkgs))
-    (let ((name (oref pkg name)))
+    (with-slots (name) pkg
       (when (or all
                 (member (oref pkg license)
                         '(nil "failure" "pending" "none" "custom")))
         (message "Updating %s..." name)
-        (let* ((pkg (epkg name))
-               (default-directory (epkg-repository pkg)))
+        (with-emir-repository pkg
           (when-let ((lib (emir--main-library pkg)))
             (with-temp-buffer
               (insert-file-contents lib)
