@@ -123,6 +123,13 @@
     (emir-import-melpa-recipes))
   (message "Recreating Epkg database...done"))
 
+(defun emir-enable-sql-logging ()
+  "Enable logging Epkg SQL queries."
+  (interactive)
+  (let ((db (epkg-db)))
+    (emacsql-enable-debugging db)
+    (switch-to-buffer-other-window (emacsql-log-buffer db))))
+
 ;;; _
 (provide 'emir-utils)
 ;;; emir-utils.el ends here
