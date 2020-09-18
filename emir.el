@@ -483,10 +483,11 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
         (magit-git "config" "-f" ".gitmodules"
                    (concat "submodule." name ".url")
                    url)))
-    (emir-update  pkg)
-    (emir-gh-init pkg)
-    (emir-push    pkg)
-    (emir-commit (format "Shelve %S package" name) name :dump)))
+    (with-emir-repository t
+      (emir-update  pkg)
+      (emir-gh-init pkg)
+      (emir-push    pkg)
+      (emir-commit (format "Shelve %S package" name) name :dump))))
 
 ;;;; Remove
 
