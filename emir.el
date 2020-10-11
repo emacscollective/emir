@@ -569,7 +569,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
         (insert-file-contents rcp)
         (when (re-search-forward (format "\"%s\"" (regexp-quote old)) nil t)
           (replace-match (format "\"%s\"" new) t t))))
-    (emir-commit (format "Migrate %s within github" name) name :dump)))
+    (emir-commit (format "Migrate %S package within github" name) name :dump)))
 
 ;;;; Stage
 
