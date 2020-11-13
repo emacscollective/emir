@@ -543,10 +543,10 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
     (pcase-dolist (`(,name ,old ,new) emir--moved-packages)
       (when new
         (message "Migrating %s..." name)
-        (emir-migrate-github-package name new old)
+        (emir-migrate-github-package name new old t)
         (message "Migrating %s...done" name)))))
 
-(defun emir-migrate-github-package (name new &optional old)
+(defun emir-migrate-github-package (name new &optional old redirected)
   (interactive (list (epkg-read-package "Migrate github package: ")
                      (emir-read-url "New repository url")))
   (let* ((pkg (epkg name))
@@ -568,7 +568,14 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
       (with-temp-file rcp
         (insert-file-contents rcp)
         (when (re-search-forward (format "\"%s\"" (regexp-quote old)) nil t)
-          (replace-match (format "\"%s\"" new) t t))))
+          (replace-match (format "\"%s\"" new) t t)))
+      (let ((default-directory emir-melpa-repository))
+        (when (magit-anything-unstaged-p nil rcp)
+          (magit-git "commit" "-m"
+                     (concat (format "Update url of %s's repository" name)
+                             (and redirected
+                                  "\n\nThe old url redirects to the new url."))
+                     "--" rcp))))
     (emir-commit (format "Migrate %S package within github" name) name :dump)))
 
 ;;;; Stage
