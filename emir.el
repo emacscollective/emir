@@ -235,8 +235,8 @@ repository specified by variable `epkg-repository'."
 (defun emir-add-gelpa-packages (&optional dry-run)
   (interactive "P")
   (emir-pull 'epkg-elpa-package)
-  (pcase-dolist (`(,name ,class ,arg)
-                 (gelpa-recipes [name class url]))
+  (pcase-dolist (`(,name ,class)
+                 (gelpa-recipes [name class]))
     (let ((pkg (epkg name)))
       (when (and (not (assoc name emir-pending-packages))
                  (not (member name '("counsel" "swiper"))) ; part of ivy
