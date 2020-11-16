@@ -105,6 +105,32 @@
   (emir-commit "Update Melpa download counts" nil :dump)
   (message "Importing Melpa downloads...done"))
 
+(defun emir-melpa-list-archived-packages ()
+  (interactive)
+  (when-let ((archived
+              (cl-sort
+               (mapcan (lambda (name)
+                         (and (member name emir--archived-packages)
+                              (melpa-get name)
+                              (let ((pkg (epkg name)))
+                                (list (list name
+                                            (oref pkg repopage)
+                                            (oref pkg upstream-user))))))
+                       (epkgs 'name 'epkg-mirrored-package--eieio-childp))
+               #'string< :key #'car)))
+    (let ((buf (get-buffer-create "*melpa archive*")))
+      (pop-to-buffer buf)
+      (with-current-buffer buf
+        (erase-buffer)
+        (pcase-dolist (`(,name ,page ,user) archived)
+          (insert
+           (format "- [ ] [%s](%s) by @%s%s\n" name page user
+                   (if-let ((dependents (epkg-reverse-dependencies name)))
+                       (format " (required by %s)"
+                               (mapconcat (pcase-lambda (`(,name . ,_features)) name)
+                                          dependents " "))
+                     ""))))))))
+
 ;;; _
 (provide 'emir-melpa)
 ;;; emir-melpa.el ends here
