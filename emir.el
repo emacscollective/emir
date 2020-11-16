@@ -489,6 +489,19 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
       (emir-push    pkg)
       (emir-commit (format "Shelve %S package" name) name :dump))))
 
+;;;###autoload
+(defun emir-shelve-archived-github-packages (&optional all)
+  (interactive "P")
+  (when emir--archived-packages
+    (dolist (name emir--archived-packages)
+      (when (and (or all (not (epkg-reverse-dependencies name)))
+                 (epkg name)
+                 ;; TODO Drop this special case eventually.
+                 (not (equal (oref (epkg name) upstream-user) "emacs-helm")))
+        (message "Shelve %s..." name)
+        (emir-shelve-package name)
+        (message "Shelve %s...done" name)))))
+
 ;;;; Remove
 
 ;;;###autoload
