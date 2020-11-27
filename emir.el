@@ -462,7 +462,9 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
 
 ;;;###autoload
 (defun emir-shelve-package (name)
-  (interactive (list (epkg-read-package "Shelve package: ")))
+  (interactive
+   (list (epkg-read-package "Shelve package: " nil
+                            '(epkg-mirrored-package--eieio-childp))))
   (let ((pkg (epkg name)))
     (with-demoted-errors "Error: %S"
       ;; The Github api does not support repository transfers.
