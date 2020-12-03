@@ -92,7 +92,7 @@
     (mapcar
      (pcase-lambda (`(,name ,type ,url))
        (let ((method nil)
-             (released t))
+             (released nil))
          (cl-ecase type
            (:core)
            (:subtree
@@ -104,11 +104,22 @@
            (:external
             (unless (magit-branch-p (concat "externals/" name))
               (error "`%s's type is `%s' but `externals/%s' is missing"
-                     name type name))))
+                     name type name))
+            (setq released (emir-gelpa--released-p name))))
          (list name url
                (intern (substring (symbol-name type) 1))
                method released)))
      (cl-sort alist #'string< :key #'car))))
+
+(defun emir-gelpa--released-p (name)
+  ;; See section "Public incubation" in "<gelpa>/README".
+  (not (equal (with-temp-buffer
+                (magit-git-insert
+                 "cat-file" "-p" (format "externals/%s:%s.el" name name))
+                (goto-char (point-min))
+                (or (lm-header "package-version")
+                    (lm-header "version")))
+              "0")))
 
 (defun emir-gelpa--subtree-released-p (name)
   ;; See section "Public incubation" in "<gelpa>/README".
