@@ -48,7 +48,7 @@
 (defun emir-import-gelpa-recipe (name spec)
   (pcase-let* ((default-directory emir-gelpa-repository)
                (rcp   (gelpa-get name))
-               (`(,url ,type ,method ,released) spec)
+               (`(,url ,type ,released) spec)
                (class (pcase type
                         ('core     'gelpa-core-recipe)
                         ('subtree  'gelpa-subtree-recipe)
@@ -60,7 +60,6 @@
       (setq rcp (funcall class :name name))
       (closql-insert (epkg-db) rcp))
     (oset rcp url url)
-    (oset rcp method method)
     (oset rcp released released)
     (oset rcp epkg-package (and (epkg name) name))))
 
@@ -91,8 +90,7 @@
                      name type name))))))
     (mapcar
      (pcase-lambda (`(,name ,type ,url))
-       (let ((method nil)
-             (released nil))
+       (let (released)
          (cl-ecase type
            (:core)
            (:subtree
@@ -108,7 +106,7 @@
             (setq released (emir-gelpa--released-p name))))
          (list name url
                (intern (substring (symbol-name type) 1))
-               method released)))
+               released)))
      (cl-sort alist #'string< :key #'car))))
 
 (defun emir-gelpa--released-p (name)
