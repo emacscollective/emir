@@ -125,8 +125,6 @@ repository specified by variable `epkg-repository'."
 
 (cl-defmethod epkg-repository ((_pkg epkg-builtin-package))
   emir-emacs-repository)
-(cl-defmethod epkg-repository ((_class (subclass epkg-elpa-package)))
-  emir-gelpa-repository)
 (cl-defmethod epkg-repository ((_class (subclass epkg-elpa-branch-package)))
   emir-gelpa-repository)
 (cl-defmethod epkg-repository ((_class (subclass epkg-wiki-package)))
@@ -192,13 +190,6 @@ repository specified by variable `epkg-repository'."
       (magit-run-git-async "filter-emacswiki" "--tag" "--notes")))
   (emir-commit "Update Emacswiki module"))
 
-;;;###autoload
-(defun emir-import-gelpa-packages ()
-  (interactive)
-  (emir-pull 'epkg-elpa-package)
-  (dolist (name (gelpa-recipes 'name 'gelpa-subtree-recipe))
-    (emir-import (epkg-elpa-package :name name))))
-
 ;;;; Add
 
 ;;;###autoload
@@ -234,7 +225,7 @@ repository specified by variable `epkg-repository'."
 ;;;###autoload
 (defun emir-add-gelpa-packages (&optional dry-run)
   (interactive "P")
-  (emir-pull 'epkg-elpa-package)
+  (emir-pull 'epkg-elpa-branch-package)
   (pcase-dolist (`(,name ,class)
                  (gelpa-recipes [name class]))
     (let ((pkg (epkg name)))
@@ -254,7 +245,6 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
             (when libs
               (closql-delete pkg))
             (cl-ecase class
-              (subtree (setq pkg (epkg-elpa-package :name name)))
               (external (setq pkg (epkg-elpa-branch-package :name name)))
               (core (setq pkg (epkg-elpa-core-package :name name))
                     (oset pkg url (emir--format-url pkg 'url-format))))
@@ -648,18 +638,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
       (magit-git "filter-emacswiki" "--tag" "--notes" name)
       (message "Importing %s...done" name))))
 
-(cl-defmethod emir-import ((pkg epkg-elpa-package))
-  (with-emir-repository 'epkg-elpa-package
-    (with-slots (name) pkg
-      (message "Importing %s..." name)
-      (magit-git "branch" "-f" (concat "directory/" name) "master")
-      (magit-git "filter-elpa" name)
-      (message "Importing %s...done" name))))
-
 ;;;; Clone
-
-(cl-defmethod emir-clone :before ((pkg epkg-elpa-package))
-  (emir-import pkg))
 
 (cl-defmethod emir-clone :before ((pkg epkg-wiki-package))
   (emir-import pkg))
@@ -675,9 +654,6 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
         (epkg-wiki-package
          (setq origin (file-relative-name emir-ewiki-repository))
          (setq branch name))
-        (epkg-elpa-package
-         (setq origin (file-relative-name emir-gelpa-repository))
-         (setq branch (concat "directory/" name)))
         (epkg-elpa-branch-package
          (setq origin (file-relative-name emir-gelpa-repository))
          (setq branch (concat "externals/" name))))
@@ -818,7 +794,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
   (with-emir-repository pkg
     (magit-git "pull" "--ff-only" "mirror" "master")))
 
-(cl-defmethod emir-pull ((class (subclass epkg-elpa-package)))
+(cl-defmethod emir-pull ((class (subclass epkg-elpa-branch-package)))
   (with-emir-repository class
     (magit-git "checkout" "master")
     (magit-git "pull" "--ff-only" "origin")))
@@ -863,9 +839,6 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
         (epkg-wiki-package
          (setq origin (file-relative-name emir-ewiki-repository))
          (setq branch name))
-        (epkg-elpa-package
-         (setq origin (file-relative-name emir-gelpa-repository))
-         (setq branch (concat "directory/" name)))
         (epkg-elpa-branch-package
          (setq origin (file-relative-name emir-gelpa-repository))
          (setq branch (concat "externals/" name))))

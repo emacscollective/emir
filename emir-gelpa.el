@@ -27,7 +27,7 @@
 (defun emir-import-gelpa-recipes ()
   (interactive)
   (message "Fetching Gelpa recipes...")
-  (emir-pull 'epkg-elpa-package)
+  (emir-pull 'epkg-elpa-branch-package)
   (message "Fetching Felpa recipes...done")
   (emacsql-with-transaction (epkg-db)
     (message "Importing Gelpa recipes...")
@@ -51,7 +51,6 @@
                (`(,url ,type ,released) spec)
                (class (pcase type
                         ('core     'gelpa-core-recipe)
-                        ('subtree  'gelpa-subtree-recipe)
                         ('external 'gelpa-external-recipe))))
     (when (and rcp (not (eq (type-of rcp) class)))
       (closql-delete rcp)
@@ -72,15 +71,6 @@
                  (read (current-buffer)))))
     (unless (assoc "org" alist)
       (push (list "org" :core nil) alist))
-    (dolist (line (magit-git-lines "ls-tree" "master:packages"))
-      (pcase-let ((`(,_ ,object-type ,_ ,name) (split-string line)))
-        (when (equal object-type "tree")
-          (if-let ((elt (assoc name alist)))
-              (pcase-let ((`(,_ ,type ,_) elt))
-                (unless (eq type :subtree)
-                  (error "`%s's type is `%s' but `packages/%s' also exists"
-                         name type name)))
-            (push (list name :subtree nil) alist)))))
     (dolist (line (magit-list-refnames "refs/heads/externals"))
       (let ((name (substring line 10)))
         (when-let ((elt (assoc name alist)))
@@ -88,22 +78,18 @@
             (unless (eq type :external)
               (error "`%s's type is `%s' but `externals/%s' also exists"
                      name type name))))))
+    ;; TODO Remove temporary kludge.
+    (dolist (name '("auto-overlays" "dict-tree" "heap" "queue" "tNFA" "trie"))
+      (unless (assoc name alist)
+        (push (list name :external nil) alist)))
     (mapcar
      (pcase-lambda (`(,name ,type ,url))
        (let (released)
-         (cl-ecase type
-           (:core)
-           (:subtree
-            (unless (file-exists-p
-                     (expand-file-name (concat "packages/" name)))
-              (error "`%s's type is `%s' but `packages/%s' is missing"
-                     name type name))
-            (setq released (emir-gelpa--subtree-released-p name)))
-           (:external
-            (unless (magit-branch-p (concat "externals/" name))
-              (error "`%s's type is `%s' but `externals/%s' is missing"
-                     name type name))
-            (setq released (emir-gelpa--released-p name))))
+         (when (eq type :external)
+           (unless (magit-branch-p (concat "externals/" name))
+             (error "`%s's type is `%s' but `externals/%s' is missing"
+                    name type name))
+           (setq released (emir-gelpa--released-p name)))
          (list name url
                (intern (substring (symbol-name type) 1))
                released)))
@@ -114,17 +100,6 @@
   (not (equal (with-temp-buffer
                 (magit-git-insert
                  "cat-file" "-p" (format "externals/%s:%s.el" name name))
-                (goto-char (point-min))
-                (or (lm-header "package-version")
-                    (lm-header "version")))
-              "0")))
-
-(defun emir-gelpa--subtree-released-p (name)
-  ;; See section "Public incubation" in "<gelpa>/README".
-  (not (equal (with-temp-buffer
-                (insert-file-contents
-                 (expand-file-name
-                  (format "packages/%s/%s.el" name name)))
                 (goto-char (point-min))
                 (or (lm-header "package-version")
                     (lm-header "version")))
