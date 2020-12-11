@@ -101,7 +101,7 @@ This variable should only be used as a last resort.")
 (defconst emir-gelpa-repository (expand-file-name "gelpa/" epkg-repository))
 (defconst emir-melpa-repository (expand-file-name "melpa/" epkg-repository))
 (defconst emir-ewiki-repository (expand-file-name "ewiki/" epkg-repository))
-(defconst emir-stats-repository "~/git/emacs/stats/")
+(defconst emir-stats-repository (expand-file-name "stats/" epkg-repository))
 
 (defmacro with-emir-repository (arg &rest body)
   "Evaluate BODY in the repository specified by ARG.
