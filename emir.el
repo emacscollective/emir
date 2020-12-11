@@ -854,7 +854,11 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
          (magit-git "remote" "add" "-f" "--no-tags"
                     "-t" branch "origin" origin)
          (magit-git "branch" "--unset-upstream"))
-        (epkg-subset-package
+        (epkg-wiki-package
+         (magit-git "remote" "add" "-f" "--no-tags"
+                    "-t" branch "origin" origin)
+         (magit-git "branch" (concat "--set-upstream-to=origin/" branch)))
+        (epkg-elpa-branch-package
          (magit-git "remote" "add" "-f" "--no-tags"
                     "-t" branch "origin" origin)
          (magit-git "branch" (concat "--set-upstream-to=origin/" branch)))
@@ -1301,7 +1305,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
       (##string-match "\\`ref: refs/heads/\\([^\s\t]+\\)[\s\t]HEAD\\'" %)
       (magit-git-lines "ls-remote" "--symref" url))))
 
-(defun emir-ignore-tags-p (pkg)
+(defun emir--ignore-tags-p (pkg)
   (or (cl-typep pkg 'epkg-subtree-package)
       (cl-typep pkg 'epkg-wiki-package)
       (cl-typep pkg 'epkg-elpa-branch-package)))
