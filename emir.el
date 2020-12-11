@@ -658,9 +658,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
          (setq origin (file-relative-name emir-gelpa-repository))
          (setq branch (concat "externals/" name))))
       (magit-git "clone"
-                 (and (or (cl-typep pkg 'epkg-subtree-package)
-                          (cl-typep pkg 'epkg-subset-package))
-                      "--no-tags")
+                 (and (emir--ignore-tags-p pkg) "--no-tags")
                  "--single-branch" "--branch" branch origin module)
       (magit-git "submodule" "add" "--name" name mirror module)
       (magit-git "submodule" "absorbgitdirs" module))
@@ -805,7 +803,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
   (with-emir-repository pkg
     (magit-git "push"
                (and (oref pkg patched) "--force")
-               (and (not (cl-typep pkg 'epkg-subset-package)) "--follow-tags")
+               (and (not (emir--ignore-tags-p pkg)) "--follow-tags")
                "mirror" "master")))
 
 ;;;; Commit
@@ -1295,11 +1293,18 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
     (replace-regexp-in-string "-" "")
     downcase))
 
+;;; Miscellaneous
+
 (defun emir--remote-head (url)
   (match-string
    1 (cl-find-if
       (##string-match "\\`ref: refs/heads/\\([^\s\t]+\\)[\s\t]HEAD\\'" %)
       (magit-git-lines "ls-remote" "--symref" url))))
+
+(defun emir-ignore-tags-p (pkg)
+  (or (cl-typep pkg 'epkg-subtree-package)
+      (cl-typep pkg 'epkg-wiki-package)
+      (cl-typep pkg 'epkg-elpa-branch-package)))
 
 ;;; _
 (provide 'emir)
