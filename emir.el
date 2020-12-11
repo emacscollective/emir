@@ -982,11 +982,14 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
   (and-let*
       ((page (or (and (epkg-wiki-package-p pkg) (elx-wikipage))
                  (cadr (assoc (oref pkg name) emir--wikipage-alist))
-                 (let* ((name (emir--normalize-wikipage (oref pkg name)))
+                 (let* ((norm (lambda (string)
+                                (thread-last string
+                                  (replace-regexp-in-string "\\+" "plus")
+                                  (replace-regexp-in-string "-" "")
+                                  downcase)))
+                        (name (funcall norm (oref pkg name)))
                         (alist (with-emir-repository 'epkg-wiki-package
-                                 (mapcar (lambda (f)
-                                           (cons (emir--normalize-wikipage f)
-                                                 f))
+                                 (mapcar (##cons (funcall norm %) %)
                                          (magit-list-files)))))
                    (or (cdr (assoc name alist))
                        (cdr (assoc (if (string-match-p "mode$" name)
@@ -1290,12 +1293,6 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
 
 (defun emir-read-url (prompt)
   (magit-read-string prompt nil 'emir-url-history nil nil t))
-
-(defun emir--normalize-wikipage (string)
-  (thread-last string
-    (replace-regexp-in-string "\\+" "plus")
-    (replace-regexp-in-string "-" "")
-    downcase))
 
 ;;; Miscellaneous
 
