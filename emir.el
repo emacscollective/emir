@@ -245,7 +245,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
             (when libs
               (closql-delete pkg))
             (cl-ecase class
-              (external (setq pkg (epkg-elpa-branch-package :name name)))
+              (url  (setq pkg (epkg-elpa-branch-package :name name)))
               (core (setq pkg (epkg-elpa-core-package :name name))
                     (oset pkg url (emir--format-url pkg 'url-format))))
             (emir-add pkg)
@@ -794,7 +794,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
 
 (cl-defmethod emir-pull ((class (subclass epkg-elpa-branch-package)))
   (with-emir-repository class
-    (magit-git "checkout" "master")
+    (magit-git "checkout" "main")
     (magit-git "pull" "--ff-only" "origin")))
 
 ;;;; Push

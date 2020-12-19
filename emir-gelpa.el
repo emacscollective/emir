@@ -50,8 +50,8 @@
                (rcp (gelpa-get name))
                (`(,url ,type ,released) spec)
                (class (pcase type
-                        ('core     'gelpa-core-recipe)
-                        ('external 'gelpa-external-recipe))))
+                        ('core 'gelpa-core-recipe)
+                        ('url  'gelpa-external-recipe))))
     (when (and rcp (not (eq (type-of rcp) class)))
       (closql-delete rcp)
       (setq rcp nil))
@@ -67,7 +67,7 @@
   (let ((default-directory emir-gelpa-repository)
         (alist (with-temp-buffer
                  (insert-file-contents
-                  (expand-file-name "externals-list" emir-gelpa-repository))
+                  (expand-file-name "elpa-packages" emir-gelpa-repository))
                  (read (current-buffer)))))
     (unless (assoc "org" alist)
       (push (list "org" :core nil) alist))
@@ -75,17 +75,17 @@
       (let ((name (substring line 10)))
         (when-let ((elt (assoc name alist)))
           (pcase-let ((`(,_ ,type ,_) elt))
-            (unless (eq type :external)
+            (unless (eq type :url)
               (error "`%s's type is `%s' but `externals/%s' also exists"
                      name type name))))))
     ;; TODO Remove temporary kludge.
     (dolist (name '("auto-overlays" "dict-tree" "heap" "queue" "tNFA" "trie"))
       (unless (assoc name alist)
-        (push (list name :external nil) alist)))
+        (push (list name :url nil) alist)))
     (mapcar
      (pcase-lambda (`(,name ,type ,url))
        (let (released)
-         (when (eq type :external)
+         (when (eq type :url)
            (unless (magit-branch-p (concat "externals/" name))
              (error "`%s's type is `%s' but `externals/%s' is missing"
                     name type name))
