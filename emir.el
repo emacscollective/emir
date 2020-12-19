@@ -125,7 +125,7 @@ repository specified by variable `epkg-repository'."
 
 (cl-defmethod epkg-repository ((_pkg epkg-builtin-package))
   emir-emacs-repository)
-(cl-defmethod epkg-repository ((_class (subclass epkg-elpa-branch-package)))
+(cl-defmethod epkg-repository ((_class (subclass epkg-gnu-elpa-package)))
   emir-gelpa-repository)
 (cl-defmethod epkg-repository ((_class (subclass epkg-wiki-package)))
   emir-ewiki-repository)
@@ -225,7 +225,7 @@ repository specified by variable `epkg-repository'."
 ;;;###autoload
 (defun emir-add-gelpa-packages (&optional dry-run)
   (interactive "P")
-  (emir-pull 'epkg-elpa-branch-package)
+  (emir-pull 'epkg-gnu-elpa-package)
   (pcase-dolist (`(,name ,class)
                  (gelpa-recipes [name class]))
     (let ((pkg (epkg name)))
@@ -245,7 +245,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
             (when libs
               (closql-delete pkg))
             (cl-ecase class
-              (url  (setq pkg (epkg-elpa-branch-package :name name)))
+              (url  (setq pkg (epkg-gnu-elpa-package :name name)))
               (core (setq pkg (epkg-elpa-core-package :name name))
                     (oset pkg url (emir--format-url pkg 'url-format))))
             (emir-add pkg)
@@ -654,7 +654,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
         (epkg-wiki-package
          (setq origin (file-relative-name emir-ewiki-repository))
          (setq branch name))
-        (epkg-elpa-branch-package
+        (epkg-gnu-elpa-package
          (setq origin (file-relative-name emir-gelpa-repository))
          (setq branch (concat "externals/" name))))
       (magit-git "clone"
@@ -792,7 +792,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
   (with-emir-repository pkg
     (magit-git "pull" "--ff-only" "mirror" "master")))
 
-(cl-defmethod emir-pull ((class (subclass epkg-elpa-branch-package)))
+(cl-defmethod emir-pull ((class (subclass epkg-gnu-elpa-package)))
   (with-emir-repository class
     (magit-git "checkout" "main")
     (magit-git "pull" "--ff-only" "origin")))
@@ -837,7 +837,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
         (epkg-wiki-package
          (setq origin (file-relative-name emir-ewiki-repository))
          (setq branch name))
-        (epkg-elpa-branch-package
+        (epkg-gnu-elpa-package
          (setq origin (file-relative-name emir-gelpa-repository))
          (setq branch (concat "externals/" name))))
       (magit-git "reset" "--hard" "HEAD")
@@ -858,7 +858,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
          (magit-git "remote" "add" "-f" "--no-tags"
                     "-t" branch "origin" origin)
          (magit-git "branch" (concat "--set-upstream-to=origin/" branch)))
-        (epkg-elpa-branch-package
+        (epkg-gnu-elpa-package
          (magit-git "remote" "add" "-f" "--no-tags"
                     "-t" branch "origin" origin)
          (magit-git "branch" (concat "--set-upstream-to=origin/" branch)))
@@ -1305,7 +1305,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
 (defun emir--ignore-tags-p (pkg)
   (or (cl-typep pkg 'epkg-subtree-package)
       (cl-typep pkg 'epkg-wiki-package)
-      (cl-typep pkg 'epkg-elpa-branch-package)))
+      (cl-typep pkg 'epkg-gnu-elpa-package)))
 
 ;;; _
 (provide 'emir)

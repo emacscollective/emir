@@ -27,7 +27,7 @@
 (defun emir-import-gelpa-recipes ()
   (interactive)
   (message "Fetching Gelpa recipes...")
-  (emir-pull 'epkg-elpa-branch-package)
+  (emir-pull 'epkg-gnu-elpa-package)
   (message "Fetching Felpa recipes...done")
   (emacsql-with-transaction (epkg-db)
     (message "Importing Gelpa recipes...")
