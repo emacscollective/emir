@@ -47,7 +47,7 @@
 
 (defun emir-import-gelpa-recipe (name spec)
   (pcase-let* ((default-directory emir-gelpa-repository)
-               (rcp   (gelpa-get name))
+               (rcp (gelpa-get name))
                (`(,url ,type ,released) spec)
                (class (pcase type
                         ('core     'gelpa-core-recipe)
