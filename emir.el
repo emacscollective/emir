@@ -237,7 +237,7 @@ repository specified by variable `epkg-repository'."
                           (or dry-run
                               (y-or-n-p (format "\
 %s is already being tracked as an `epkg-builtin-package'.
-Mirror as an `epkg-elpa-core-package' instead? " name))))))
+Mirror as an `epkg-core-package' instead? " name))))))
         (message "Adding %s..." name)
         (unless dry-run
           (let ((libs (and (epkg-builtin-package-p pkg)
@@ -246,7 +246,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
               (closql-delete pkg))
             (cl-ecase class
               (url  (setq pkg (epkg-gnu-elpa-package :name name)))
-              (core (setq pkg (epkg-elpa-core-package :name name))
+              (core (setq pkg (epkg-core-package :name name))
                     (oset pkg url (emir--format-url pkg 'url-format))))
             (emir-add pkg)
             (when libs
@@ -682,7 +682,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
     (with-emir-repository t
       (magit-git "submodule" "add" "--name" name mirror module)
       (magit-git "submodule" "absorbgitdirs" module)
-      (unless (cl-typep pkg 'epkg-elpa-core-package)
+      (unless (cl-typep pkg 'epkg-core-package)
         (magit-git "clone" "--single-branch" "--branch" branch origin source)
         (unless (equal branch "master")
           (let ((default-directory (expand-file-name source)))
@@ -722,7 +722,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
 
 (cl-defmethod emir-pull ((pkg epkg-subrepo-package))
   (let* ((name   (oref pkg name))
-         (core   (cl-typep pkg 'epkg-elpa-core-package))
+         (core   (cl-typep pkg 'epkg-core-package))
          (source (if core
                      (expand-file-name
                       "shallow/" (f-parent emir-emacs-repository))
@@ -754,7 +754,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
       (when (or (magit-anything-modified-p) force)
         (magit-git "add" ".")
         (let ((process-environment process-environment)
-              (mainlib (or (and (not (cl-typep pkg 'epkg-elpa-core-package))
+              (mainlib (or (and (not (cl-typep pkg 'epkg-core-package))
                                 (oref pkg library))
                            (ignore-errors
                              (packed-main-library
@@ -936,7 +936,7 @@ Mirror as an `epkg-elpa-core-package' instead? " name))))))
 ;;; Extract
 
 (cl-defmethod emir--main-library ((pkg epkg-package))
-  (or (and (not (cl-typep pkg 'epkg-elpa-core-package))
+  (or (and (not (cl-typep pkg 'epkg-core-package))
            (oref pkg library))
       (let ((name (oref pkg name))
             (load-suffixes '(".el" ".el.in" ".el.tmpl"))
