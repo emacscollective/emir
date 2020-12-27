@@ -24,13 +24,14 @@
 (require 'f)
 
 ;;;###autoload
-(defun emir-import-gelpa-recipes ()
-  (interactive)
-  (message "Fetching Gelpa recipes...")
-  (emir-pull 'epkg-gnu-elpa-package)
-  (message "Fetching Felpa recipes...done")
+(defun emir-import-gelpa-recipes (&optional fetch)
+  (interactive (list (not current-prefix-arg)))
+  (when fetch
+    (message "Fetching Gelpa recipes...")
+    (emir-pull 'epkg-gnu-elpa-package)
+    (message "Fetching Felpa recipes...done"))
+  (message "Importing Gelpa recipes...")
   (emacsql-with-transaction (epkg-db)
-    (message "Importing Gelpa recipes...")
     (let ((alist (emir-gelpa--package-alist)))
       (pcase-dolist (`(,name . ,spec) alist)
         (message "Updating %s recipe..." name)
