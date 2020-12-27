@@ -33,6 +33,7 @@
   (message "Importing Gelpa recipes...")
   (emacsql-with-transaction (epkg-db)
     (let ((alist (emir-gelpa--package-alist)))
+      (emir-gelpa--recipe-asserts alist)
       (pcase-dolist (`(,name . ,spec) alist)
         (message "Updating %s recipe..." name)
         (emir-import-gelpa-recipe name spec)
@@ -49,58 +50,52 @@
 (defun emir-import-gelpa-recipe (name &optional spec)
   (unless spec
     (setq spec (alist-get name (emir-gelpa--package-alist))))
-  (pcase-let* ((default-directory emir-gelpa-repository)
-               (rcp (gelpa-get name))
-               (`(,url ,type ,released) spec)
-               (class (pcase type
-                        ('core 'gelpa-core-recipe)
-                        ('url  'gelpa-external-recipe))))
+  (let ((rcp (gelpa-get name))
+        (class (cond ((plist-member spec :core) 'gelpa-core-recipe)
+                     ((plist-member spec :url)  'gelpa-external-recipe)
+                     (t (error "Invalid recipe %S" (cons name spec))))))
     (when (and rcp (not (eq (type-of rcp) class)))
       (closql-delete rcp)
       (setq rcp nil))
     (unless rcp
       (setq rcp (funcall class :name name))
       (closql-insert (epkg-db) rcp))
-    (oset rcp url url)
-    (oset rcp released released)
+    (oset rcp url (or (plist-get spec :core)
+                      (plist-get spec :url)))
+    (when (eq class 'gelpa-external-recipe)
+      (oset rcp released (emir-gelpa--released-p name)))
     (oset rcp epkg-package (and (epkg name) name))))
 
 (defun emir-gelpa--package-alist ()
-  ;; Be defensive.
-  (let ((default-directory emir-gelpa-repository)
-        (alist (with-temp-buffer
-                 (insert-file-contents
-                  (expand-file-name "elpa-packages" emir-gelpa-repository))
-                 (read (current-buffer)))))
+  (with-temp-buffer
+    (insert-file-contents
+     (expand-file-name "elpa-packages" emir-gelpa-repository))
+    (read (current-buffer))))
+
+(defun emir-gelpa--recipe-asserts (alist)
+  (let ((default-directory emir-gelpa-repository))
     (dolist (line (magit-list-refnames "refs/heads/externals"))
       (let ((name (substring line 10)))
-        (when-let ((elt (assoc name alist)))
-          (pcase-let ((`(,_ ,type ,_) elt))
-            (unless (eq type :url)
-              (error "`%s's type is `%s' but `externals/%s' also exists"
-                     name type name))))))
-    (mapcar
-     (pcase-lambda (`(,name ,type ,url))
-       (let (released)
-         (when (eq type :url)
-           (unless (magit-branch-p (concat "externals/" name))
-             (error "`%s's type is `%s' but `externals/%s' is missing"
-                    name type name))
-           (setq released (emir-gelpa--released-p name)))
-         (list name url
-               (intern (substring (symbol-name type) 1))
-               released)))
-     (cl-sort alist #'string< :key #'car))))
+        (when-let ((spec (alist-get name alist)))
+          (when (plist-member spec :core)
+            (error "`%s's type is `:core' but branch `externals/%s' also exists"
+                   name name)))))
+    (pcase-dolist (`(,name . ,spec) alist)
+      (when (and (plist-member spec :url)
+                 (not (magit-branch-p (concat "externals/" name))))
+        (error "`%s's type is `:url' but branch `externals/%s' is missing"
+               name name)))))
 
 (defun emir-gelpa--released-p (name)
   ;; See section "Public incubation" in "<gelpa>/README".
-  (not (equal (with-temp-buffer
-                (magit-git-insert
-                 "cat-file" "-p" (format "externals/%s:%s.el" name name))
-                (goto-char (point-min))
-                (or (lm-header "package-version")
-                    (lm-header "version")))
-              "0")))
+  (let ((default-directory emir-gelpa-repository))
+    (not (equal (with-temp-buffer
+                  (magit-git-insert
+                   "cat-file" "-p" (format "externals/%s:%s.el" name name))
+                  (goto-char (point-min))
+                  (or (lm-header "package-version")
+                      (lm-header "version")))
+                "0"))))
 
 (defun emir-gelpa--core-filter-args (name)
   (let* ((files  (oref (gelpa-get name) url))
