@@ -69,8 +69,6 @@
                  (insert-file-contents
                   (expand-file-name "elpa-packages" emir-gelpa-repository))
                  (read (current-buffer)))))
-    (unless (assoc "org" alist)
-      (push (list "org" :core nil) alist))
     (dolist (line (magit-list-refnames "refs/heads/externals"))
       (let ((name (substring line 10)))
         (when-let ((elt (assoc name alist)))
@@ -78,10 +76,6 @@
             (unless (eq type :url)
               (error "`%s's type is `%s' but `externals/%s' also exists"
                      name type name))))))
-    ;; TODO Remove temporary kludge.
-    (dolist (name '("auto-overlays" "dict-tree" "heap" "queue" "tNFA" "trie"))
-      (unless (assoc name alist)
-        (push (list name :url nil) alist)))
     (mapcar
      (pcase-lambda (`(,name ,type ,url))
        (let (released)
