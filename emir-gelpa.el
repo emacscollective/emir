@@ -46,7 +46,9 @@
   (emir-commit "Update Gelpa recipes" nil :dump)
   (message "Importing Gelpa recipes...done"))
 
-(defun emir-import-gelpa-recipe (name spec)
+(defun emir-import-gelpa-recipe (name &optional spec)
+  (unless spec
+    (setq spec (alist-get name (emir-gelpa--package-alist))))
   (pcase-let* ((default-directory emir-gelpa-repository)
                (rcp (gelpa-get name))
                (`(,url ,type ,released) spec)
