@@ -720,6 +720,11 @@ Mirror as an `epkg-core-package' instead? " name))))))
                (magit-git "rebase" "@{upstream}"))
       (magit-git "pull" "--ff-only" "origin"))))
 
+(cl-defmethod emir-pull ((pkg epkg-gnu-elpa-package))
+  (with-emir-repository pkg
+    (magit-git "pull" "--ff-only" "origin"
+               (concat "refs/remotes/origin/externals/" (oref pkg name)))))
+
 (cl-defmethod emir-pull ((pkg epkg-subrepo-package))
   (let* ((name   (oref pkg name))
          (core   (cl-typep pkg 'epkg-core-package))
