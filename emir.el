@@ -197,8 +197,9 @@ repository specified by variable `epkg-repository'."
   (interactive
    (let* ((url  (emir-read-url "Add package from url"))
           (type (epkg-read-type "Package type: "
-                                (and-let* ((sym (emir--url-to-class url)))
-                                  (substring (symbol-name sym) 5 -8))))
+                                (if-let* ((sym (emir--url-to-class url)))
+                                    (substring (symbol-name sym) 5 -8)
+                                  "git")))
           (name (magit-read-string
                  "Package name"
                  (and-let* ((name (emir--url-get url 'upstream-name)))
