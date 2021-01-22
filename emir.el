@@ -246,7 +246,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
             (when libs
               (closql-delete pkg))
             (cl-ecase class
-              (url  (setq pkg (epkg-gnu-elpa-package :name name)))
+              (external (setq pkg (epkg-gnu-elpa-package :name name)))
               (core (setq pkg (epkg-core-package :name name))
                     (oset pkg url (emir--format-url pkg 'url-format))))
             (emir-add pkg)
