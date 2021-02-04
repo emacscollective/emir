@@ -269,9 +269,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
         (message "Adding %s..." name)
         (unless dry-run
           (apply #'emir-add-package name url
-                 (if (string-prefix-p "emacsorphanage/" repo)
-                     'epkg-orphaned-package
-                   (intern (format "epkg-%s-package" class)))
+                 (emir--url-to-class url)
                  (and branch (list :upstream-branch branch))))
         (message "Adding %s...done" name)))))
 
