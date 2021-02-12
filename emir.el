@@ -951,7 +951,8 @@ Mirror as an `epkg-core-package' instead? " name))))))
             (load-file-rep-suffixes '("")))
         (or (ignore-errors
               (packed-main-library default-directory name nil t))
-            (and (epkg-shelved-package-p pkg)
+            (and (or (epkg-shelved-package-p pkg)
+                     (equal name "gnu-elpa")) ; KLUDGE No feature.
                  (let ((file (expand-file-name (concat name ".el"))))
                    (and (file-exists-p file) file)))))))
 
