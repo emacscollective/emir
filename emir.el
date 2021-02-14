@@ -269,7 +269,8 @@ Mirror as an `epkg-core-package' instead? " name))))))
         (message "Adding %s..." name)
         (unless dry-run
           (apply #'emir-add-package name url
-                 (emir--url-to-class url)
+                 (or (emir--url-to-class url)
+                     (intern (format "epkg-%s-package" class)))
                  (and branch (list :upstream-branch branch))))
         (message "Adding %s...done" name)))))
 
