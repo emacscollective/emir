@@ -479,7 +479,14 @@ Mirror as an `epkg-core-package' instead? " name))))))
       (emir-update  pkg)
       (emir-gh-init pkg)
       (emir-push    pkg)
-      (emir-commit (format "Shelve %S package" name) name :dump))))
+      (emir-commit (format "Shelve %S package" name) name :dump))
+    (let ((default-directory emir-melpa-repository)
+          (rcp (concat "recipes/" name)))
+      (when (file-exists-p rcp)
+        (magit-git "rm" rcp)
+        (magit-git "commit"
+                   "-m" (format "Remove archived %S package" name)
+                   "--" rcp)))))
 
 ;;;###autoload
 (defun emir-shelve-archived-github-packages (&optional all)
