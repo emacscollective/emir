@@ -608,17 +608,12 @@ Mirror as an `epkg-core-package' instead? " name))))))
       (borg--sort-submodule-sections ".gitmodules"))
     (magit-git "add" ".gitmodules" "epkg.sql" "ewiki" "gelpa" "melpa")))
 
-;; FIXME Invoking this breaks all connected closql objects
-;; by killing the db connection in their closql-database slot.
 (defun emir-dump-database ()
   (interactive)
   (message "Dumping Epkg database...")
   (with-emir-repository t
     (let ((bin (expand-file-name "epkg.sqlite"))
           (txt (expand-file-name "epkg.sql")))
-      (when epkg--db-connection
-        (emacsql-close epkg--db-connection)
-        (setq epkg--db-connection nil))
       (with-temp-file txt
         (unless (zerop (save-excursion
                          (call-process "sqlite3" nil t nil
