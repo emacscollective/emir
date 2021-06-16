@@ -24,6 +24,9 @@
 
 (require 'emir)
 
+(unless (boundp 'eieio--unbound) ; New name since Emacs 28.1.
+  (defvaralias 'eieio--unbound 'eieio-unbound nil))
+
 ;;;###autoload
 (defun emir-report ()
   (interactive)
@@ -111,8 +114,8 @@
         (let ((name (oref obj name)))
           (message "Re-inserting %s..." name)
           (closql--resolve-slots obj)
-          (closql--oset obj 'gelpa-recipes eieio-unbound)
-          (closql--oset obj 'melpa-recipes eieio-unbound)
+          (closql--oset obj 'gelpa-recipes eieio--unbound)
+          (closql--oset obj 'melpa-recipes eieio--unbound)
           (closql-insert new obj)
           (message "Re-inserting %s...done" name))))
     (emacsql-close old)
