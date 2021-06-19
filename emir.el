@@ -341,6 +341,18 @@ Mirror as an `epkg-core-package' instead? " name))))))
   (emir-commit (emir--update-message) nil :dump))
 
 ;;;###autoload
+(defun emir-regenerate-metadata (&optional from)
+  (interactive (list (and current-prefix-arg
+                          (epkg-read-package "Limit to packages after: "))))
+  (dolist (pkg (epkgs))
+    (let ((name (oref pkg name)))
+      (when (or (not from) (string< from name))
+        (message "Regenerating %s..." name)
+        (emir-update pkg t)
+        (message "Regenerating %s...done" name))))
+  (emir-commit "Regenerate metadata" nil :dump))
+
+;;;###autoload
 (defun emir-update-licenses (&optional all)
   (interactive "P")
   (dolist (pkg (epkgs))
