@@ -383,12 +383,12 @@ Mirror as an `epkg-core-package' instead? " name))))))
           (let ((head (condition-case nil
                           (emir--remote-head url)
                         (error (message "%s failed" name)))))
-            (message "  %S %S" value head)
             (if (equal value "master")
                 (when (equal head "master")
                   (setf value nil))
               (unless (or (equal head "master")
                           (equal head value))
+                (message "  %s => %s" value head)
                 ;; TODO File bug report: This fails if previously unset.
                 (magit-git "remote" "set-branches" "origin" head)
                 ;; TODO File bug report: Pruning doesn't work here.
