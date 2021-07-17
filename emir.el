@@ -380,26 +380,25 @@ Mirror as an `epkg-core-package' instead? " name))))))
       (when (or (not from) (string< from name))
         (message "Updating %s..." name)
         (with-emir-repository pkg
-          (let ((head (condition-case nil
-                          (emir--remote-head url)
-                        (error (message "%s failed" name)))))
-            (if (equal value "master")
-                (when (equal head "master")
-                  (setf value nil))
-              (unless (or (equal head "master")
-                          (equal head value))
-                (message "  %s => %s" value head)
-                ;; TODO File bug report: This fails if previously unset.
-                (magit-git "remote" "set-branches" "origin" head)
-                ;; TODO File bug report: Pruning doesn't work here.
-                (magit-git "fetch" "--prune" "origin")
-                (magit-git "update-ref" "-d"
-                           (concat "refs/remotes/origin/" (or value "master")))
-                (magit-git "remote" "set-head" "origin" "--auto")
-                (magit-git "branch" "master"
-                           (concat "--set-upstream-to=origin/" head))
-                (setq value head)
-                (emir-update-package name)))))
+          (if-let ((head (emir--remote-head url)))
+              (if (equal value "master")
+                  (when (equal head "master")
+                    (setf value nil))
+                (unless (or (equal head "master")
+                            (equal head value))
+                  (message "  %s => %s" value head)
+                  ;; TODO File bug report: This fails if previously unset.
+                  (magit-git "remote" "set-branches" "origin" head)
+                  ;; TODO File bug report: Pruning doesn't work here.
+                  (magit-git "fetch" "--prune" "origin")
+                  (magit-git "update-ref" "-d"
+                             (concat "refs/remotes/origin/" (or value "master")))
+                  (magit-git "remote" "set-head" "origin" "--auto")
+                  (magit-git "branch" "master"
+                             (concat "--set-upstream-to=origin/" head))
+                  (setq value head)
+                  (emir-update-package name)))
+            (message "Error: cannot determine head")))
         (message "Updating %s...done" name))))
   (emir-commit (emir--update-message) nil :dump))
 
@@ -1323,10 +1322,12 @@ Mirror as an `epkg-core-package' instead? " name))))))
 ;;; Miscellaneous
 
 (defun emir--remote-head (url)
-  (match-string
-   1 (cl-find-if
-      (##string-match "\\`ref: refs/heads/\\([^\s\t]+\\)[\s\t]HEAD\\'" %)
-      (magit-git-lines "ls-remote" "--symref" url))))
+  (when-let ((line (cl-find-if
+                    (lambda (line)
+                      (string-match
+                       "\\`ref: refs/heads/\\([^\s\t]+\\)[\s\t]HEAD\\'" line))
+                    (magit-git-lines "ls-remote" "--symref" url))))
+    (match-string 1 line)))
 
 (defun emir--ignore-tags-p (pkg)
   (or (cl-typep pkg 'epkg-subtree-package)
