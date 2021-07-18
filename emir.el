@@ -80,10 +80,6 @@ a different repository.")
 (defvar emir-suspended-packages nil
   "List of packages that are temporarily not being updated.")
 
-(defvar emir-renamed-files nil
-  "List of files that have to be renamed after fetching with curl.
-This variable should only be used as a last resort.")
-
 (defvar emir--homepage-alist nil
   "Alist of packages and their homepages.")
 
@@ -771,9 +767,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
   (with-emir-repository pkg
     (let ((name (oref pkg name)))
       (let ((magit-process-raise-error t))
-        (magit-call-process "curl" "-O" (oref pkg url))
-        (when-let ((file (cadr (assoc name emir-renamed-files))))
-          (rename-file file (concat name ".el") t)))
+        (magit-call-process "curl" "-O" (oref pkg url)))
       (when (or (magit-anything-modified-p) force)
         (magit-git "add" ".")
         (let ((process-environment process-environment)
