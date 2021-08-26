@@ -292,8 +292,9 @@ Mirror as an `epkg-core-package' instead? " name))))))
             (emir-gh-update pkg)
             (emir-push pkg)))
       (error
-       (push (oref pkg name) emir-failed)
-       (message "Update error: %s" (error-message-string err))))))
+       (let ((name (oref pkg name)))
+         (push name emir-failed)
+         (message "Update error (%s): %s" name (error-message-string err)))))))
 
 ;;;###autoload
 (defun emir-update-github-packages ()
@@ -543,8 +544,9 @@ Mirror as an `epkg-core-package' instead? " name))))))
       (progn (message "Setup module %s..." name)
              (emir-setup (epkg name))
              (message "Setup module %s...done" name))
-    (error (push name emir-failed)
-           (message "Update error: %s" (error-message-string err)))))
+    (error
+     (push name emir-failed)
+     (message "Update error (%s): %s" name (error-message-string err)))))
 
 ;;;###autoload
 (defun emir-setup-modules ()
