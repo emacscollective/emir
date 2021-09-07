@@ -321,11 +321,28 @@ Mirror as an `epkg-core-package' instead? " name))))))
      (emir-commit (emir--update-message) nil :dump))))
 
 ;;;###autoload
+(defun emir-update-wiki-packages (&optional from recreate)
+  (interactive (list (and current-prefix-arg
+                          (epkg-read-package "Limit to packages after: "))))
+  (dolist (pkg (epkgs nil 'epkg-wiki-package-p))
+    (let ((name (oref pkg name)))
+      (when (or (not from) (string< from name))
+        (if (assoc name emir-suspended-packages)
+            (message "Skipping suspended %s" name)
+          (message "Updating %s..." name)
+          (if recreate
+              (emir-update (epkg name) t)
+            (emir-update-package name))
+          (message "Updating %s...done" name)))))
+  (emir-commit (emir--update-message) nil :dump))
+
+;;;###autoload
 (defun emir-update-other-packages (&optional from recreate)
   (interactive (list (and current-prefix-arg
                           (epkg-read-package "Limit to packages after: "))))
   (dolist (pkg (epkgs nil 'epkg-mirrored-package--eieio-childp))
-    (unless (cl-typep pkg 'epkg-github-package)
+    (unless (or (cl-typep pkg 'epkg-github-package)
+                (cl-typep pkg 'epkg-wiki-package))
       (let ((name (oref pkg name)))
         (when (or (not from) (string< from name))
           (if (assoc name emir-suspended-packages)
