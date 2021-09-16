@@ -24,9 +24,9 @@
 (require 'f)
 
 ;;;###autoload
-(defun emir-import-gelpa-recipes (&optional fetch)
-  (interactive (list (not current-prefix-arg)))
-  (when fetch
+(defun emir-import-gelpa-recipes (args)
+  (interactive (list (transient-args 'emir-import-recipes)))
+  (when (transient-arg-value "--fetch" args)
     (message "Fetching Gelpa recipes...")
     (emir-pull 'epkg-gnu-elpa-package)
     (message "Fetching Felpa recipes...done"))

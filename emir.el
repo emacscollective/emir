@@ -46,6 +46,7 @@
 (require 'org)
 (require 'packed)
 (require 'subr-x)
+(require 'transient)
 
 (defvar finder-no-scan-regexp)
 (defvar finder--builtins-alist)
@@ -131,6 +132,17 @@ repository specified by variable `epkg-repository'."
 
 ;;; Commands
 ;;;; Import
+
+;;;###autoload (autoload 'emir-import-recipes "emir" nil t)
+(transient-define-prefix emir-import-recipes ()
+  "Import Gelpa or Melpa recipes."
+  :value '("--fetch")
+  ["Arguments"
+   ("a" "Re-import all recipes" "--all")
+   ("f" "Fetch before import"   "--fetch")]
+  ["Import"
+   ("m" "Melpa" emir-import-melpa-recipes)
+   ("g" "Gelpa" emir-import-gelpa-recipes)])
 
 ;;;###autoload
 (defun emir-import-emacs-packages ()

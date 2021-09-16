@@ -122,8 +122,8 @@
     (emacsql-close new)
     (rename-file new-file old-file t)
     (epkg-db)
-    (emir-import-gelpa-recipes)
-    (emir-import-melpa-recipes))
+    (emir-import-gelpa-recipes '("--fetch" "--all"))
+    (emir-import-melpa-recipes '("--fetch" "--all")))
   (message "Recreating Epkg database...done"))
 
 (defun emir-enable-sql-logging ()
