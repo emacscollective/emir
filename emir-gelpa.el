@@ -29,7 +29,7 @@
   (when (transient-arg-value "--fetch" args)
     (message "Fetching Gelpa recipes...")
     (emir-pull 'epkg-gnu-elpa-package)
-    (message "Fetching Felpa recipes...done"))
+    (message "Fetching Gelpa recipes...done"))
   (message "Importing Gelpa recipes...")
   (emacsql-with-transaction (epkg-db)
     (let ((alist (emir-gelpa--package-alist)))
