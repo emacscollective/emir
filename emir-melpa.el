@@ -50,9 +50,10 @@
                                            "--diff-filter=AM"
                                            (concat old-rev ":recipes")
                                            "HEAD:recipes")))
-            (message "Updating %s recipe..." name)
-            (emir-import-melpa-recipe name)
-            (message "Updating %s recipe...done" name))
+            (unless (string-prefix-p "." name)
+              (message "Updating %s recipe..." name)
+              (emir-import-melpa-recipe name)
+              (message "Updating %s recipe...done" name)))
           (message "Importing Melpa recipes...")
           (dolist (name (cl-set-difference (melpa-recipes 'name) recipes
                                            :test #'equal))
