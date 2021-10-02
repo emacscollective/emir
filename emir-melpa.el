@@ -99,6 +99,7 @@
     (when-let ((format (eieio-oref-default rcp slot)))
       (format-spec format `((?r . ,(oref rcp repo)))))))
 
+;;;###autoload
 (defun emir-import-melpa-downloads ()
   (interactive)
   (message "Importing Melpa downloads...")
