@@ -721,7 +721,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
          (source (format ".git/modules/%s/unfiltered" name))
          (module (concat "mirror/" name)))
     (with-emir-repository t
-      (magit-git "init" module))
+      (magit-git "init" "--initial-branch" "master" module))
     (with-emir-repository pkg
       (magit-git "commit" "--allow-empty" "-m" "dummy"))
     (with-emir-repository t
