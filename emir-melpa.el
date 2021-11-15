@@ -29,39 +29,43 @@
 (defun emir-import-melpa-recipes (args)
   (interactive (list (transient-args 'emir-import-recipes)))
   (let* ((default-directory emir-melpa-repository)
-         (old-rev (magit-rev-parse "HEAD"))
+         (old-rev (or (magit-get "emir.melpa-imported")
+                      (magit-rev-parse "HEAD")))
          (all (transient-arg-value "--all" args)))
     (when (transient-arg-value "--fetch" args)
       (message "Fetching Melpa recipes...")
       (magit-git "checkout" "master")
       (magit-git "clean" "-fdx" "recipes")
-      (magit-git "pull" "--ff-only" "origin"))
-    (message "Fetching Melpa recipes...done")
-    (if (and (not all)
-             (equal old-rev (magit-rev-parse "HEAD")))
-        (message "Recipes are unchanged")
-      (message "Importing Melpa recipes...")
-      (let ((recipes (magit-git-items "ls-tree" "-z" "--name-only"
+      (magit-git "pull" "--ff-only" "origin")
+      (message "Fetching Melpa recipes...done"))
+    (message "Importing Melpa recipes...")
+    (let* ((recipes (cl-remove-if
+                     (lambda (n) (string-prefix-p "." n))
+                     (magit-git-items "ls-tree" "-z" "--name-only"
                                       "HEAD:recipes")))
+           (imports (cl-remove-if
+                     (lambda (n) (string-prefix-p "." n))
+                     (if all
+                         recipes
+                       (magit-git-items "diff-tree" "-z" "--name-only"
+                                        "--diff-filter=AM"
+                                        (concat old-rev ":recipes")
+                                        "HEAD:recipes")))))
+      (if (not imports)
+          (message "No recipes modified since %s" old-rev)
         (emacsql-with-transaction (epkg-db)
-          (dolist (name (if all
-                            recipes
-                          (magit-git-items "diff-tree" "-z" "--name-only"
-                                           "--diff-filter=AM"
-                                           (concat old-rev ":recipes")
-                                           "HEAD:recipes")))
-            (unless (string-prefix-p "." name)
-              (message "Updating %s recipe..." name)
-              (emir-import-melpa-recipe name)
-              (message "Updating %s recipe...done" name)))
-          (message "Importing Melpa recipes...")
-          (dolist (name (cl-set-difference (melpa-recipes 'name) recipes
-                                           :test #'equal))
-            (message "Removing %s recipe..." name)
-            (closql-delete (melpa-get name))
-            (message "Removing %s recipe...done" name))))
-      (emir-commit "Update Melpa recipes" nil :dump)
-      (message "Importing Melpa recipes...done"))))
+          (dolist-with-progress-reporter (name imports)
+              "Importing Melpa recipes..."
+            (emir-import-melpa-recipe name)))
+        (message "Importing Melpa recipes..."))
+      (dolist (name (cl-set-difference (melpa-recipes 'name)
+                                       recipes :test #'equal))
+        (message "Removing %s recipe..." name)
+        (closql-delete (melpa-get name))
+        (message "Removing %s recipe...done" name)))
+    (magit-set (magit-rev-parse "HEAD") "emir.melpa-imported")
+    (emir-commit "Update Melpa recipes" nil :dump)
+    (message "Importing Melpa recipes...done")))
 
 (defun emir-import-melpa-recipe (name)
   (let* ((rcp   (melpa-get name))
