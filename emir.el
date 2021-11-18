@@ -1303,7 +1303,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
       (oset pkg url (concat "hg::" url)))))
 
 (cl-defmethod emir--format-url ((pkg epkg-package) slot)
-  (when-let ((format (if (stringp slot)
+  (and-let* ((format (if (stringp slot)
                          slot
                        (eieio-oref-default pkg slot))))
     (format-spec format
@@ -1346,8 +1346,8 @@ Mirror as an `epkg-core-package' instead? " name))))))
               (closql--list-subclasses 'epkg-package)))
 
 (defun emir--url-get (url slot)
-  (when-let* ((class (emir--url-to-class url))
-              (slots (emir--match-url (oref-default class url-format) url)))
+  (and-let* ((class (emir--url-to-class url))
+             (slots (emir--match-url (oref-default class url-format) url)))
     (cdr (assoc slot slots))))
 
 (defun emir--lookup-url (url)
@@ -1368,7 +1368,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
 ;;; Miscellaneous
 
 (defun emir--remote-head (url)
-  (when-let ((line (cl-find-if
+  (and-let* ((line (cl-find-if
                     (lambda (line)
                       (string-match
                        "\\`ref: refs/heads/\\([^\s\t]+\\)[\s\t]HEAD\\'" line))

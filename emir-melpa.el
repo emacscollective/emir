@@ -100,7 +100,7 @@
 
 (cl-defmethod emir--format-url ((rcp melpa-recipe) slot)
   (ignore-errors
-    (when-let ((format (eieio-oref-default rcp slot)))
+    (and-let* ((format (eieio-oref-default rcp slot)))
       (format-spec format `((?r . ,(oref rcp repo)))))))
 
 ;;;###autoload
