@@ -233,8 +233,8 @@ repository specified by variable `epkg-repository'."
 (defun emir-add-gelpa-packages (&optional dry-run)
   (interactive "P")
   (emir-pull 'epkg-gnu-elpa-package)
-  (pcase-dolist (`(,name ,class)
-                 (gelpa-recipes [name class]))
+  (pcase-dolist (`(,name ,url ,class)
+                 (gelpa-recipes [name url class]))
     (let ((pkg (epkg name)))
       (when (and (not (assoc name emir-pending-packages))
                  (not (assoc name emir-secondary-packages))
@@ -252,7 +252,14 @@ Mirror as an `epkg-core-package' instead? " name))))))
             (when libs
               (closql-delete pkg))
             (cl-ecase class
-              (external (setq pkg (epkg-gnu-elpa-package :name name)))
+              (external
+               (let ((class (emir--read-class
+                             url "gnu-elpa"
+                             (format "Package type for %s from %s: "
+                                     name url))))
+                 (setq pkg (if (eq class 'epkg-gnu-elpa-package)
+                               (epkg-gnu-elpa-package :name name)
+                             (funcall class :name name :url url)))))
               (core (setq pkg (epkg-core-package :name name))
                     (oset pkg url (emir--format-url pkg 'url-format))))
             (emir-add pkg)
