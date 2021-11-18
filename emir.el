@@ -204,11 +204,8 @@ repository specified by variable `epkg-repository'."
 ;;;###autoload
 (defun emir-add-package (name url class &rest plist)
   (interactive
-   (let* ((url  (emir-read-url "Add package from url"))
-          (type (epkg-read-type "Package type: "
-                                (if-let* ((sym (emir--url-to-class url)))
-                                    (substring (symbol-name sym) 5 -8)
-                                  "git")))
+   (let* ((url (emir-read-url "Add package from url"))
+          (class (emir--read-class url))
           (name (magit-read-string
                  "Package name"
                  (and-let* ((name (emir--url-get url 'upstream-name)))
@@ -216,7 +213,7 @@ repository specified by variable `epkg-repository'."
                      (replace-regexp-in-string "\\`emacs-" "")
                      (replace-regexp-in-string "\\`elisp-" "")
                      (replace-regexp-in-string "[.-]el\\'" ""))))))
-     (list name url (intern (format "epkg-%s-package" type)))))
+     (list name url class)))
   (cond ((epkg name)
          (user-error "Package %s already exists" name))
         ((assoc name emir-pending-packages)
@@ -1353,6 +1350,13 @@ Mirror as an `epkg-core-package' instead? " name))))))
 
 (defun emir-read-url (prompt)
   (magit-read-string prompt nil 'emir-url-history nil nil t))
+
+(defun emir--read-class (url &optional default prompt)
+  (intern (format "epkg-%s-package"
+                  (epkg-read-type (or prompt "Package type: ")
+                                  (if-let* ((sym (emir--url-to-class url)))
+                                      (substring (symbol-name sym) 5 -8)
+                                    (or default "git"))))))
 
 ;;; Miscellaneous
 
