@@ -218,10 +218,6 @@ repository specified by variable `epkg-repository'."
          (user-error "Package %s already exists" name))
         ((assoc name emir-pending-packages)
          (user-error "Package %s is on hold" name)))
-  (unless (plist-member plist :upstream-branch)
-    (let ((branch (emir--remote-head url)))
-      (unless (equal branch "master")
-        (setq plist (plist-put plist :upstream-branch branch)))))
   (emir-add (apply class :name name :url url plist))
   (when-let ((recipe (melpa-get name)))
     (oset recipe epkg-package name))
@@ -924,6 +920,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
 
 (cl-defmethod emir-add ((pkg epkg-mirrored-package))
   (emir--set-urls pkg)
+  (emir--set-upstream-branch pkg)
   (oset pkg mirror-name
         (replace-regexp-in-string "\\+" "-plus" (oref pkg name)))
   (when (epkg-orphaned-package-p pkg)
@@ -1366,6 +1363,12 @@ Mirror as an `epkg-core-package' instead? " name))))))
                                     (or default "git"))))))
 
 ;;; Miscellaneous
+
+(cl-defmethod emir--set-upstream-branch ((pkg epkg-mirrored-package))
+  (unless (oref pkg upstream-branch)
+    (let ((branch (emir--remote-head (oref pkg url))))
+      (unless (equal branch "master")
+        (oset pkg upstream-branch branch)))))
 
 (defun emir--remote-head (url)
   (and-let* ((line (cl-find-if
