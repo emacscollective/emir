@@ -1312,7 +1312,13 @@ Mirror as an `epkg-core-package' instead? " name))))))
 
 (defun emir--match-url (format url)
   (with-temp-buffer
-    (insert (regexp-quote format))
+    (thread-last format
+      (regexp-quote)
+      (replace-regexp-in-string "\\(git@\\([^:/]*\\)\\:\\)"
+                                "\\\\(?:https://\\2/\\\\|\\1\\\\)")
+      (replace-regexp-in-string "\\(\\\\.git\\)\\'"
+                                "\\\\(\\\\.git\\\\)?")
+      (insert))
     (goto-char (point-min))
     (let (slots)
       (save-match-data
