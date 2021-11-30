@@ -1275,12 +1275,16 @@ Mirror as an `epkg-core-package' instead? " name))))))
 
 (cl-defmethod emir--set-urls ((pkg epkg-mirrored-package))
   (if-let ((url (oref pkg url)))
-      (progn
+      (cl-flet ((lookup (url)
+                  (caar (epkg-sql [:select name :from packages
+                                   :where (= url $s1)
+                                   :limit 1]
+                                  url))))
         (let ((conflict (and url
-                             (caar (epkg-sql [:select name :from packages
-                                              :where (= url $s1)
-                                              :limit 1]
-                                             url)))))
+                             (or (lookup url)
+                                 (lookup (if (string-suffix-p ".git" url)
+                                             (substring url 0 -4)
+                                           (concat url ".git")))))))
           (when (and conflict
                      (not (equal conflict (oref pkg name)))
                      (not (and (cl-typep pkg 'epkg-subrepo-package)
