@@ -546,23 +546,33 @@ Mirror as an `epkg-core-package' instead? " name))))))
   (interactive (list (epkg-read-package "Remove package: ")))
   (let ((pkg (epkg name)))
     (unless (epkg-builtin-package-p pkg)
-      (with-emir-repository t
-        (magit-git "add" ".gitmodules")
-        (let ((module-dir (epkg-repository pkg)))
-          (when (file-exists-p module-dir)
-            (magit-git "rm" "-f" module-dir))))
+      (emir--remove-module-worktree name)
       (with-demoted-errors "Error: %S"
         (emir-gh-delete pkg)))
     (closql-delete pkg)
     ;; Do not pass `name'.  The module was removed above.
     (emir-commit (format "Remove %S package" name) nil :dump)
     (with-demoted-errors "Error: %S"
-      (with-emir-repository t
-        (delete-directory (magit-git-dir (concat "modules/" name)) t)))
+      (emir--stash-module-gitdir name))
     (with-demoted-errors "Error: %S"
       (when (epkg-wiki-package-p pkg)
         (with-emir-repository 'epkg-wiki-package
           (magit-call-git "branch" "-D" name))))))
+
+(defun emir--remove-module-worktree (name)
+  (with-emir-repository t
+    (magit-git "add" ".gitmodules")
+    (let ((module-dir (epkg-repository (epkg name))))
+      (when (file-exists-p module-dir)
+        (magit-git "rm" "-f" module-dir)))))
+
+(defun emir--stash-module-gitdir (name)
+  (with-emir-repository t
+    (let ((default-directory (magit-git-dir)))
+      (make-directory "removed/" t)
+      (rename-file (format "modules/%s" name)
+                   (format "removed/%s-%s" name
+                           (format-time-string "%FT%T"))))))
 
 ;;;; Setup
 
@@ -586,7 +596,30 @@ Mirror as an `epkg-core-package' instead? " name))))))
         (epkgs 'name '(epkg-mirrored-package--eieio-childp
                        epkg-shelved-package--eieio-childp))))
 
-;;;; Fixup
+;;;; Migrate
+
+(defun emir-migrate-package (name url class &rest plist)
+  (interactive
+   (let* ((name (epkg-read-package "Migrate package: "))
+          (url (emir-read-url "New repository url"))
+          (class (emir--read-class url)))
+     (list name url class)))
+  (let ((pkg (epkg name)))
+    (unless pkg
+      (user-error "Package does not %s exist yet" name))
+    (oset pkg url url)
+    (oset pkg upstream-user nil)
+    (oset pkg upstream-name nil)
+    (oset pkg stars nil)
+    (dolist (slot '(upstream-branch upstream-tree library libraries patched))
+      (when-let ((value (slot-value pkg slot)))
+        (when (y-or-n-p (format "Reset %s (%S)" slot value))
+          (setf (slot-value pkg slot) nil))))
+    (closql--set-object-class (epkg-db) pkg class)
+    (emir--remove-module-worktree name)
+    (emir--stash-module-gitdir name)
+    (emir-add pkg t)
+    (emir-commit (format "Migrate %S package" name) name :dump :sort)))
 
 (defun emir-migrate-github-packages ()
   (interactive)
@@ -847,10 +880,10 @@ Mirror as an `epkg-core-package' instead? " name))))))
 
 ;;;; Push
 
-(cl-defmethod emir-push ((pkg epkg-package))
+(cl-defmethod emir-push ((pkg epkg-package) &optional force)
   (with-emir-repository pkg
     (magit-git "push"
-               (and (oref pkg patched) "--force")
+               (and (or force (oref pkg patched)) "--force")
                (and (not (emir--ignore-tags-p pkg)) "--follow-tags")
                "mirror" "master")))
 
@@ -918,7 +951,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
 ;;; Database
 ;;;; Add
 
-(cl-defmethod emir-add ((pkg epkg-mirrored-package))
+(cl-defmethod emir-add ((pkg epkg-mirrored-package) &optional replace)
   (emir--set-urls pkg)
   (emir--set-upstream-branch pkg)
   (oset pkg mirror-name
@@ -929,11 +962,12 @@ Mirror as an `epkg-core-package' instead? " name))))))
   (oset pkg mirrorpage (emir--format-url pkg 'mirrorpage-format))
   (oset pkg repopage   (emir--format-url pkg 'repopage-format))
   (oset pkg homepage   (emir--format-url pkg 'homepage-format))
-  (closql-insert (epkg-db) pkg)
-  (emir-gh-init   pkg)
+  (unless replace
+    (closql-insert (epkg-db) pkg)
+    (emir-gh-init pkg))
   (emir-clone     pkg)
-  (emir-push      pkg)
-  (emir-update    pkg)
+  (emir-push      pkg replace)
+  (emir-update    pkg replace)
   (emir-gh-update pkg t))
 
 (cl-defmethod emir-add ((pkg epkg-builtin-package))
