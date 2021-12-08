@@ -1309,16 +1309,8 @@ Mirror as an `epkg-core-package' instead? " name))))))
 
 (cl-defmethod emir--set-urls ((pkg epkg-mirrored-package))
   (if-let ((url (oref pkg url)))
-      (cl-flet ((lookup (url)
-                  (caar (epkg-sql [:select name :from packages
-                                   :where (= url $s1)
-                                   :limit 1]
-                                  url))))
-        (let ((conflict (and url
-                             (or (lookup url)
-                                 (lookup (if (string-suffix-p ".git" url)
-                                             (substring url 0 -4)
-                                           (concat url ".git")))))))
+      (progn
+        (let ((conflict (and url (emir--lookup-url url))))
           (when (and conflict
                      (not (equal conflict (oref pkg name)))
                      (not (and (cl-typep pkg 'epkg-subrepo-package)
@@ -1386,7 +1378,13 @@ Mirror as an `epkg-core-package' instead? " name))))))
     (cdr (assoc slot slots))))
 
 (defun emir--lookup-url (url)
-  (caar (epkg-sql [:select name :from packages :where (= url $s1)] url)))
+  (caar (epkg-sql [:select name :from packages
+                   :where (or (= url $s1) (= url $s2))
+                   :limit 1]
+                  url
+                  (if (string-suffix-p ".git" url)
+                      (substring url 0 -4)
+                    (concat url ".git")))))
 
 (defvar emir-url-history nil)
 
