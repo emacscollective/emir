@@ -268,20 +268,19 @@ Mirror as an `epkg-core-package' instead? " name))))))
 ;;;###autoload
 (defun emir-add-melpa-packages (&optional dry-run)
   (interactive "P")
-  (let ((mirrored (epkgs 'url)))
-    (pcase-dolist (`(,name ,class ,url ,branch)
-                   (melpa-recipes [name class url branch]))
-      (unless (or (epkg name)
-                  (member url mirrored)
-                  (assoc name emir-pending-packages)
-                  (assoc name emir-secondary-packages))
-        (message "Adding %s..." name)
-        (unless dry-run
-          (apply #'emir-add-package name url
-                 (or (emir--url-to-class url)
-                     (intern (format "epkg-%s-package" class)))
-                 (and branch (list :upstream-branch branch))))
-        (message "Adding %s...done" name)))))
+  (pcase-dolist (`(,name ,class ,url ,branch)
+                 (melpa-recipes [name class url branch]))
+    (unless (or (epkg name)
+                (emir--lookup-url url)
+                (assoc name emir-pending-packages)
+                (assoc name emir-secondary-packages))
+      (message "Adding %s..." name)
+      (unless dry-run
+        (apply #'emir-add-package name url
+               (or (emir--url-to-class url)
+                   (intern (format "epkg-%s-package" class)))
+               (and branch (list :upstream-branch branch))))
+      (message "Adding %s...done" name))))
 
 ;;;; Update
 
