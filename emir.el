@@ -597,7 +597,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
 
 ;;;; Migrate
 
-(defun emir-migrate-package (name url class &rest plist)
+(defun emir-migrate-package (name url class)
   (interactive
    (let* ((name (epkg-read-package "Migrate package: "))
           (url (emir-read-url "New repository url"))
