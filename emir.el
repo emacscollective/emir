@@ -526,17 +526,19 @@ Mirror as an `epkg-core-package' instead? " name))))))
                    "--" rcp)))))
 
 ;;;###autoload
-(defun emir-shelve-archived-github-packages (&optional all)
-  (interactive "P")
+(defun emir-shelve-archived-github-packages ()
+  (interactive)
   (when emir--archived-packages
     (dolist (name emir--archived-packages)
-      (when (and (or all (not (epkg-reverse-dependencies name)))
-                 (epkg name)
-                 ;; TODO Drop this special case eventually.
-                 (not (equal (oref (epkg name) upstream-user) "emacs-helm")))
-        (message "Shelve %s..." name)
-        (emir-shelve-package name)
-        (message "Shelve %s...done" name)))))
+      (when (epkg name)
+        (let ((kept (cadr (assoc name emir-kept-packages)))
+              (deps (epkg-reverse-dependencies name)))
+          (if (or kept deps)
+              (message "Skipping %s... (%s)" name
+                       (or kept (format "needed by %s" name)))
+            (message "Shelve %s..." name)
+            (emir-shelve-package name)
+            (message "Shelve %s...done" name)))))))
 
 ;;;; Remove
 
