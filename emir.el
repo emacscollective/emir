@@ -78,6 +78,9 @@ In most cases this is detected automatically.  This variable
 should only be used if the Emacsmirror and Melpa import from
 a different repository.")
 
+(defvar emir-kept-packages nil
+  "List of packages that we keep mirrored despite them being archived.")
+
 (defvar emir-suspended-packages nil
   "List of packages that are temporarily not being updated.")
 
