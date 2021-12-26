@@ -624,6 +624,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
     (emir--stash-module-gitdir name)
     (emir-add pkg t)
     (setf (alist-get "lsp-julia" emir--moved-packages nil t #'equal) nil)
+    (customize-save-variable 'emir--moved-packages emir--moved-packages)
     (emir-commit (format "Migrate %S package" name) name :dump :sort)))
 
 (defun emir-migrate-github-packages ()
@@ -666,6 +667,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
                                   "\n\nThe old url redirects to the new url."))
                      "--" rcp))))
     (setf (alist-get name emir--moved-packages nil t #'equal) nil)
+    (customize-save-variable 'emir--moved-packages emir--moved-packages)
     (emir-commit (format "Migrate %S package within github" name) name :dump)))
 
 ;;;; Stage
