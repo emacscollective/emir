@@ -29,8 +29,8 @@
 (defun emir-import-melpa-recipes (args)
   (interactive (list (transient-args 'emir-import-recipes)))
   (let* ((default-directory emir-melpa-repository)
-         (old-rev (or (magit-get "emir.melpa-imported")
-                      (magit-rev-parse "HEAD")))
+         (imported (or (magit-rev-verify "mirror-imported")
+                       (magit-rev-parse "HEAD")))
          (all (transient-arg-value "--all" args)))
     (when (transient-arg-value "--fetch" args)
       (message "Fetching Melpa recipes...")
@@ -49,10 +49,10 @@
                          recipes
                        (magit-git-items "diff-tree" "-z" "--name-only"
                                         "--diff-filter=AM"
-                                        (concat old-rev ":recipes")
+                                        (concat imported ":recipes")
                                         "HEAD:recipes")))))
       (if (not imports)
-          (message "No recipes modified since %s" old-rev)
+          (message "No recipes modified since %s" imported)
         (emacsql-with-transaction (epkg-db)
           (dolist-with-progress-reporter (name imports)
               "Importing Melpa recipes..."
@@ -63,7 +63,7 @@
         (message "Removing %s recipe..." name)
         (closql-delete (melpa-get name))
         (message "Removing %s recipe...done" name)))
-    (magit-set (magit-rev-parse "HEAD") "emir.melpa-imported")
+    (magit-git "tag" "-f" "mirror-imported")
     (emir-commit "Update Melpa recipes" nil :dump)
     (message "Importing Melpa recipes...done")))
 
