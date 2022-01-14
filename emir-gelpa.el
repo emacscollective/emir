@@ -46,6 +46,7 @@
             (message "Removing %s..." name)
             (closql-delete (gelpa-get name))
             (message "Removing %s...done" name)))))
+    (magit-git "tag" "-f" "mirror-imported")
     (emir-commit "Update Gelpa recipes" nil :dump)
     (message "Importing Gelpa recipes...done")))
 
