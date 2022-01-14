@@ -29,7 +29,7 @@
   (let ((default-directory emir-gelpa-repository))
     (when (transient-arg-value "--fetch" args)
       (message "Fetching Gelpa recipes...")
-      (magit-git "checkout" "main")
+      (magit-git "checkout" "mirror")
       (magit-git "pull" "--ff-only" "origin")
       (message "Fetching Gelpa recipes...done"))
     (message "Importing Gelpa recipes...")

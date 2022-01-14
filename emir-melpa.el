@@ -34,7 +34,7 @@
                   (transient-arg-value "--all" args))))
     (when (transient-arg-value "--fetch" args)
       (message "Fetching Melpa recipes...")
-      (magit-git "checkout" "master")
+      (magit-git "checkout" "mirror")
       (magit-git "clean" "-fdx" "recipes")
       (magit-git "pull" "--ff-only" "origin")
       (message "Fetching Melpa recipes...done"))
