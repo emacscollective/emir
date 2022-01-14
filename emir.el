@@ -881,11 +881,6 @@ Mirror as an `epkg-core-package' instead? " name))))))
   (with-emir-repository pkg
     (magit-git "pull" "--ff-only" "mirror" "master")))
 
-(cl-defmethod emir-pull ((class (subclass epkg-gnu-elpa-package)))
-  (with-emir-repository class
-    (magit-git "checkout" "main")
-    (magit-git "pull" "--ff-only" "origin")))
-
 ;;;; Push
 
 (cl-defmethod emir-push ((pkg epkg-package) &optional force)
