@@ -149,6 +149,35 @@
                                           dependents " "))
                      ""))))))))
 
+(defun emir-melpa-migrate-recipe (name msg &optional redirected)
+  (let ((default-directory emir-melpa-repository)
+        (file (concat "recipes/" name))
+        (pkg (epkg name))
+        (rcp (melpa-get name)))
+    (when (file-exists-p file)
+      (with-temp-file file
+        (insert-file-contents file)
+        (save-excursion
+          (if (re-search-forward (format ":fetcher ?\\([a-z]+\\)") nil t)
+              (replace-match
+               (substring (symbol-name (eieio-object-class pkg)) 5 -8)
+               t t nil 1)
+            (message "WARNING: Cannot find `:fetcher'")))
+        (if (re-search-forward (format ":\\(repo\\|url\\) ?\"[^\"]+\"") nil t)
+            (replace-match
+             (if (cl-typep rcp 'melpa--platform-recipe)
+                 (format ":repo \"%s\"" (emir--format-url pkg "%u/%n" 'url))
+               (format ":url \"%s\"" (oref pkg url)))
+             t t)
+          (message "WARNING: Cannot find `:repo' or `:url'")))
+      (if (magit-anything-unstaged-p nil file)
+          (magit-git "commit" "-m"
+                     (concat (format msg name)
+                             (and redirected
+                                  "\n\nThe old url redirects to the new url."))
+                     "--" file)
+        (message "WARNING: Recipe is unmodified")))))
+
 ;;; _
 (provide 'emir-melpa)
 ;;; emir-melpa.el ends here
