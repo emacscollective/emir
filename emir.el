@@ -332,7 +332,8 @@ Mirror as an `epkg-core-package' instead? " name))))))
                (message "Updating %s..." name)
                (emir-update-package name)
                (message "Updating %s...done" name))))))
-     (emir-commit (emir--update-message) nil :dump))))
+     (emir-commit (emir--update-message) nil :dump))
+   50))
 
 ;;;###autoload
 (defun emir-update-wiki-packages (&optional from recreate)
@@ -1266,7 +1267,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
 (cl-defmethod emir-gh-delete ((pkg epkg-package))
   (emir-gh pkg "DELETE" "/repos/%o/%m"))
 
-(defun emir-gh-foreach-query (query callback)
+(defun emir-gh-foreach-query (query callback &optional per-page)
   (let* ((page 0)
          (result nil)
          (groups
@@ -1286,7 +1287,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
                              (funcall query pkg)
                            query)))
                    (epkgs nil 'epkg-github-package--eieio-childp))
-           100)) ; Should be small enough to prevent timeout.
+           (or per-page 100)))
          (length (length groups)))
     (cl-labels
         ((cb (&optional data _headers _status _req)
