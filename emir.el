@@ -624,7 +624,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
     (emir--remove-module-worktree name)
     (emir--stash-module-gitdir name)
     (emir-add pkg t)
-    (setf (alist-get "lsp-julia" emir--moved-packages nil t #'equal) nil)
+    (setf (alist-get name emir--moved-packages nil t #'equal) nil)
     (customize-save-variable 'emir--moved-packages emir--moved-packages)
     (emir-commit (format "Migrate %S package" name) name :dump :sort)))
 
