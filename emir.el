@@ -402,34 +402,43 @@ Mirror as an `epkg-core-package' instead? " name))))))
 (defun emir-update-branches (from)
   (interactive (list (and current-prefix-arg
                           (epkg-read-package "Limit to packages after: "))))
-  (dolist (pkg (epkgs nil '(epkg-git-package-p
-                            epkg-gitlab-package-p
-                            epkg-github-package-p)))
-    (with-slots (name url (value upstream-branch)) pkg
-      (when (or (not from) (string< from name))
-        (message "Updating %s..." name)
-        (with-emir-repository pkg
-          (if-let ((head (emir--remote-head url)))
-              (if (equal value "master")
-                  (when (equal head "master")
-                    (setf value nil))
-                (unless (or (equal head "master")
-                            (equal head value))
-                  (message "  %s => %s" value head)
-                  ;; TODO File bug report: This fails if previously unset.
-                  (magit-git "remote" "set-branches" "origin" head)
-                  ;; TODO File bug report: Pruning doesn't work here.
-                  (magit-git "fetch" "--prune" "origin")
-                  (magit-git "update-ref" "-d"
-                             (concat "refs/remotes/origin/" (or value "master")))
-                  (magit-git "remote" "set-head" "origin" "--auto")
-                  (magit-git "branch" "master"
-                             (concat "--set-upstream-to=origin/" head))
-                  (setq value head)
-                  (emir-update-package name)))
-            (message "Error: cannot determine head")))
-        (message "Updating %s...done" name))))
+  (dolist (name (epkgs 'name '(epkg-git-package-p
+                               epkg-gitlab-package-p
+                               epkg-github-package-p)))
+    (when (or (not from) (string< from name))
+      (message "Updating %s..." name)
+      (emir-update-branch name)
+      (message "Updating %s...done" name)))
   (emir-commit (emir--update-message) nil :dump))
+
+;;;###autoload
+(defun emir-update-branch (name)
+  (interactive (list (epkg-read-package "Update branch of: ")))
+  (let* ((pkg (epkg name))
+         (url (oref pkg url))
+         (value (oref pkg upstream-branch)))
+    (with-emir-repository pkg
+      (if-let ((head (emir--remote-head url)))
+          (if (equal value "master")
+              (when (equal head "master")
+                (setf value nil))
+            (unless (or (equal head "master")
+                        (equal head value))
+              (message "  %s => %s" value head)
+              ;; TODO File bug report: This fails if previously unset.
+              (magit-git "remote" "set-branches" "origin" head)
+              ;; TODO File bug report: Pruning doesn't work here.
+              (magit-git "fetch" "--prune" "origin")
+              (magit-git "update-ref" "-d"
+                         (concat "refs/remotes/origin/" (or value "master")))
+              (magit-git "remote" "set-head" "origin" "--auto")
+              (magit-git "branch" "master"
+                         (concat "--set-upstream-to=origin/" head))
+              (setq value head)
+              (emir-update-package name)))
+        (message "Error: cannot determine head"))))
+  (when (called-interactively-p 'any)
+    (emir-dump-database)))
 
 ;;;; Patch
 
