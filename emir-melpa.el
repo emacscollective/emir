@@ -166,7 +166,7 @@
         (if (re-search-forward (format ":\\(repo\\|url\\) ?\"[^\"]+\"") nil t)
             (replace-match
              (if (cl-typep rcp 'melpa--platform-recipe)
-                 (format ":repo \"%s\"" (emir--format-url pkg "%u/%n" 'url))
+                 (format ":repo \"%s\"" (emir--format-url pkg "%u/%n"))
                (format ":url \"%s\"" (oref pkg url)))
              t t)
           (message "WARNING: Cannot find `:repo' or `:url'")))
