@@ -1191,14 +1191,15 @@ Mirror as an `epkg-core-package' instead? " name))))))
                        &optional params
                        &key callback errorback)
   (setq resource
-        (format-spec resource
-                     (format-spec-make
-                      ?u (oref pkg upstream-user)
-                      ?n (oref pkg upstream-name)
-                      ?o (if (epkg-shelved-package-p pkg)
-                             "emacsattic"
-                           "emacsmirror")
-                      ?m (oref pkg mirror-name))))
+        (save-match-data
+          (format-spec resource
+                       (format-spec-make
+                        ?u (oref pkg upstream-user)
+                        ?n (oref pkg upstream-name)
+                        ?o (if (epkg-shelved-package-p pkg)
+                               "emacsattic"
+                             "emacsmirror")
+                        ?m (oref pkg mirror-name)))))
   (let ((url-show-status nil))
     (if (equal method "WAIT")
         (ghub-wait resource nil :auth 'emir)
@@ -1330,13 +1331,14 @@ Mirror as an `epkg-core-package' instead? " name))))))
   (and-let* ((format (if (stringp slot)
                          slot
                        (eieio-oref-default pkg slot))))
-    (format-spec format
-                 `((?m . ,(or (oref pkg mirror-name)
-                              (oref pkg name)))
-                   (?n . ,(or (oref pkg upstream-name)
-                              (oref pkg name)))
-                   (?u . ,(oref pkg upstream-user))
-                   (?l . ,(oref pkg library))))))
+    (save-match-data
+      (format-spec format
+                   `((?m . ,(or (oref pkg mirror-name)
+                                (oref pkg name)))
+                     (?n . ,(or (oref pkg upstream-name)
+                                (oref pkg name)))
+                     (?u . ,(oref pkg upstream-user))
+                     (?l . ,(oref pkg library)))))))
 
 (defun emir--match-url (format url)
   (with-temp-buffer

@@ -101,7 +101,8 @@
 (cl-defmethod emir--format-url ((rcp melpa-recipe) slot)
   (ignore-errors
     (and-let* ((format (eieio-oref-default rcp slot)))
-      (format-spec format `((?r . ,(oref rcp repo)))))))
+      (save-match-data
+        (format-spec format `((?r . ,(oref rcp repo))))))))
 
 ;;;###autoload
 (defun emir-import-melpa-downloads ()
