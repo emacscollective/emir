@@ -160,9 +160,19 @@
         (insert-file-contents file)
         (save-excursion
           (if (re-search-forward (format ":fetcher ?\\([a-z]+\\)") nil t)
-              (replace-match
-               (substring (symbol-name (eieio-object-class pkg)) 5 -8)
-               t t nil 1)
+              (let ((fetcher (substring (symbol-name (eieio-object-class pkg))
+                                        5 -8)))
+                (pcase fetcher
+                  ("orphaned"
+                   (setq fetcher "github"))
+                  ((or "sourcehut" "gnu" "nongnu"
+                       "subtree" "subrepo" "minority")
+                   (setq fetcher "git"))
+                  ("bitbucket"
+                   (setq fetcher "hg")))
+                (unless (fboundp (intern (format "melpa-%s-recipe" fetcher)))
+                  (error "%s isn't a valid Melpa fetcher" fetcher))
+                (replace-match fetcher t t nil 1))
             (message "WARNING: Cannot find `:fetcher'")))
         (if (re-search-forward (format ":\\(repo\\|url\\) ?\"[^\"]+\"") nil t)
             (replace-match
