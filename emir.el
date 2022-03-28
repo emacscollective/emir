@@ -549,8 +549,10 @@ Mirror as an `epkg-core-package' instead? " name))))))
         (let ((kept (cadr (assoc name emir-kept-packages)))
               (deps (epkg-reverse-dependencies name)))
           (if (or kept deps)
-              (message "Skipping %s... (%s)" name
-                       (or kept (format "needed by %s" name)))
+              (message "Skipping %s... %s" name
+                       (if kept
+                           "(member of emir-kept-packages)"
+                         (format "needed by %s" deps)))
             (message "Shelve %s..." name)
             (emir-shelve-package name)
             (message "Shelve %s...done" name)))))))
