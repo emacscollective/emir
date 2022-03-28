@@ -262,6 +262,8 @@ Mirror as an `epkg-core-package' instead? " name))))))
               (core (setq pkg (epkg-core-package :name name))
                     (oset pkg url (emir--format-url pkg 'url-format))))
             (emir-add pkg)
+            (when-let ((u (emir--format-url pkg 'url-format)))
+              (oset pkg url u))
             (when libs
               (oset pkg builtin-libraries libs)))
           (oset (gelpa-get name) epkg-package name)
