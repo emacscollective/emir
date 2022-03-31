@@ -111,10 +111,10 @@ with ARG as only argument.  When ARG is t then evaluate in the
 repository specified by variable `epkg-repository'."
   (declare (indent defun))
   `(let ((default-directory
-           ,(if (eq arg t)
-                'epkg-repository
-              `(or (epkg-repository ,arg)
-                   (error "Need package or string")))))
+          ,(if (eq arg t)
+               'epkg-repository
+             `(or (epkg-repository ,arg)
+                  (error "Need package or string")))))
      ;; BODY could call `magit-git', which could cause the
      ;; `magit-process-mode' buffer to be created, which could
      ;; cause a prompt about unsafe directory-local variables.
@@ -1220,14 +1220,13 @@ Mirror as an `epkg-core-package' instead? " name))))))
   (emir-gh pkg "WAIT" "/repos/%o/%m"))
 
 (cl-defmethod emir-gh-init ((pkg epkg-github-package))
-  (if (cl-flet ((forked
-                 (rsp key)
-                 (when-let ((name (cdr (assq 'full_name (cdr (assq key rsp))))))
-                   (cl-find-if
-                    (lambda (fork)
-                      (equal (cdr (assq 'login (cdr (assq 'owner fork))))
-                             "emacsmirror"))
-                    (emir-gh pkg "GET" (format "/repos/%s/forks" name))))))
+  (if (cl-flet ((forked (rsp key)
+                  (when-let ((name (cdr (assq 'full_name (cdr (assq key rsp))))))
+                    (cl-find-if
+                     (lambda (fork)
+                       (equal (cdr (assq 'login (cdr (assq 'owner fork))))
+                              "emacsmirror"))
+                     (emir-gh pkg "GET" (format "/repos/%s/forks" name))))))
         (let ((rsp (emir-gh pkg "GET" "/repos/%u/%n")))
           (or (forked rsp 'source)
               (forked rsp 'parent))))
@@ -1291,22 +1290,22 @@ Mirror as an `epkg-core-package' instead? " name))))))
          (length (length groups)))
     (cl-labels
         ((cb (&optional data _headers _status _req)
-             (setq result (nconc result (cdar data)))
-             (cond
-              (groups
-               (message "Fetching page %s/%s..." (cl-incf page) length)
-               (ghub-graphql
-                (gsexp-encode
-                 (ghub--graphql-prepare-query
-                  (cons 'query (pop groups))))
-                nil :callback #'cb :auth 'emir))
-              (t
-               (message "Fetching page %s/%s...done" page length)
-               (dolist (elt result)
-                 (setcar elt (base64-decode-string
-                              (replace-regexp-in-string
-                               "_" "=" (substring (symbol-name (car elt)) 1)))))
-               (funcall callback result)))))
+           (setq result (nconc result (cdar data)))
+           (cond
+            (groups
+             (message "Fetching page %s/%s..." (cl-incf page) length)
+             (ghub-graphql
+              (gsexp-encode
+               (ghub--graphql-prepare-query
+                (cons 'query (pop groups))))
+              nil :callback #'cb :auth 'emir))
+            (t
+             (message "Fetching page %s/%s...done" page length)
+             (dolist (elt result)
+               (setcar elt (base64-decode-string
+                            (replace-regexp-in-string
+                             "_" "=" (substring (symbol-name (car elt)) 1)))))
+             (funcall callback result)))))
       (cb))))
 
 ;;; Urls
