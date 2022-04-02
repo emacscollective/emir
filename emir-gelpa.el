@@ -21,7 +21,7 @@
 ;;; Code:
 
 (require 'emir)
-(require 'f)
+(require 'l)
 
 ;;;###autoload
 (defun emir-import-gelpa-recipes (args)
