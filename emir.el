@@ -1039,7 +1039,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
 (cl-defmethod emir--license ((pkg epkg-package))
   (let ((name (oref pkg name)))
     (or (elx-license nil (epkg-repository pkg) name)
-        (and (string-match "-theme" name)
+        (and (string-search "-theme" name)
              (let ((file (expand-file-name
                           (concat (substring name 0 (match-beginning 0))
                                   ".el"))))
