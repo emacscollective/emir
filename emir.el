@@ -6,6 +6,8 @@
 ;; Homepage: https://github.com/emacscollective/emir
 ;; Keywords: local
 
+;; Package-Requires: ((emacs "28.1"))
+
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This file is free software; you can redistribute it and/or modify
