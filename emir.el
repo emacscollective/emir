@@ -960,7 +960,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
   (emir--set-urls pkg)
   (emir--set-upstream-branch pkg)
   (oset pkg mirror-name
-        (replace-regexp-in-string "\\+" "-plus" (oref pkg name)))
+        (string-replace "+" "-plus" (oref pkg name)))
   (when (epkg-orphaned-package-p pkg)
     (oset pkg upstream-user "emacsorphanage"))
   (oset pkg mirror-url (emir--format-url pkg 'mirror-url-format))
@@ -1050,8 +1050,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
                license)))))
 
 (cl-defmethod emir--updated ((_pkg epkg-package))
-  (replace-regexp-in-string
-   "-" "" (substring (magit-rev-format "%ci" "HEAD") 0 10)))
+  (string-replace "-" "" (substring (magit-rev-format "%ci" "HEAD") 0 10)))
 
 (cl-defmethod emir--updated ((_pkg epkg-file-package))
   (or (elx-updated)
@@ -1073,8 +1072,8 @@ Mirror as an `epkg-core-package' instead? " name))))))
                  (cadr (assoc (oref pkg name) emir--wikipage-alist))
                  (let* ((norm (lambda (string)
                                 (thread-last string
-                                  (replace-regexp-in-string "\\+" "plus")
-                                  (replace-regexp-in-string "-" "")
+                                  (string-replace "+" "plus")
+                                  (string-replace "-" "")
                                   downcase)))
                         (name (funcall norm (oref pkg name)))
                         (alist (with-emir-repository 'epkg-wiki-package
@@ -1278,7 +1277,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
                      ;; invalid here.  Identifiers also may not begin
                      ;; with a number or contain an equal sign.
                      `((,(concat "_"
-                                 (replace-regexp-in-string
+                                 (string-replace
                                   "=" "_"
                                   (base64-encode-string (oref pkg name))))
                         repository)
@@ -1305,7 +1304,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
              (message "Fetching page %s/%s...done" page length)
              (dolist (elt result)
                (setcar elt (base64-decode-string
-                            (replace-regexp-in-string
+                            (string-replace
                              "_" "=" (substring (symbol-name (car elt)) 1)))))
              (funcall callback result)))))
       (cb))))

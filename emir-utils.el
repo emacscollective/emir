@@ -84,7 +84,7 @@
                 (replace-match
                  (save-match-data
                    (format " [%s]"
-                           (replace-regexp-in-string
+                           (string-replace
                             "," " " (substring (match-string 0) 2 -1))))
                  nil t))))))
       (mapcar (lambda (tbl)
