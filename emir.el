@@ -1222,7 +1222,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
 
 (cl-defmethod emir-gh-init ((pkg epkg-github-package))
   (if (cl-flet ((forked (rsp key)
-                  (when-let ((name (cdr (assq 'full_name (cdr (assq key rsp))))))
+                  (and-let* ((name (cdr (assq 'full_name (cdr (assq key rsp))))))
                     (cl-find-if
                      (lambda (fork)
                        (equal (cdr (assq 'login (cdr (assq 'owner fork))))

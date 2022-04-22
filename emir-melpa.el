@@ -126,7 +126,7 @@
 
 (defun emir-melpa-list-archived-packages ()
   (interactive)
-  (when-let ((archived
+  (and-let* ((archived
               (cl-sort
                (mapcan (lambda (name)
                          (and (member name emir--archived-packages)
