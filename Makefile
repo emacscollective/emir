@@ -10,6 +10,7 @@ ELCS  = $(ELS:.el=.elc)
 
 DEPS  = borg
 DEPS += closql
+DEPS += compat
 DEPS += dash
 DEPS += elx
 DEPS += epkg/lisp
