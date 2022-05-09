@@ -52,7 +52,7 @@
 
 (defvar finder-no-scan-regexp)
 (defvar finder--builtins-alist)
-(declare-function org-publish 'ox-publish)
+(declare-function org-publish "ox-publish" (project &optional force async))
 
 (defconst emir-github-token-scopes '(repo delete_repo))
 
