@@ -1159,7 +1159,6 @@ Mirror as an `epkg-core-package' instead? " name))))))
                                '("lisp/gnus/.dir-locals.el"
                                  ;; Old versions:
                                  "lisp/obsolete/old-emacs-lock.el"
-                                 "lisp/obsolete/old-whitespace.el"
                                  "lisp/obsolete/otodo-mode.el"
                                  ;; Moved to GNU Elpa:
                                  "lisp/obsolete/crisp.el"
@@ -1168,10 +1167,11 @@ Mirror as an `epkg-core-package' instead? " name))))))
                  (message "Importing %s..." file)
                  (with-temp-buffer
                    (insert-file-contents file)
+                   (emacs-lisp-mode)
                    (let ((package
                           (cond
-                           ((not features) "emacs")
-                           ((string-prefix-p "lisp/term/"     file) "emacs")
+                           ((equal file "lisp/epa-ks.el") "epa")
+                           ((equal file "lisp/emacs-lisp/shorthands.el") "emacs")
                            ((string-prefix-p "lisp/leim/"     file) "emacs")
                            ((string-prefix-p "lisp/obsolete/" file) "emacs")
                            ((lm-header "Package"))
