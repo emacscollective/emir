@@ -201,7 +201,11 @@ repository specified by variable `epkg-repository'."
                                               (= authors:name "Drew Adams"))]))
           (emir-import (epkg-wiki-package :name name)))
       (message "Importing wiki packages asynchronously...")
-      (magit-run-git-async "filter-emacswiki" "--tag" "--notes")))
+      (with-environment-variables
+          (("PATH" (format "%sbin:%s"
+                           (file-name-directory (locate-library "emir.el"))
+                           (getenv "PATH"))))
+        (magit-run-git-async "filter-emacswiki" "--tag" "--notes"))))
   (emir-commit "Update Emacswiki module"))
 
 ;;;; Add
