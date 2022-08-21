@@ -1,11 +1,13 @@
 #!/bin/sh
 #
-# Copyright (C) 2014-2020  Jonas Bernoulli
+# Copyright (C) 2014-2022  Jonas Bernoulli
 #
 # A lot of code comes from git-filter-branch:
 # Copyright (C) 2006  Petr Baudis
 # Copyright (C) 2007  Johannes Schindelin
 # Copyright (C) 2006-2014  Other Git contributors
+
+# SPDX-License-Identifier: GPL-2.0-only
 
 # The history of the Emacswiki is both huge (>25500 commits) and
 # trivial (no merges).  Taking advantage of the latter as we do here,
