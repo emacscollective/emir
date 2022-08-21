@@ -168,8 +168,7 @@
                 (pcase fetcher
                   ("orphaned"
                    (setq fetcher "github"))
-                  ((or "sourcehut" "gnu" "nongnu"
-                       "subtree" "subrepo" "minority")
+                  ((or "gnu" "nongnu" "subtree" "subrepo" "minority")
                    (setq fetcher "git"))
                   ("bitbucket"
                    (setq fetcher "hg")))
@@ -211,7 +210,7 @@
               :and :not (= melpa-recipes:url packages:url)
               :and packages:class :in $v1]
              (vconcat (closql-where-class-in
-                       [file hg git github gitlab gnu nongnu]
+                       [file hg git github gitlab codeberg sourcehut gnu nongnu]
                        (epkg-db))))))
 
 ;;; _
