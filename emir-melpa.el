@@ -192,6 +192,28 @@
                      "--" file)
         (message "WARNING: Recipe is unmodified")))))
 
+(defun emir-melpa--migrated-packages ()
+  (seq-filter
+   (pcase-lambda (`(,_name ,_type ,url ,fetcher ,murl))
+     (not (or (and (eq fetcher 'hg)
+                   (string-prefix-p "hg::" url)
+                   (equal murl (substring url 4)))
+              (string-prefix-p "git@github.com:emacsmirror/" murl)
+              (string-prefix-p "git@github.com:emacsattic/"  murl)
+              (equal
+               (if (string-suffix-p ".git"  url) (substring  url 0 -4)  url)
+               (if (string-suffix-p ".git" murl) (substring murl 0 -4) murl)))))
+   (epkg-sql [:select :distinct [packages:name packages:class packages:url
+                                 melpa-recipes:class melpa-recipes:url]
+              :from [packages melpa-recipes]
+              :where    (= melpa-recipes:epkg-package packages:name)
+              :and      (= melpa-recipes:epkg-package melpa-recipes:name)
+              :and :not (= melpa-recipes:url packages:url)
+              :and packages:class :in $v1]
+             (vconcat (closql-where-class-in
+                       [file hg git github gitlab gnu nongnu]
+                       (epkg-db))))))
+
 ;;; _
 (provide 'emir-melpa)
 ;;; emir-melpa.el ends here

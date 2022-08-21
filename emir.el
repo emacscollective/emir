@@ -50,6 +50,8 @@
 (require 'subr-x)
 (require 'transient)
 
+(declare-function emir-melpa--migrated-packages "emir-melpa" ())
+
 (defvar finder-no-scan-regexp)
 (defvar finder--builtins-alist)
 (declare-function org-publish "ox-publish" (project &optional force async))
@@ -625,7 +627,8 @@ Mirror as an `epkg-core-package' instead? " name))))))
 (defun emir-migrate-package (name url class)
   (interactive
    (let* ((name (epkg-read-package "Migrate package: "))
-          (url (emir-read-url "New repository url"))
+          (melpa-url (nth 4 (assoc name (emir-melpa--migrated-packages))))
+          (url (emir-read-url "New repository url" melpa-url))
           (class (emir--read-class url)))
      (list name url class)))
   (let ((pkg (epkg name)))
@@ -1395,8 +1398,8 @@ Mirror as an `epkg-core-package' instead? " name))))))
 
 (defvar emir-url-history nil)
 
-(defun emir-read-url (prompt)
-  (magit-read-string prompt nil 'emir-url-history nil nil t))
+(defun emir-read-url (prompt &optional initial-input)
+  (magit-read-string prompt initial-input 'emir-url-history nil nil t))
 
 (defun emir--read-class (url &optional default prompt)
   (intern (format "epkg-%s-package"
