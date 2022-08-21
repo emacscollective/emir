@@ -383,6 +383,7 @@ repository specified by variable `epkg-repository'."
                  ;; These functions show a message if they do anything.
                  (emir--gh-maybe-migrate pkg .nameWithOwner)
                  (emir--update-branch pkg .default.name (not .forced))
+                 ;; FIXME This is always true for patched packages.
                  (unless (equal (or .tracked.target.oid
                                     .default.target.oid)
                                 (oref pkg hash))
@@ -664,7 +665,7 @@ repository specified by variable `epkg-repository'."
      nil)))
 
 ;;;###autoload
-(defun emir-setup-modules ()
+(defun emir-setup-modules () ; TODO also setup ewiki, gelpa and stats
   (interactive)
   (let* ((start (current-time))
          (pkgs (epkgs 'name [mirrored* shelved]))
@@ -932,6 +933,8 @@ repository specified by variable `epkg-repository'."
 ;;;; Update
 
 (defun emir--update-branch (pkg &optional default unset-forced)
+  ;; TODO Support minority packages. (These currently need to be updated:
+  ;; bibliothek, forecast, org-variable-pitch, paper-theme and pylint.)
   (unless (or (cl-typep pkg 'epkg-file-package)     ; no upstream repository
               (cl-typep pkg 'epkg-wiki-package)     ; constant name
               (cl-typep pkg 'epkg-gnu-elpa-package) ; constant name
@@ -941,6 +944,7 @@ repository specified by variable `epkg-repository'."
             (forced (oref pkg upstream-branch))
             (tracked (oref pkg branch)))
         (unless default
+          ;; TODO Proper error handling.
           (setq default
                 (or (magit-remote-head "origin")
                     (and-let* ; Use cached value when gitlab takes a nap.
@@ -951,6 +955,9 @@ repository specified by variable `epkg-repository'."
             (error "BUG: No default branch for %s" name))
           (when (and forced
                      (not (member forced
+                                  ;; FIXME If an error occurs, this is nil.
+                                  ;; Error out or we end up doing the wrong
+                                  ;; thing below.
                                   (magit-remote-list-branches "origin"))))
             (setq unset-forced t)))
         (cond
