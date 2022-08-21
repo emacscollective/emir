@@ -1427,6 +1427,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
 
 (defun emir--ignore-tags-p (pkg)
   (or (cl-typep pkg 'epkg-subtree-package)
+      (cl-typep pkg 'epkg-subrepo-package)
       (cl-typep pkg 'epkg-wiki-package)
       (cl-typep pkg 'epkg-gnu-elpa-package)))
 
