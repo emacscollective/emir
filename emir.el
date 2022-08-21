@@ -721,7 +721,11 @@ Mirror as an `epkg-core-package' instead? " name))))))
                 (setq branch (match-string 1 merge))
               (error "BUG: No branch checked out")))))
       (unless (equal branch "master")
-        (magit-git "branch" "--move" branch "master")))
+        (magit-git "branch" "--move" branch "master"))
+      (cl-typecase pkg
+        (epkg-subtree-package
+         (magit-git "branch" "--unset-upstream")
+         (emir-pull pkg))))
     (oset pkg branch branch)))
 
 (cl-defmethod emir-clone ((pkg epkg-subrepo-package))
@@ -765,11 +769,6 @@ Mirror as an `epkg-core-package' instead? " name))))))
     (with-emir-repository pkg
       (magit-git "remote" "add" "mirror" mirror)
       (magit-git "config" "remote.pushDefault" "mirror"))))
-
-(cl-defmethod emir-clone :after ((pkg epkg-subtree-package))
-  (with-emir-repository pkg
-    (magit-git "branch" "--unset-upstream"))
-  (emir-pull pkg))
 
 ;;;; Pull
 
