@@ -132,13 +132,13 @@
   (and-let* ((archived
               (cl-sort
                (mapcan (lambda (name)
-                         (and (member name emir--archived-packages)
-                              (melpa-get name)
-                              (let ((pkg (epkg name)))
+                         (let ((pkg (epkg name)))
+                           (and (eq (oref pkg upstream-state) 'archived)
+                                (melpa-get name)
                                 (list (list name
                                             (oref pkg repopage)
                                             (oref pkg upstream-user))))))
-                       (epkgs 'name #'epkg-mirrored-package--eieio-childp))
+                       (epkgs 'name #'epkg-github-package--eieio-childp))
                #'string< :key #'car)))
     (let ((buf (get-buffer-create "*melpa archive*")))
       (pop-to-buffer buf)

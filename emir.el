@@ -94,9 +94,6 @@ a different repository.")
 (defvar emir--wikipage-alist nil
   "Alist of packages and their wikipages.")
 
-(defvar emir--archived-packages nil
-  "List of packages whose upstream repositories are archived.")
-
 ;;; Repositories
 
 (defconst emir-emacs-repository "~/git/src/emacs/emacsmirror/")
@@ -329,6 +326,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
   (emir-gh-foreach-query
    (lambda (pkg)
      `((stargazers totalCount)
+       isArchived
        nameWithOwner
        ,@(and-let* ((forced (oref pkg upstream-branch)))
            `(((forced ref)
@@ -340,10 +338,12 @@ Mirror as an `epkg-core-package' instead? " name))))))
        ((default defaultBranchRef) name (target oid))))
    (lambda (data)
      (pcase-dolist (`(,name . ,data) data)
-       (let-alist data
-         (when .ref.target.oid
+       (if (not data)
+           (oset (epkg name) upstream-state 'removed)
+         (let-alist data
            (let ((pkg (epkg name)))
              (oset pkg stars (or .stargazers.totalCount 0))
+             (oset pkg upstream-state (and .isArchived 'archived))
              (emir--gh-maybe-migrate pkg .nameWithOwner)
              (emir--update-branch pkg .default.name (not .forced))
              ;; FIXME This is always true for patched packages.
@@ -521,9 +521,9 @@ Mirror as an `epkg-core-package' instead? " name))))))
 ;;;###autoload
 (defun emir-shelve-archived-github-packages ()
   (interactive)
-  (when emir--archived-packages
-    (dolist (name emir--archived-packages)
-      (when (epkg name)
+  (dolist (name (epkgs 'name [github*]))
+    (let ((pkg (epkg name)))
+      (when (eq (oref pkg upstream-state) 'archived)
         (let ((kept (cadr (assoc name emir-kept-packages)))
               (deps (epkg-reverse-dependencies name)))
           (if (or kept deps)
