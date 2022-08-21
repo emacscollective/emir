@@ -731,9 +731,6 @@ Mirror as an `epkg-core-package' instead? " name))))))
 (cl-defmethod emir-clone ((pkg epkg-subrepo-package))
   (let* ((name   (oref pkg name))
          (mirror (oref pkg mirror-url))
-         (origin (oref pkg url))
-         (branch (oref pkg upstream-branch))
-         (source (format ".git/modules/%s/unfiltered" name))
          (module (concat "mirror/" name)))
     (with-emir-repository t
       (magit-git "init" "--initial-branch" "master" module))
@@ -741,16 +738,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
       (magit-git "commit" "--allow-empty" "-m" "dummy"))
     (with-emir-repository t
       (magit-git "submodule" "add" "--name" name mirror module)
-      (magit-git "submodule" "absorbgitdirs" module)
-      (unless (cl-typep pkg 'epkg-core-package)
-        (magit-git "clone" "--single-branch"
-                   (and branch (list "--branch" branch))
-                   origin source)
-        (unless branch
-          (setq branch (magit-get-current-branch)))
-        (unless (equal branch "master")
-          (let ((default-directory (expand-file-name source)))
-            (magit-git "branch" "--move" branch "master")))))
+      (magit-git "submodule" "absorbgitdirs" module))
     (emir-pull pkg)
     (with-emir-repository pkg
       (magit-git "remote" "add" "mirror" mirror)
@@ -782,15 +770,27 @@ Mirror as an `epkg-core-package' instead? " name))))))
 (cl-defmethod emir-pull ((pkg epkg-subrepo-package))
   (let* ((name   (oref pkg name))
          (core   (cl-typep pkg 'epkg-core-package))
+         (origin (oref pkg url))
+         (branch (oref pkg upstream-branch))
          (source (if core
                      (expand-file-name
                       "shallow/" (f-parent emir-emacs-repository))
                    (format ".git/modules/%s/unfiltered" name)))
          (target (format "mirror/%s" name)))
     (with-emir-repository t
-      (unless core
-        (let ((default-directory (expand-file-name source)))
-          (magit-git "pull" "--ff-only" "origin")))
+      (cond (core) ; FIXME Disabled because git-subrepo isn't good enough.
+            ((not (file-exists-p source))
+             (magit-git "clone" "--single-branch"
+                        (and branch (list "--branch" branch))
+                        origin source)
+             (unless branch
+               (setq branch (magit-get-current-branch)))
+             (unless (equal branch "master")
+               (let ((default-directory (expand-file-name source)))
+                 (magit-git "branch" "--move" branch "master"))))
+            (t
+             (let ((default-directory (expand-file-name source)))
+               (magit-git "pull" "--ff-only" "origin"))))
       (magit-git "filter-repo"
                  "--force"
                  "--source" source
@@ -936,7 +936,6 @@ Mirror as an `epkg-core-package' instead? " name))))))
 
 ;;;; Setup
 
-;; TODO emir-setup: Handle epkg-subrepo-package
 (cl-defmethod emir-setup ((pkg epkg-package))
   (with-emir-repository pkg
     (magit-git "reset" "--hard" "HEAD")
@@ -954,6 +953,8 @@ Mirror as an `epkg-core-package' instead? " name))))))
         (epkg-shelved-package
          (magit-git "branch" "--unset-upstream"))
         (epkg-file-package
+         (magit-git "branch" "--unset-upstream"))
+        (epkg-subrepo-package
          (magit-git "branch" "--unset-upstream"))
         (epkg-subtree-package
          (magit-git "branch" "--unset-upstream")
