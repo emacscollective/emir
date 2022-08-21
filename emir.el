@@ -1272,7 +1272,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
 (cl-defmethod emir-gh-delete ((pkg epkg-package))
   (emir-gh pkg "DELETE" "/repos/%o/%m"))
 
-(defun emir-gh-foreach-query (query callback &optional per-page)
+(defun emir-gh-foreach-query (query callback &optional per-page packages)
   (let* ((page 0)
          (result nil)
          (groups
@@ -1291,7 +1291,12 @@ Mirror as an `epkg-core-package' instead? " name))))))
                        ,@(if (functionp query)
                              (funcall query pkg)
                            query)))
-                   (epkgs nil [github*]))
+                   (cond
+                    ((not packages)
+                     (epkgs nil [github*]))
+                    ((integerp packages)
+                     (take packages (epkgs nil [github*])))
+                    ((mapcar #'epkg packages))))
            (or per-page 100)))
          (length (length groups)))
     (cl-labels
