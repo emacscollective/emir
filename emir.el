@@ -919,43 +919,39 @@ Mirror as an `epkg-core-package' instead? " name))))))
 
 ;; TODO emir-setup: Handle epkg-subrepo-package
 (cl-defmethod emir-setup ((pkg epkg-package))
-  (let ((name   (oref pkg name))
-        (hash   (oref pkg hash))
-        (origin (oref pkg url))
-        (branch (or (oref pkg upstream-branch) "master")))
-    (with-emir-repository pkg
+  (with-emir-repository pkg
+    (magit-git "reset" "--hard" "HEAD")
+    (magit-git "update-ref" "refs/heads/master" (oref pkg hash))
+    (magit-git "checkout" "master")
+    (magit-git "remote" "rename" "origin" "mirror")
+    (magit-git "config" "remote.pushDefault" "mirror")
+    (let (origin branch)
       (cl-typecase pkg
         (epkg-wiki-package
          (setq origin (file-relative-name emir-ewiki-repository))
-         (setq branch name))
+         (setq branch (oref pkg name)))
         (epkg-gnu-elpa-package
          (setq origin (file-relative-name emir-gelpa-repository))
-         (setq branch (concat "externals/" name))))
-      (magit-git "reset" "--hard" "HEAD")
-      (magit-git "update-ref" "refs/heads/master" hash)
-      (magit-git "checkout" "master")
-      (magit-git "remote" "rename" "origin" "mirror")
-      (magit-git "config" "remote.pushDefault" "mirror")
+         (setq branch (concat "externals/" (oref pkg name))))
+        (t
+         (setq origin (oref pkg url))
+         (setq branch (or (oref pkg upstream-branch) "master"))))
       (cl-typecase pkg
         (epkg-shelved-package
          (magit-git "branch" "--unset-upstream"))
         (epkg-file-package
          (magit-git "branch" "--unset-upstream"))
         (epkg-subtree-package
-         (magit-git "remote" "add" "-f" "--no-tags"
-                    "-t" branch "origin" origin)
-         (magit-git "branch" "--unset-upstream"))
+         (magit-git "branch" "--unset-upstream")
+         (magit-git "remote" "add" "-f" "-t" branch "origin" origin "--no-tags"))
         (epkg-wiki-package
-         (magit-git "remote" "add" "-f" "--no-tags"
-                    "-t" branch "origin" origin)
+         (magit-git "remote" "add" "-f" "-t" branch "origin" origin "--no-tags")
          (magit-git "branch" (concat "--set-upstream-to=origin/" branch)))
         (epkg-gnu-elpa-package
-         (magit-git "remote" "add" "-f" "--no-tags"
-                    "-t" branch "origin" origin)
+         (magit-git "remote" "add" "-f" "-t" branch "origin" origin "--no-tags")
          (magit-git "branch" (concat "--set-upstream-to=origin/" branch)))
         (t
-         (magit-git "remote" "add" "-f"
-                    "-t" branch "origin" origin)
+         (magit-git "remote" "add" "-f" "-t" branch "origin" origin)
          (magit-git "branch" (concat "--set-upstream-to=origin/" branch)))))))
 
 ;;; Database
