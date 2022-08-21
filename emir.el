@@ -88,6 +88,9 @@ a different repository.")
 (defvar emir-suspended-packages nil
   "List of packages that are temporarily not being updated.")
 
+(defvar emir-repo-sharing-packages nil
+  "List of packages that share a repository with others.")
+
 (defvar emir--homepage-alist nil
   "Alist of packages and their homepages.")
 
@@ -1334,9 +1337,13 @@ Mirror as an `epkg-core-package' instead? " name))))))
 (cl-defmethod emir--set-urls ((pkg epkg-mirrored-package))
   (if-let ((url (oref pkg url)))
       (progn
-        (let ((conflict (and url (emir--lookup-url url))))
+        (let ((conflict (and url (emir--lookup-url url)))
+              (name (oref pkg name)))
           (when (and conflict
-                     (not (equal conflict (oref pkg name)))
+                     (not (equal conflict name))
+                     (not (member name emir-repo-sharing-packages))
+                     (not (cl-typep pkg 'epkg-wiki-package))
+                     (not (cl-typep pkg 'epkg-gnu-elpa-package))
                      (not (and (cl-typep pkg 'epkg-subrepo-package)
                                (let ((old (epkg conflict)))
                                  (cl-typep old 'epkg-subrepo-package)
