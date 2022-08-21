@@ -97,9 +97,6 @@ a different repository.")
 (defvar emir--archived-packages nil
   "List of packages whose upstream repositories are archived.")
 
-(defvar emir--moved-packages nil
-  "List of packages whose upstream repositories were moved or removed.")
-
 ;;; Repositories
 
 (defconst emir-emacs-repository "~/git/src/emacs/emacsmirror/")
@@ -332,6 +329,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
   (emir-gh-foreach-query
    (lambda (pkg)
      `((stargazers totalCount)
+       nameWithOwner
        ,@(and-let* ((forced (oref pkg upstream-branch)))
            `(((forced ref)
               [(qualifiedName ,(concat "refs/heads/" forced))]
@@ -346,6 +344,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
          (when .ref.target.oid
            (let ((pkg (epkg name)))
              (oset pkg stars (or .stargazers.totalCount 0))
+             (emir--gh-maybe-migrate pkg .nameWithOwner)
              (emir--update-branch pkg .default.name (not .forced))
              ;; FIXME This is always true for patched packages.
              (unless (equal (or .tracked.target.oid
@@ -617,35 +616,21 @@ Mirror as an `epkg-core-package' instead? " name))))))
     (emir--stash-module-gitdir name)
     (emir-add pkg t)
     (emir-melpa-migrate-recipe name "Update %s's repository")
-    (setf (alist-get name emir--moved-packages nil t #'equal) nil)
-    (customize-save-variable 'emir--moved-packages emir--moved-packages)
     (emir-commit (format "Migrate %S package" name) name :dump :sort)))
 
-(defun emir-migrate-github-packages ()
-  (interactive)
-  (when emir--moved-packages
-    (pcase-dolist (`(,name ,_old ,new) emir--moved-packages)
-      (when new
-        (message "Migrating %s..." name)
-        (emir-migrate-github-package name new t)
-        (message "Migrating %s...done" name)))))
-
-(defun emir-migrate-github-package (name new &optional redirected)
-  (interactive (list (epkg-read-package "Migrate github package: ")
-                     (emir-read-url "New repository url")))
-  (let ((pkg (epkg name))
-        (url (if (string-match "\\`git@github\\.com:\\(.+\\)\\.git\\'" new)
-                 new
-               (format "git@github.com:%s.git" new))))
-    (oset pkg url url)
-    (emir--set-urls pkg)
-    (oset pkg repopage (emir--format-url pkg 'repopage-format))
-    (with-emir-repository pkg
-      (magit-call-git "config" "remote.origin.url" url))
-    (emir-melpa-migrate-recipe name "Update url of %s's repository" redirected)
-    (setf (alist-get name emir--moved-packages nil t #'equal) nil)
-    (customize-save-variable 'emir--moved-packages emir--moved-packages)
-    (emir-commit (format "Migrate %S package within github" name) name :dump)))
+(defun emir--gh-maybe-migrate (pkg new)
+  (let* ((old (concat (oref pkg upstream-user) "/"
+                      (oref pkg upstream-name)))
+         (url (format "git@github.com:%s.git" new))
+         (name (oref pkg name)))
+    (unless (equal new old)
+      (oset pkg url url)
+      (emir--set-urls pkg)
+      (oset pkg repopage (emir--format-url pkg 'repopage-format))
+      (with-emir-repository pkg
+        (magit-call-git "config" "remote.origin.url" url))
+      (emir-commit (format "Migrate %S package within github" name) name :dump)
+      (emir-melpa-migrate-recipe name "Update url of %s's repository" t))))
 
 ;;;; Stage
 
