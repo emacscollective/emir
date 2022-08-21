@@ -289,6 +289,8 @@ Mirror as an `epkg-core-package' instead? " name))))))
                 (assoc name emir-secondary-packages))
       (message "Adding %s..." name)
       (unless dry-run
+        (when (equal branch "melpa")
+          (setq branch nil))
         (apply #'emir-add-package name url
                (or (emir--url-to-class url)
                    (intern (format "epkg-%s-package" class)))
