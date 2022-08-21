@@ -312,7 +312,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
           (emir-update pkg)
           (when (or force (not (equal (oref pkg hash) tip)))
             (unless (epkg-builtin-package-p pkg)
-              (emir-stage name :dump))
+              (emir-stage name (and force :dump)))
             (emir-gh-update pkg)
             (emir-push pkg)))
       (error
@@ -906,20 +906,24 @@ Mirror as an `epkg-core-package' instead? " name))))))
          ((not forced)
           (unless (equal tracked default)
             (message "Updating branch of %s (%S => %S)" name tracked default)
-            (emir--update-branch-1 pkg tracked default)))
+            (emir--update-branch-1 pkg tracked default)
+            (emir-dump-database)))
          (unset-forced
           (message "Updating branch of %s (%S (invalid forced) => %S (default))"
                    name forced default)
           (oset pkg upstream-branch nil)
-          (emir--update-branch-1 pkg forced default))
+          (emir--update-branch-1 pkg forced default)
+          (emir-dump-database))
          ((and forced (not (equal forced tracked)))
           (message "Updating branch of %s (%S (default) => %S (forced))"
                    name default forced)
-          (emir--update-branch-1 pkg default forced))
+          (emir--update-branch-1 pkg default forced)
+          (emir-dump-database))
          ((equal forced default)
           (message "Updating branch of %s (no longer force default %S)"
                    name default)
-          (oset pkg upstream-branch nil)))))))
+          (oset pkg upstream-branch nil)
+          (emir-dump-database)))))))
 
 (defun emir--update-branch-1 (pkg old new)
   (magit-git "config" "remote.origin.fetch"
