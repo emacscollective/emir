@@ -604,7 +604,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
 
 ;;;###autoload
 (defun emir-setup-module (name)
-  (interactive (list (epkg-read-package "Update package: ")))
+  (interactive (list (epkg-read-package "Setup package module: ")))
   (condition-case err
       (progn (message "Setup module %s..." name)
              (emir-setup (epkg name))
