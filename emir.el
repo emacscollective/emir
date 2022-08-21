@@ -746,6 +746,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
          (setq origin (file-relative-name emir-ewiki-repository))
          (setq branch name))
         (epkg-gnu-elpa-package
+         (setq origin (file-relative-name emir-gelpa-repository))
          (setq branch (concat "externals/" name))))
       (magit-git "clone"
                  (and (emir--ignore-tags-p pkg) "--no-tags")
@@ -753,8 +754,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
       (cl-typecase pkg
         (epkg-gnu-elpa-package
          (with-emir-repository pkg
-           (magit-git "config" "remote.origin.url"
-                      (file-relative-name emir-gelpa-repository)))))
+           (magit-git "config" "remote.origin.url" origin))))
       (magit-git "submodule" "add" "--name" name mirror module)
       (magit-git "submodule" "absorbgitdirs" module))
     (with-emir-repository pkg
@@ -814,11 +814,6 @@ Mirror as an `epkg-core-package' instead? " name))))))
         (progn (magit-git "fetch" "origin")
                (magit-git "rebase" "@{upstream}"))
       (magit-git "pull" "--ff-only" "origin"))))
-
-(cl-defmethod emir-pull ((pkg epkg-gnu-elpa-package))
-  (with-emir-repository pkg
-    (magit-git "pull" "--ff-only" "origin"
-               (concat "refs/remotes/origin/externals/" (oref pkg name)))))
 
 (cl-defmethod emir-pull ((pkg epkg-subrepo-package))
   (let* ((name   (oref pkg name))
