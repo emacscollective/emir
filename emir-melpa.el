@@ -39,7 +39,7 @@
       (message "Fetching Melpa recipes...")
       (magit-git "checkout" "mirror")
       (magit-git "clean" "-fdx" "recipes")
-      (magit-git "pull" "--ff-only" "origin")
+      (magit-git "pull" "--ff-only" "origin" "master")
       (message "Fetching Melpa recipes...done"))
     (message "Importing Melpa recipes...")
     (let* ((recipes (cl-remove-if
