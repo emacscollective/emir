@@ -309,6 +309,10 @@ Mirror as an `epkg-core-package' instead? " name))))))
          (tip (oref pkg hash)))
     (condition-case err
         (with-emir-repository pkg
+          (when (and (cl-typep pkg 'epkg-mirrored-package)
+                     (or (called-interactively-p 'any)
+                         (not (cl-typep pkg 'epkg-github-package))))
+            (emir--update-branch pkg))
           (when (or force (cl-typep pkg 'epkg-mirrored-package))
             (emir-pull pkg))
           (emir-update pkg)
@@ -327,20 +331,26 @@ Mirror as an `epkg-core-package' instead? " name))))))
   (interactive)
   (emir-gh-foreach-query
    (lambda (pkg)
-     `((ref [(qualifiedName
-              ,(concat "refs/heads/" (or (oref pkg upstream-branch) "master")))]
-            (target oid))
-       (stargazers totalCount)))
+     `((stargazers totalCount)
+       ,@(and-let* ((forced (oref pkg upstream-branch)))
+           `(((forced ref)
+              [(qualifiedName ,(concat "refs/heads/" forced))]
+              name)))
+       ((tracked ref)
+        [(qualifiedName ,(concat "refs/heads/" (oref pkg branch)))]
+        name (target oid))
+       ((default defaultBranchRef) name (target oid))))
    (lambda (data)
      (pcase-dolist (`(,name . ,data) data)
        (let-alist data
-         (let ((pkg (epkg name))
-               (rev .ref.target.oid))
-           (if (not rev)
-               (message "Skipping removed %s" name)
+         (when .ref.target.oid
+           (let ((pkg (epkg name)))
              (oset pkg stars (or .stargazers.totalCount 0))
+             (emir--update-branch pkg .default.name (not .forced))
              ;; FIXME This is always true for patched packages.
-             (unless (equal rev (oref pkg hash))
+             (unless (equal (or .tracked.target.oid
+                                .default.target.oid)
+                            (oref pkg hash))
                (message "Updating %s..." name)
                (emir-update-package name)
                (message "Updating %s...done" name))))))
@@ -367,7 +377,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
 (defun emir-update-other-packages (&optional from recreate)
   (interactive (list (and current-prefix-arg
                           (epkg-read-package "Limit to packages after: "))))
-  (dolist (pkg (epkgs nil [mirrored* !github* !wiki]))
+  (dolist (pkg (epkgs nil [mirrored* !github* !wiki !core]))
     (let ((name (oref pkg name)))
       (when (or (not from) (string< from name))
         (if (assoc name emir-suspended-packages)
@@ -407,49 +417,6 @@ Mirror as an `epkg-core-package' instead? " name))))))
               (oset pkg license (emir--license pkg)))))
         (message "Updating %s...done" name))))
   (emir-commit "Update licenses" nil :dump))
-
-;;;###autoload
-(defun emir-update-branches (from)
-  (interactive (list (and current-prefix-arg
-                          (epkg-read-package "Limit to packages after: "))))
-  (dolist (name (epkgs 'name '(epkg-git-package-p
-                               epkg-gitlab-package-p
-                               epkg-github-package-p)))
-    (when (or (not from) (string< from name))
-      (message "Updating %s..." name)
-      (emir-update-branch name)
-      (message "Updating %s...done" name)))
-  (emir-commit (emir--update-message) nil :dump))
-
-;;;###autoload
-(defun emir-update-branch (name)
-  (interactive (list (epkg-read-package "Update branch of: " nil
-                                        epkg--trivial-package-predicates)))
-  (let* ((pkg (epkg name))
-         (url (oref pkg url))
-         (value (oref pkg upstream-branch)))
-    (with-emir-repository pkg
-      (if-let ((head (emir--remote-head url)))
-          (if (equal value "master")
-              (when (equal head "master")
-                (setf value nil))
-            (unless (or (equal head "master")
-                        (equal head value))
-              (message "  %s => %s" value head)
-              ;; TODO File bug report: This fails if previously unset.
-              (magit-git "remote" "set-branches" "origin" head)
-              ;; TODO File bug report: Pruning doesn't work here.
-              (magit-git "fetch" "--prune" "origin")
-              (magit-git "update-ref" "-d"
-                         (concat "refs/remotes/origin/" (or value "master")))
-              (magit-git "remote" "set-head" "origin" "--auto")
-              (magit-git "branch" "master"
-                         (concat "--set-upstream-to=origin/" head))
-              (setq value head)
-              (emir-update-package name)))
-        (message "Error: cannot determine head"))))
-  (when (called-interactively-p 'any)
-    (emir-dump-database)))
 
 ;;;; Patch
 
@@ -536,6 +503,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
         (magit-git "config" "-f" ".gitmodules"
                    (concat "submodule." name ".url")
                    url)))
+    (oset pkg upstream-state nil)
     (with-emir-repository t
       (emir-update  pkg)
       (emir-gh-init pkg)
@@ -738,7 +706,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
   (let* ((name   (oref pkg name))
          (mirror (oref pkg mirror-url))
          (origin (oref pkg url))
-         (branch (or (oref pkg upstream-branch) "master"))
+         (branch (oref pkg upstream-branch))
          (module (concat "mirror/" name)))
     (with-emir-repository t
       (cl-typecase pkg
@@ -750,7 +718,8 @@ Mirror as an `epkg-core-package' instead? " name))))))
          (setq branch (concat "externals/" name))))
       (magit-git "clone"
                  (and (emir--ignore-tags-p pkg) "--no-tags")
-                 "--single-branch" "--branch" branch origin module)
+                 (and branch (list "--branch" branch))
+                 "--single-branch" origin module)
       (cl-typecase pkg
         (epkg-gnu-elpa-package
          (with-emir-repository pkg
@@ -760,14 +729,21 @@ Mirror as an `epkg-core-package' instead? " name))))))
     (with-emir-repository pkg
       (magit-git "remote" "add" "mirror" mirror)
       (magit-git "config" "remote.pushDefault" "mirror")
+      (unless branch
+        (save-match-data
+          (let ((merge (magit-get "branch.master.merge")))
+            (if (and merge (string-match "\\`refs/heads/\\(.+\\)" merge))
+                (setq branch (match-string 1 merge))
+              (error "BUG: No branch checked out")))))
       (unless (equal branch "master")
-        (magit-git "branch" "--move" branch "master")))))
+        (magit-git "branch" "--move" branch "master")))
+    (oset pkg branch branch)))
 
 (cl-defmethod emir-clone ((pkg epkg-subrepo-package))
   (let* ((name   (oref pkg name))
          (mirror (oref pkg mirror-url))
          (origin (oref pkg url))
-         (branch (or (oref pkg upstream-branch) "master"))
+         (branch (oref pkg upstream-branch))
          (source (format ".git/modules/%s/unfiltered" name))
          (module (concat "mirror/" name)))
     (with-emir-repository t
@@ -778,7 +754,11 @@ Mirror as an `epkg-core-package' instead? " name))))))
       (magit-git "submodule" "add" "--name" name mirror module)
       (magit-git "submodule" "absorbgitdirs" module)
       (unless (cl-typep pkg 'epkg-core-package)
-        (magit-git "clone" "--single-branch" "--branch" branch origin source)
+        (magit-git "clone" "--single-branch"
+                   (and branch (list "--branch" branch))
+                   origin source)
+        (unless branch
+          (setq branch (magit-get-current-branch)))
         (unless (equal branch "master")
           (let ((default-directory (expand-file-name source)))
             (magit-git "branch" "--move" branch "master")))))
@@ -867,7 +847,8 @@ Mirror as an `epkg-core-package' instead? " name))))))
 (cl-defmethod emir-pull ((pkg epkg-subtree-package))
   (with-emir-repository pkg
     (let ((name (oref pkg name))
-          (branch (or (oref pkg upstream-branch) "master")))
+          (branch (or (oref pkg upstream-branch)
+                      (magit-remote-head (oref pkg url)))))
       (magit-git "fetch" "origin")
       (magit-git "checkout" (concat "origin/" branch))
       (let ((time (current-time)))
@@ -912,6 +893,59 @@ Mirror as an `epkg-core-package' instead? " name))))))
                    :test #'equal))))
       (format "Update %s package%s" count (if (> count 1) "s" "")))))
 
+;;;; Update
+
+(defun emir--update-branch (pkg &optional default unset-forced)
+  (unless (or (cl-typep pkg 'epkg-file-package)     ; no upstream repository
+              (cl-typep pkg 'epkg-wiki-package)     ; constant name
+              (cl-typep pkg 'epkg-gnu-elpa-package) ; constant name
+              (cl-typep pkg 'epkg-subtree-package)  ; no tracked upstream
+              (cl-typep pkg 'epkg-subrepo-package)) ; no tracked upstream
+    (with-emir-repository pkg
+      (let ((name (oref pkg name))
+            (forced (oref pkg upstream-branch))
+            (tracked (oref pkg branch)))
+        (unless default
+          (setq default
+                (or (magit-remote-head "origin")
+                    (and-let* ; Use cached value when gitlab takes a nap.
+                        ((ref (magit-git-string "symbolic-ref"
+                                                "refs/remotes/origin/HEAD")))
+                      (substring ref 20))))
+          (unless default
+            (error "BUG: No default branch for %s" name))
+          (when (and forced
+                     (not (member forced
+                                  (magit-remote-list-branches "origin"))))
+            (setq unset-forced t)))
+        (cond
+         ((not forced)
+          (unless (equal tracked default)
+            (message "Updating branch of %s (%S => %S)" name tracked default)
+            (emir--update-branch-1 pkg tracked default)))
+         (unset-forced
+          (message "Updating branch of %s (%S (invalid forced) => %S (default))"
+                   name forced default)
+          (oset pkg upstream-branch nil)
+          (emir--update-branch-1 pkg forced default))
+         ((and forced (not (equal forced tracked)))
+          (message "Updating branch of %s (%S (default) => %S (forced))"
+                   name default forced)
+          (emir--update-branch-1 pkg default forced))
+         ((equal forced default)
+          (message "Updating branch of %s (no longer force default %S)"
+                   name default)
+          (oset pkg upstream-branch nil)))))))
+
+(defun emir--update-branch-1 (pkg old new)
+  (magit-git "config" "remote.origin.fetch"
+             (format "+refs/heads/%s:refs/remotes/origin/%s" new new))
+  (magit-git "fetch" "origin")
+  (magit-git "update-ref" "-d" (concat "refs/remotes/origin/" old))
+  (magit-git "branch" "master" (concat "--set-upstream-to=origin/" new))
+  (magit-git "remote" "set-head" "origin" new)
+  (oset pkg branch new))
+
 ;;;; Setup
 
 ;; TODO emir-setup: Handle epkg-subrepo-package
@@ -922,17 +956,12 @@ Mirror as an `epkg-core-package' instead? " name))))))
     (magit-git "checkout" "master")
     (magit-git "remote" "rename" "origin" "mirror")
     (magit-git "config" "remote.pushDefault" "mirror")
-    (let (origin branch)
-      (cl-typecase pkg
-        (epkg-wiki-package
-         (setq origin (file-relative-name emir-ewiki-repository))
-         (setq branch (oref pkg name)))
-        (epkg-gnu-elpa-package
-         (setq origin (file-relative-name emir-gelpa-repository))
-         (setq branch (concat "externals/" (oref pkg name))))
-        (t
-         (setq origin (oref pkg url))
-         (setq branch (or (oref pkg upstream-branch) "master"))))
+    (let ((origin
+           (cl-typecase pkg
+             (epkg-wiki-package     (file-relative-name emir-ewiki-repository))
+             (epkg-gnu-elpa-package (file-relative-name emir-gelpa-repository))
+             (t (oref pkg url))))
+          (branch (oref pkg branch)))
       (cl-typecase pkg
         (epkg-shelved-package
          (magit-git "branch" "--unset-upstream"))
@@ -956,7 +985,6 @@ Mirror as an `epkg-core-package' instead? " name))))))
 
 (cl-defmethod emir-add ((pkg epkg-mirrored-package) &optional replace)
   (emir--set-urls pkg)
-  (emir--set-upstream-branch pkg)
   (oset pkg mirror-name
         (string-replace "+" "-plus" (oref pkg name)))
   (when (epkg-orphaned-package-p pkg)
@@ -1407,20 +1435,6 @@ Mirror as an `epkg-core-package' instead? " name))))))
                                     (or default "git"))))))
 
 ;;; Miscellaneous
-
-(cl-defmethod emir--set-upstream-branch ((pkg epkg-mirrored-package))
-  (unless (oref pkg upstream-branch)
-    (let ((branch (emir--remote-head (oref pkg url))))
-      (unless (equal branch "master")
-        (oset pkg upstream-branch branch)))))
-
-(defun emir--remote-head (url)
-  (and-let* ((line (cl-find-if
-                    (lambda (line)
-                      (string-match
-                       "\\`ref: refs/heads/\\([^\s\t]+\\)[\s\t]HEAD\\'" line))
-                    (magit-git-lines "ls-remote" "--symref" url))))
-    (match-string 1 line)))
 
 (defun emir--ignore-tags-p (pkg)
   (or (cl-typep pkg 'epkg-subtree-package)
