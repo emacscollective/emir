@@ -349,7 +349,6 @@ Mirror as an `epkg-core-package' instead? " name))))))
              (oset pkg upstream-state (and .isArchived 'archived))
              (emir--gh-maybe-migrate pkg .nameWithOwner)
              (emir--update-branch pkg .default.name (not .forced))
-             ;; FIXME This is always true for patched packages.
              (unless (equal (or .tracked.target.oid
                                 .default.target.oid)
                             (oref pkg hash))
