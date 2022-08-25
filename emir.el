@@ -64,42 +64,11 @@
 
 (setq epkg--db-prefer-binary t)
 
-;;; Variables
-
-;; Values are set in "<epkg-repository>/emir.org".
-
-(defvar emir-emacs-reference nil
-  "The Emacs reference used to extract builtin packages.")
-
-(defvar emir-pending-packages nil
-  "List of packages that might eventually be imported.
-These package only will be imported if and when upstream
-has fixed known outstanding issues.")
-
-(defvar emir-secondary-packages nil
-  "List of packages that share a repository with another package.
-In most cases this is detected automatically.  This variable
-should only be used if the Emacsmirror and Melpa import from
-a different repository.")
-
-(defvar emir-kept-packages nil
-  "List of packages that we keep mirrored despite them being archived.")
-
-(defvar emir-suspended-packages nil
-  "List of packages that are temporarily not being updated.")
-
-(defvar emir-repo-sharing-packages nil
-  "List of packages that share a repository with others.")
-
-(defvar emir--homepage-alist nil
-  "Alist of packages and their homepages.")
-
-(defvar emir--wikipage-alist nil
-  "Alist of packages and their wikipages.")
-
 ;;; Repositories
 
-(defconst emir-emacs-repository "~/git/src/emacs/emacsmirror/")
+(defconst emir-emacs-reference "emacs-28.1")
+
+(defconst emir-emacs-repository "~/src/emacs/emacs/")
 (defconst emir-gelpa-repository (expand-file-name "gelpa/" epkg-repository))
 (defconst emir-melpa-repository (expand-file-name "melpa/" epkg-repository))
 (defconst emir-ewiki-repository (expand-file-name "ewiki/" epkg-repository))
@@ -224,7 +193,7 @@ repository specified by variable `epkg-repository'."
      (list name url class)))
   (cond ((epkg name)
          (user-error "Package %s already exists" name))
-        ((assoc name emir-pending-packages)
+        ((emir--config name :delayed)
          (user-error "Package %s is on hold" name)))
   (emir-add (apply class :name name :url url plist))
   (when-let ((recipe (melpa-get name)))
@@ -240,8 +209,8 @@ repository specified by variable `epkg-repository'."
   (pcase-dolist (`(,name ,url ,class)
                  (gelpa-recipes [name url class]))
     (let ((pkg (epkg name)))
-      (when (and (not (assoc name emir-pending-packages))
-                 (not (assoc name emir-secondary-packages))
+      (when (and (not (emir--config name :delayed))
+                 (not (emir--config name :secondary))
                  (or (not pkg)
                      (and (epkg-builtin-package-p pkg)
                           (eq class 'core)
@@ -282,8 +251,8 @@ Mirror as an `epkg-core-package' instead? " name))))))
                  (melpa-recipes [name class url branch]))
     (unless (or (epkg name)
                 (emir--lookup-url url)
-                (assoc name emir-pending-packages)
-                (assoc name emir-secondary-packages))
+                (emir--config name :delayed)
+                (emir--config name :secondary))
       (message "Adding %s..." name)
       (unless dry-run
         (when (equal branch "melpa")
@@ -365,7 +334,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
   (dolist (pkg (epkgs nil [wiki]))
     (let ((name (oref pkg name)))
       (when (or (not from) (string< from name))
-        (if (assoc name emir-suspended-packages)
+        (if (emir--config name :suspended)
             (message "Skipping suspended %s" name)
           (message "Updating %s..." name)
           (if recreate
@@ -381,7 +350,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
   (dolist (pkg (epkgs nil [mirrored* !github* !wiki !core]))
     (let ((name (oref pkg name)))
       (when (or (not from) (string< from name))
-        (if (assoc name emir-suspended-packages)
+        (if (emir--config name :suspended)
             (message "Skipping suspended %s" name)
           (message "Updating %s..." name)
           (if recreate
@@ -526,16 +495,15 @@ Mirror as an `epkg-core-package' instead? " name))))))
   (dolist (name (epkgs 'name [github*]))
     (let ((pkg (epkg name)))
       (when (eq (oref pkg upstream-state) 'archived)
-        (let ((kept (cadr (assoc name emir-kept-packages)))
-              (deps (epkg-reverse-dependencies name)))
-          (if (or kept deps)
-              (message "Skipping %s... %s" name
-                       (if kept
-                           "(member of emir-kept-packages)"
-                         (format "needed by %s" deps)))
-            (message "Shelve %s..." name)
-            (emir-shelve-package name)
-            (message "Shelve %s...done" name)))))))
+        (let ((dependants (epkg-reverse-dependencies name)))
+          (cond ((emir--config name :preserved)
+                 (message "Skipping preserved %s..." name))
+                (dependants
+                 (message "Skipping %s needed by %s..." name dependants))
+                (t
+                 (message "Shelve %s..." name)
+                 (emir-shelve-package name)
+                 (message "Shelve %s...done" name))))))))
 
 ;;;; Remove
 
@@ -1083,7 +1051,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
 (cl-defmethod emir--updated ((_pkg epkg-builtin-package)))
 
 (cl-defmethod emir--homepage ((pkg epkg-package))
-  (or (cadr (assoc (oref pkg name) emir--homepage-alist))
+  (or (emir--config pkg :homepage)
       (and-let* ((url (lm-homepage)))
         (if (string-suffix-p "/" url)
             (substring url 0 -1)
@@ -1093,7 +1061,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
 (cl-defmethod emir--wikipage ((pkg epkg-package))
   (and-let*
       ((page (or (and (epkg-wiki-package-p pkg) (elx-wikipage))
-                 (cadr (assoc (oref pkg name) emir--wikipage-alist))
+                 (emir--config pkg :wikipage)
                  (let* ((norm (lambda (string)
                                 (thread-last string
                                   (string-replace "+" "plus")
@@ -1347,7 +1315,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
               (name (oref pkg name)))
           (when (and conflict
                      (not (equal conflict name))
-                     (not (member name emir-repo-sharing-packages))
+                     (not (emir--config name :repo-sharing))
                      (not (cl-typep pkg 'epkg-wiki-package))
                      (not (cl-typep pkg 'epkg-gnu-elpa-package))
                      (not (and (cl-typep pkg 'epkg-subrepo-package)
@@ -1437,6 +1405,37 @@ Mirror as an `epkg-core-package' instead? " name))))))
                                     (or default "git"))))))
 
 ;;; Miscellaneous
+
+(defun emir--config (pkg keyword)
+  (caar (epkg-sql [:select [v] :from $i1 :where (= k $s2)]
+                  (intern (concat "var-" (substring (symbol-name keyword) 1)))
+                  (if (stringp pkg) pkg (oref pkg name)))))
+
+(defun emir--store-table (table data)
+  (epkg-sql [:create-table-if-not-exists $i1 $S2] table [k v])
+  (emacsql-with-transaction (epkg-db)
+    (let ((old (cl-sort (epkg-sql [:select * :from $i1] table)
+                        #'string< :key #'car))
+          (new (cl-sort data #'string< :key #'car)))
+      (while (or old new)
+        (pcase-let ((`(,okey ,oval) (car old))
+                    (`(,nkey ,nval) (car new)))
+          (cond
+           ((and okey (or (not nkey) (string< okey nkey)))
+            (epkg-sql [:delete-from $i1 :where (= k $s2)]
+                      table okey)
+            (pop old))
+           ((string= okey nkey)
+            (unless (equal oval nval)
+              (epkg-sql [:update $i1 :set (= v $s2) :where (= k $s3)]
+                        table nval nkey))
+            (pop old)
+            (pop new))
+           (t
+            (epkg-sql [:insert-into $i1 :values $v2]
+                      table (vector nkey nval))
+            (pop new)))))))
+  (emir-dump-database))
 
 (defun emir--ignore-tags-p (pkg)
   (or (cl-typep pkg 'epkg-subtree-package)

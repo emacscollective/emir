@@ -88,9 +88,9 @@
     (oset rcp repopage (emir--format-url rcp 'repopage-format))
     (cond ((epkg name)
            (oset rcp epkg-package name))
-          ((not (assoc name emir-pending-packages))
+          ((not (emir--config name :delayed))
            (when-let ((name (or (emir--lookup-url (oref rcp url))
-                                (cadr (assoc name emir-secondary-packages)))))
+                                (emir--config name :secondary))))
              (oset rcp epkg-package name))))))
 
 (defun emir-melpa--recipe-plist (name)
