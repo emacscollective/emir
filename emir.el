@@ -603,7 +603,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
       (oset pkg repopage (emir--format-url pkg 'repopage-format))
       (with-emir-repository pkg
         (magit-call-git "config" "remote.origin.url" url))
-      (emir-commit (format "Migrate %S package within github" name) name :dump)
+      (emir-dump-database)
       (emir-melpa-migrate-recipe name "Update url of %s's repository" t))))
 
 ;;;; Stage
