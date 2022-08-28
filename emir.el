@@ -688,14 +688,16 @@ Mirror as an `epkg-core-package' instead? " name))))))
     (with-emir-repository pkg
       (magit-git "remote" "add" "mirror" mirror)
       (magit-git "config" "remote.pushDefault" "mirror")
+      (unless (equal branch "master")
+        (magit-git "branch" "--move"
+                   (or branch (magit-get-current-branch))
+                   "master"))
       (unless branch
         (save-match-data
           (let ((merge (magit-get "branch.master.merge")))
             (if (and merge (string-match "\\`refs/heads/\\(.+\\)" merge))
                 (setq branch (match-string 1 merge))
               (error "BUG: No branch checked out")))))
-      (unless (equal branch "master")
-        (magit-git "branch" "--move" branch "master"))
       (cl-typecase pkg
         (epkg-subtree-package
          (magit-git "branch" "--unset-upstream")

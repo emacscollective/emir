@@ -88,8 +88,8 @@
                    name name)))))
     (pcase-dolist (`(,name . ,spec) alist)
       (when (and (plist-member spec :url)
-                 (not (magit-branch-p (concat "origin/externals/" name))))
-        (error "`%s's type is `:url' but branch `origin/externals/%s' is missing"
+                 (not (magit-branch-p (concat "refs/heads/externals/" name))))
+        (error "`%s's type is `:url' but branch `externals/%s' is missing"
                name name)))))
 
 (defun emir-gelpa--released-p (name)
@@ -98,7 +98,7 @@
     (not (equal (with-temp-buffer
                   (magit-git-insert
                    "cat-file" "-p"
-                   (format "origin/externals/%s:%s.el" name name))
+                   (format "refs/heads/externals/%s:%s.el" name name))
                   (goto-char (point-min))
                   (or (lm-header "package-version")
                       (lm-header "version")))

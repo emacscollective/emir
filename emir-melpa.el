@@ -210,7 +210,9 @@
               :and :not (= melpa-recipes:url packages:url)
               :and packages:class :in $v1]
              (vconcat (closql-where-class-in
-                       [file hg git github gitlab codeberg sourcehut gnu nongnu]
+                       [file hg git
+                        github gitlab codeberg sourcehut gnu nongnu
+                        shelved]
                        (epkg-db))))))
 
 ;;; _
