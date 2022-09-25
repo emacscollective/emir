@@ -1316,7 +1316,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
               (name (oref pkg name)))
           (when (and conflict
                      (not (equal conflict name))
-                     (not (emir--config name :repo-sharing))
+                     (not (emir--config name :sharing-repo))
                      (not (cl-typep pkg 'epkg-wiki-package))
                      (not (cl-typep pkg 'epkg-gnu-elpa-package))
                      (not (and (cl-typep pkg 'epkg-subrepo-package)
