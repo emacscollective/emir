@@ -288,9 +288,8 @@ Mirror as an `epkg-core-package' instead? " name))))))
             (emir-gh-update pkg)
             (emir-push pkg)))
       (error
-       (let ((name (oref pkg name)))
-         (push name emir-failed)
-         (message "Update error (%s): %s" name (error-message-string err)))))))
+       (push name emir-failed)
+       (message "Update error (%s): %s" name (error-message-string err))))))
 
 ;;;###autoload
 (defun emir-update-github-packages ()
