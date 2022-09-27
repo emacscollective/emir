@@ -64,6 +64,8 @@
 
 (setq epkg--db-prefer-binary t)
 
+(defconst emir-rewrite-threshold 16)
+
 ;;; Repositories
 
 (defconst emir-emacs-reference "emacs-28.1")
@@ -266,22 +268,24 @@ Mirror as an `epkg-core-package' instead? " name))))))
 ;;;; Update
 
 (defvar emir-failed nil)
+(defvar emir--force-push nil)
 
 ;;;###autoload
 (defun emir-update-package (name &optional force)
   (interactive (list (epkg-read-package "Update package: ")
                      current-prefix-arg))
+  (setq emir--force-push nil)
   (let* ((pkg (epkg name))
          (tip (oref pkg hash)))
     (condition-case err
         (with-emir-repository pkg
-          (emir--assert-clean-worktree pkg)
+          (emir--assert-clean-worktree)
           (when (and (cl-typep pkg 'epkg-mirrored-package)
                      (or (called-interactively-p 'any)
                          (not (cl-typep pkg 'epkg-github-package))))
             (emir--update-branch pkg))
           (when (or force (cl-typep pkg 'epkg-mirrored-package))
-            (emir-pull pkg))
+            (emir-pull pkg force))
           (emir-update pkg)
           (when (or force (not (equal (oref pkg hash) tip)))
             (unless (epkg-builtin-package-p pkg)
@@ -735,14 +739,26 @@ Mirror as an `epkg-core-package' instead? " name))))))
 
 ;;;; Pull
 
-(cl-defmethod emir-pull ((pkg epkg-mirrored-package))
+(cl-defmethod emir-pull ((pkg epkg-mirrored-package) &optional force)
   (with-emir-repository pkg
-    (if (oref pkg patched)
-        (progn (magit-git "fetch" "origin")
-               (magit-git "rebase" "@{upstream}"))
-      (magit-git "pull" "--ff-only" "origin"))))
+    (magit-git "fetch" "origin")
+    (let ((upstream (concat "origin/" (oref pkg branch))))
+      (cond
+       ((oref pkg patched)
+        (magit-git "rebase" "@{upstream}"))
+       ((not (zerop (magit-git-exit-code "merge" "--ff-only" upstream)))
+        (unless (zerop (magit-git-exit-code "merge-base" "master" upstream))
+          (error "history completely rewritten"))
+        (pcase-let* ((`(,ours ,theirs) (magit-rev-diff-count "master" upstream))
+                     (msg (format "history rewritten (master %s, %s %s)"
+                                  ours upstream theirs)))
+          (cond ((or force (< (+ ours theirs) emir-rewrite-threshold))
+                 (message "Update warning (%s): %s" (oref pkg name) msg)
+                 (magit-git "reset" "--hard" upstream)
+                 (setq emir--force-push t))
+                ((error "%s" msg)))))))))
 
-(cl-defmethod emir-pull ((pkg epkg-subrepo-package))
+(cl-defmethod emir-pull ((pkg epkg-subrepo-package) &optional _force)
   (let* ((name   (oref pkg name))
          (core   (cl-typep pkg 'epkg-core-package))
          (origin (oref pkg url))
@@ -803,7 +819,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
             (push "GIT_COMMITTER_EMAIL=import@emacsmirror.org" process-environment)
             (magit-git "commit" "-m" "updates")))))))
 
-(cl-defmethod emir-pull ((pkg epkg-subtree-package))
+(cl-defmethod emir-pull ((pkg epkg-subtree-package) &optional _force)
   (with-emir-repository pkg
     (let ((name (oref pkg name))
           (branch (or (oref pkg upstream-branch)
@@ -821,7 +837,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
                  (float-time (time-subtract (current-time) time))))
       (magit-git "checkout" branch))))
 
-(cl-defmethod emir-pull ((pkg epkg-shelved-package))
+(cl-defmethod emir-pull ((pkg epkg-shelved-package) &optional _force)
   (with-emir-repository pkg
     (magit-git "pull" "--ff-only" "mirror" "master")))
 
@@ -830,7 +846,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
 (cl-defmethod emir-push ((pkg epkg-package) &optional force)
   (with-emir-repository pkg
     (magit-git "push"
-               (and (or force (oref pkg patched)) "--force")
+               (and (or force emir--force-push (oref pkg patched)) "--force")
                (and (not (emir--ignore-tags-p pkg)) "--follow-tags")
                "mirror" "master")))
 
