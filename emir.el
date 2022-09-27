@@ -275,6 +275,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
          (tip (oref pkg hash)))
     (condition-case err
         (with-emir-repository pkg
+          (emir--assert-clean-worktree pkg)
           (when (and (cl-typep pkg 'epkg-mirrored-package)
                      (or (called-interactively-p 'any)
                          (not (cl-typep pkg 'epkg-github-package))))
@@ -1442,6 +1443,17 @@ Mirror as an `epkg-core-package' instead? " name))))))
       (cl-typep pkg 'epkg-subrepo-package)
       (cl-typep pkg 'epkg-wiki-package)
       (cl-typep pkg 'epkg-gnu-elpa-package)))
+
+(defun emir--assert-clean-worktree ()
+  (cond ((not (zerop (magit-git-exit-code "diff" "--quiet")))
+         (error "unstaged changes"))
+        ((not (zerop (magit-git-exit-code "diff" "--quiet" "--cached")))
+         (error "uncommitted changes"))
+        ;; This may happen due to an earlier failed push.
+        ;; ((not (magit-rev-eq "HEAD" "mirror/master"))
+        ;;  (error "unpushed changes"))
+        ((not (equal (magit-get-current-branch) "master"))
+         (error "wrong branch checked out"))))
 
 ;;; _
 (provide 'emir)
