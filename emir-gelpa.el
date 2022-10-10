@@ -24,7 +24,7 @@
 ;;; Code:
 
 (require 'emir)
-(require 'l)
+(require 'llama)
 
 ;;;###autoload
 (defun emir-import-gelpa-recipes (args)
@@ -107,7 +107,7 @@
 (defun emir-gelpa--core-filter-args (name)
   (let* ((files (oref (gelpa-get name) url))
          (files (if (listp files) files (list files))))
-    (nconc (mapcan (l'list "--path" %) files)
+    (nconc (mapcan (##list "--path" %) files)
            (list "--path-rename" (concat (f-common-parent files) ":")))))
 
 ;;; _

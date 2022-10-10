@@ -6,7 +6,7 @@
 ;; Homepage: https://github.com/emacscollective/emir
 ;; Keywords: local
 
-;; Package-Requires: ((emacs "28.1"))
+;; Package-Requires: ((emacs "28.1") (llama "0.2.0"))
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -40,10 +40,9 @@
 (require 'epkg)
 (require 'epkg-org)
 (require 'epkg-utils)
-(require 'f)
 (require 'finder)
 (require 'ghub)
-(require 'l)
+(require 'llama)
 (require 'magit)
 (require 'org)
 (require 'packed)
@@ -863,8 +862,8 @@ Mirror as an `epkg-core-package' instead? " name))))))
   (with-emir-repository t
     (let ((count (length
                   (cl-union
-                   (mapcar (l'substring % 6) (magit-staged-files nil "attic"))
-                   (mapcar (l'substring % 7) (magit-staged-files nil "mirror"))
+                   (mapcar (##substring % 6) (magit-staged-files nil "attic"))
+                   (mapcar (##substring % 7) (magit-staged-files nil "mirror"))
                    :test #'equal))))
       (format "Update %s package%s" count (if (> count 1) "s" "")))))
 
@@ -1086,7 +1085,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
                                   downcase)))
                         (name (funcall norm (oref pkg name)))
                         (alist (with-emir-repository 'epkg-wiki-package
-                                 (mapcar (l'cons (funcall norm %) %)
+                                 (mapcar (##cons (funcall norm %) %)
                                          (magit-list-files)))))
                    (or (cdr (assoc name alist))
                        (cdr (assoc (if (string-suffix-p "mode" name)
@@ -1135,8 +1134,8 @@ Mirror as an `epkg-core-package' instead? " name))))))
          (setq hard (cl-set-difference hard provided))
          (setq soft (cl-set-difference soft provided))
          (setq soft (cl-set-difference soft hard))
-         (nconc (mapcar (l'list % t   nil (cadr (assoc % drop))) hard)
-                (mapcar (l'list % nil nil (cadr (assoc % drop))) soft)))
+         (nconc (mapcar (##list % t   nil (cadr (assoc % drop))) hard)
+                (mapcar (##list % nil nil (cadr (assoc % drop))) soft)))
        (let ((drop (epkg-sql [:select [feature drop] :from provided
                               :where (and (= package $s1) (notnull drop))
                               :order-by [(asc feature)]]
@@ -1145,7 +1144,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
                               :where (and (= package $s1) (notnull join))
                               :order-by [(asc feature)]]
                              name)))
-         (nconc (mapcar (l'list % (cadr (assoc % drop)) nil) provided)
+         (nconc (mapcar (##list % (cadr (assoc % drop)) nil) provided)
                 (mapcan (pcase-lambda (`(,feature ,reason))
                           (unless (memq feature provided)
                             (push feature provided)
@@ -1193,7 +1192,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
                            ((thread-first file
                               file-name-nondirectory
                               file-name-sans-extension)))))
-                     (prog1 (mapcar (l'list package file %)
+                     (prog1 (mapcar (##list package file %)
                                     (or (packed-provided)
                                         (list nil)))
                        (message "Importing %s...done" file)))))))
@@ -1386,7 +1385,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
             (replace-match (if (= char ?u) "\\(.+\\)" "\\([^/]+?\\)") t t)))
         (and (string-match (concat "\\`" (buffer-string) "\\'") url)
              (let ((i 0))
-               (mapcar (l'cons % (match-string (cl-incf i) url))
+               (mapcar (##cons % (match-string (cl-incf i) url))
                        (nreverse slots))))))))
 
 (defun emir--url-to-class (url)
