@@ -453,9 +453,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
 
 ;;;###autoload
 (defun emir-shelve-package (name)
-  (interactive
-   (list (epkg-read-package "Shelve package: " nil
-                            '(epkg-mirrored-package--eieio-childp))))
+  (interactive (list (epkg-read-package "Shelve package: " nil [mirrored*])))
   (let ((pkg (epkg name)))
     (with-demoted-errors "Error: %S"
       ;; The Github api does not support repository transfers.
