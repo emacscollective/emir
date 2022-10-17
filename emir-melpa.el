@@ -205,10 +205,10 @@
    (epkg-sql [:select :distinct [packages:name packages:class packages:url
                                  melpa-recipes:class melpa-recipes:url]
               :from [packages melpa-recipes]
-              :where    (= melpa-recipes:epkg-package packages:name)
-              :and      (= melpa-recipes:epkg-package melpa-recipes:name)
-              :and :not (= melpa-recipes:url packages:url)
-              :and packages:class :in $v1]
+              :where (and (= melpa-recipes:epkg-package packages:name)
+                          (= melpa-recipes:epkg-package melpa-recipes:name)
+                          (not (= melpa-recipes:url packages:url))
+                          (in packages:class $v1))]
              (vconcat (closql-where-class-in
                        [file hg git
                         github gitlab codeberg sourcehut gnu nongnu
