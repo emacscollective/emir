@@ -6,7 +6,7 @@
 ;; Homepage: https://github.com/emacscollective/emir
 ;; Keywords: local
 
-;; Package-Requires: ((emacs "28.1") (llama "0.2.0"))
+;; Package-Requires: ((emacs "28.1") (f "0.20.0") (llama "0.2.0"))
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -40,6 +40,7 @@
 (require 'epkg)
 (require 'epkg-org)
 (require 'epkg-utils)
+(require 'f)
 (require 'finder)
 (require 'ghub)
 (require 'llama)

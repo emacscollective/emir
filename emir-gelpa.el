@@ -24,6 +24,7 @@
 ;;; Code:
 
 (require 'emir)
+(require 'f)
 (require 'llama)
 
 ;;;###autoload
