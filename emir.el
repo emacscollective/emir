@@ -207,7 +207,6 @@ repository specified by variable `epkg-repository'."
 ;;;###autoload
 (defun emir-add-gelpa-packages (&optional dry-run)
   (interactive "P")
-  (magit-git "fetch" "origin")
   (pcase-dolist (`(,name ,url ,class)
                  (gelpa-recipes [name url class]))
     (let ((pkg (epkg name)))
