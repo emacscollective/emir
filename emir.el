@@ -335,23 +335,23 @@ Mirror as an `epkg-core-package' instead? " name))))))
 (defun emir-update-wiki-packages (&optional from recreate)
   (interactive (list (and current-prefix-arg
                           (epkg-read-package "Limit to packages after: "))))
-  (dolist (pkg (epkgs nil [wiki]))
-    (let ((name (oref pkg name)))
-      (when (or (not from) (string< from name))
-        (if (emir--config name :suspended)
-            (message "Skipping suspended %s" name)
-          (message "Updating %s..." name)
-          (if recreate
-              (emir-update (epkg name) t)
-            (emir-update-package name))
-          (message "Updating %s...done" name)))))
-  (emir-commit (emir--update-message) nil :dump))
+  (emir--update-packages [wiki] from recreate))
+
+;;;###autoload
+(defun emir-update-slow-packages (&optional from recreate)
+  (interactive (list (and current-prefix-arg
+                          (epkg-read-package "Limit to packages after: "))))
+  (emir--update-packages [subtree minority] from recreate))
 
 ;;;###autoload
 (defun emir-update-other-packages (&optional from recreate)
   (interactive (list (and current-prefix-arg
                           (epkg-read-package "Limit to packages after: "))))
-  (dolist (pkg (epkgs nil [mirrored* !github* !wiki !core]))
+  (emir--update-packages [mirrored* !github* !wiki !subtree !subrepo]
+                         from recreate))
+
+(defun emir--update-packages (types from recreate)
+  (dolist (pkg (epkgs nil types))
     (let ((name (oref pkg name)))
       (when (or (not from) (string< from name))
         (if (emir--config name :suspended)
