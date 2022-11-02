@@ -453,7 +453,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
 ;;;; Shelve
 
 ;;;###autoload
-(defun emir-shelve-package (name)
+(defun emir-shelve-package (name &optional melpa-msg)
   (interactive (list (epkg-read-package "Shelve package: " nil [mirrored*])))
   (let ((pkg (epkg name)))
     (with-demoted-errors "Error: %S"
@@ -487,7 +487,8 @@ Mirror as an `epkg-core-package' instead? " name))))))
                            (ignore-errors
                              (read-string
                               "Also remove from Melpa with message: "
-                              (format "Remove archived %S package" name))))))
+                              (format (or melpa-msg "Remove %S package")
+                                      name))))))
         (magit-git "rm" rcp)
         (magit-git "commit" "-m" msg "--" rcp)))))
 
@@ -504,7 +505,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
                  (message "Skipping %s needed by %s..." name dependants))
                 (t
                  (message "Shelve %s..." name)
-                 (emir-shelve-package name)
+                 (emir-shelve-package name "Remove archived %S package")
                  (message "Shelve %s...done" name))))))))
 
 ;;;; Remove
