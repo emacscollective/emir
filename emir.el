@@ -212,6 +212,7 @@ repository specified by variable `epkg-repository'."
     (let ((pkg (epkg name)))
       (when (and (not (emir--config name :delayed))
                  (not (emir--config name :secondary))
+                 (not (emir--config name :builtin-preferred))
                  (or (not pkg)
                      (and (epkg-builtin-package-p pkg)
                           (eq class 'core)
