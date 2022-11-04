@@ -28,6 +28,8 @@
 
 (defvar url-http-end-of-headers)
 
+;;; Mirror Melpa recipes
+
 ;;;###autoload
 (defun emir-import-melpa-recipes (args)
   (interactive (list (transient-args 'emir-import-recipes)))
@@ -191,6 +193,8 @@
                      "--" file)
         (message "WARNING: Recipe is unmodified")))))
 
+;;; Queries
+
 (defun emir-melpa--migrated-packages ()
   (seq-filter
    (pcase-lambda (`(,_name ,_type ,url ,fetcher ,murl))
@@ -214,6 +218,23 @@
                         github gitlab codeberg sourcehut gnu nongnu
                         shelved]
                        (epkg-db))))))
+
+(defun emir-melpa--diverging-branches ()
+  (epkg-sql [:select :distinct [packages:name
+                                packages:branch
+                                packages:upstream-branch
+                                melpa-recipes:branch
+                                packages:class
+                                melpa-recipes:class]
+             :from [packages melpa-recipes]
+             :where (and (= packages:name melpa-recipes:name)
+                         (not (= packages:class 'wiki))
+                         (or (and (isnull  packages:upstream-branch)
+                                  (notnull melpa-recipes:branch))
+                             (and (notnull packages:upstream-branch)
+                                  (isnull  melpa-recipes:branch))
+                             (!= packages:branch melpa-recipes:branch)))
+             :order-by [(asc packages:name)]]))
 
 ;;; _
 (provide 'emir-melpa)
