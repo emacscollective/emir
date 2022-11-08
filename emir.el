@@ -267,7 +267,6 @@ Mirror as an `epkg-core-package' instead? " name))))))
 
 ;;;; Update
 
-(defvar emir-failed nil)
 (defvar emir--force-push nil)
 
 ;;;###autoload
@@ -291,45 +290,61 @@ Mirror as an `epkg-core-package' instead? " name))))))
             (unless (epkg-builtin-package-p pkg)
               (emir-stage name (and (called-interactively-p 'any) :dump)))
             (emir-gh-update pkg)
-            (emir-push pkg)))
+            (emir-push pkg))
+          t)
       (error
-       (push name emir-failed)
-       (message "Update error (%s): %s" name (error-message-string err))))))
+       (message "Update error (%s): %s" name (error-message-string err))
+       nil))))
 
 ;;;###autoload
 (defun emir-update-github-packages ()
   (interactive)
-  (emir-gh-foreach-query
-   (lambda (pkg)
-     `((stargazers totalCount)
-       isArchived
-       nameWithOwner
-       ,@(and-let* ((forced (oref pkg upstream-branch)))
-           `(((forced ref)
-              [(qualifiedName ,(concat "refs/heads/" forced))]
-              name)))
-       ((tracked ref)
-        [(qualifiedName ,(concat "refs/heads/" (oref pkg branch)))]
-        name (target oid))
-       ((default defaultBranchRef) name (target oid))))
-   (lambda (data)
-     (pcase-dolist (`(,name . ,data) data)
-       (if (not data)
-           (oset (epkg name) upstream-state 'removed)
-         (let-alist data
-           (let ((pkg (epkg name)))
-             (oset pkg stars (or .stargazers.totalCount 0))
-             (oset pkg upstream-state (and .isArchived 'archived))
-             (emir--gh-maybe-migrate pkg .nameWithOwner)
-             (emir--update-branch pkg .default.name (not .forced))
-             (unless (equal (or .tracked.target.oid
-                                .default.target.oid)
-                            (oref pkg hash))
-               (message "Updating %s..." name)
-               (emir-update-package name)
-               (message "Updating %s...done" name))))))
-     (emir-commit (emir--update-message) nil :dump))
-   50))
+  (let ((start (current-time)))
+    (emir-gh-foreach-query
+     (lambda (pkg)
+       `((stargazers totalCount)
+         isArchived
+         nameWithOwner
+         ,@(and-let* ((forced (oref pkg upstream-branch)))
+             `(((forced ref)
+                [(qualifiedName ,(concat "refs/heads/" forced))]
+                name)))
+         ((tracked ref)
+          [(qualifiedName ,(concat "refs/heads/" (oref pkg branch)))]
+          name (target oid))
+         ((default defaultBranchRef) name (target oid))))
+     (lambda (data)
+       (let ((total (length data))
+             (skipped nil)
+             (failed nil)
+             (i 0))
+         (pcase-dolist (`(,name . ,data) data)
+           (cl-incf i)
+           (cond
+            ((not data)
+             (oset (epkg name) upstream-state 'removed))
+            ((emir--config name :suspended)
+             (push name skipped))
+            ((let-alist data
+               (let ((pkg (epkg name))
+                     (msg (format "Updating %s (%s/%s)..." name i total)))
+                 ;; These updates are performed silently.
+                 (oset pkg stars (or .stargazers.totalCount 0))
+                 (oset pkg upstream-state (and .isArchived 'archived))
+                 ;; These functions show a message if they do anything.
+                 (emir--gh-maybe-migrate pkg .nameWithOwner)
+                 (emir--update-branch pkg .default.name (not .forced))
+                 (unless (equal (or .tracked.target.oid
+                                    .default.target.oid)
+                                (oref pkg hash))
+                   (message "%s" msg)
+                   (if (emir-update-package name)
+                       (message "%sdone" msg)
+                     (push name failed)
+                     (message "%sfailed" msg))))))))
+         (emir-commit (emir--update-message) nil :dump)
+         (emir--show-update-report start total skipped failed)))
+     50)))
 
 ;;;###autoload
 (defun emir-update-wiki-packages (&optional from recreate)
@@ -351,17 +366,51 @@ Mirror as an `epkg-core-package' instead? " name))))))
                          from recreate))
 
 (defun emir--update-packages (types from recreate)
-  (dolist (pkg (epkgs nil types))
-    (let ((name (oref pkg name)))
-      (when (or (not from) (string< from name))
-        (if (emir--config name :suspended)
-            (message "Skipping suspended %s" name)
-          (message "Updating %s..." name)
-          (if recreate
-              (emir-update (epkg name) t)
-            (emir-update-package name))
-          (message "Updating %s...done" name)))))
-  (emir-commit (emir--update-message) nil :dump))
+  (let* ((start (current-time))
+         (pkgs (epkgs nil types))
+         (total (length pkgs))
+         (skipped nil)
+         (failed nil)
+         (i 0))
+    (dolist (pkg pkgs)
+      (cl-incf i)
+      (let ((name (oref pkg name)))
+        (cond ((and from (string< from name))
+               (push name skipped))
+              ((emir--config name :suspended)
+               (push name skipped)
+               (message "Skipping suspended %s...done" name))
+              ((let ((msg (format "Updating %s (%s/%s)..." name i total)))
+                 (message "%s" msg)
+                 (if (if recreate
+                         (condition-case err
+                             (emir-update (epkg name) t)
+                           (error
+                            (message "Update error (%s): %s"
+                                     name (error-message-string err))
+                            nil))
+                       (emir-update-package name))
+                     (message "%sdone" msg)
+                   (push name failed)
+                   (message "%sfailed" msg)))))))
+    (emir-commit (emir--update-message) nil :dump)
+    (emir--show-update-report start total skipped failed)))
+
+(defun emir--show-update-report (start total skipped failed)
+  (let ((duration (/ (float-time (time-subtract (current-time) start)) 60)))
+    (if (not (or skipped failed))
+        (message "Successfully updated all %s packages (%.0fm)" total duration)
+      (message "Successfully built %i of %s packages (%.0fm)"
+               (- total (length skipped) (length failed))
+               total duration)
+      (when skipped
+        (message "Skipped %i packages:\n%s"
+                 (length skipped)
+                 (mapconcat (lambda (n) (concat "  " n)) (nreverse skipped) "\n")))
+      (when failed
+        (message "Building %i packages failed:\n%s"
+                 (length failed)
+                 (mapconcat (lambda (n) (concat "  " n)) (nreverse failed) "\n"))))))
 
 ;;;###autoload
 (defun emir-regenerate-metadata (&optional from)
@@ -552,20 +601,29 @@ Mirror as an `epkg-core-package' instead? " name))))))
 (defun emir-setup-module (name)
   (interactive (list (epkg-read-package "Setup package module: ")))
   (condition-case err
-      (progn (message "Setup module %s..." name)
-             (emir-setup (epkg name))
-             (message "Setup module %s...done" name))
+      (emir-setup (epkg name))
     (error
-     (push name emir-failed)
-     (message "Update error (%s): %s" name (error-message-string err)))))
+     (message "Update error (%s): %s" name (error-message-string err))
+     nil)))
 
 ;;;###autoload
 (defun emir-setup-modules ()
   (interactive)
-  (setq emir-failed nil)
   (setq message-log-max 20000)
-  (mapc #'emir-setup-module
-        (epkgs 'name [mirrored* shelved])))
+  (let* ((start (current-time))
+         (pkgs (epkgs 'name [mirrored* shelved]))
+         (total (length pkgs))
+         (failed nil)
+         (i 0))
+    (dolist (name pkgs)
+      (cl-incf i)
+      (let ((msg (format "Setup module for %s (%s/%s)..." name i total)))
+        (message "%s" msg)
+        (if (emir-setup-module name)
+            (message "%sdone" msg)
+          (push name failed)
+          (message "%sfailed" msg))))
+    (emir--show-update-report start total nil failed)))
 
 ;;;; Migrate
 
@@ -600,13 +658,15 @@ Mirror as an `epkg-core-package' instead? " name))))))
          (url (format "git@github.com:%s.git" new))
          (name (oref pkg name)))
     (unless (equal new old)
+      (message "Migrating %s from %s to %s..." name old url)
       (oset pkg url url)
       (emir--set-urls pkg)
       (oset pkg repopage (emir--format-url pkg 'repopage-format))
       (with-emir-repository pkg
         (magit-call-git "config" "remote.origin.url" url))
       (emir-dump-database)
-      (emir-melpa-migrate-recipe name "Update url of %s's repository" t))))
+      (emir-melpa-migrate-recipe name "Update url of %s's repository" t)
+      (message "Migrating %s from %s to %s...done" name old url))))
 
 ;;;; Stage
 
@@ -1027,7 +1087,8 @@ Mirror as an `epkg-core-package' instead? " name))))))
       (oset pkg required required)
       (oset pkg provided provided))
     (when-let ((buf (magit-get-mode-buffer 'magit-process-mode)))
-      (kill-buffer buf))))
+      (kill-buffer buf))
+    t))
 
 ;;; Extract
 
@@ -1307,14 +1368,14 @@ Mirror as an `epkg-core-package' instead? " name))))))
            (setq result (nconc result (cdar data)))
            (cond
             (groups
-             (message "Fetching page %s/%s..." (cl-incf page) length)
+             (message "Fetching page...%s/%s" (cl-incf page) length)
              (ghub-graphql
               (gsexp-encode
                (ghub--graphql-prepare-query
                 (cons 'query (pop groups))))
               nil :callback #'cb :auth 'emir))
             (t
-             (message "Fetching page %s/%s...done" page length)
+             (message "Fetching page...done")
              (dolist (elt result)
                (setcar elt (base64-decode-string
                             (string-replace
