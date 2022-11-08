@@ -289,7 +289,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
           (emir-update pkg)
           (when (or force (not (equal (oref pkg hash) tip)))
             (unless (epkg-builtin-package-p pkg)
-              (emir-stage name :dump))
+              (emir-stage name (and (called-interactively-p 'any) :dump)))
             (emir-gh-update pkg)
             (emir-push pkg)))
       (error
