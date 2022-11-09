@@ -1072,7 +1072,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
       (if-let ((lib (emir--main-library pkg)))
           (with-temp-buffer
             (insert-file-contents lib)
-            (oset pkg summary     (elx-summary nil t))
+            (oset pkg summary (elx-summary nil t))
             (oset pkg keywords    (elx-keywords-list nil t t))
             (oset pkg license     (emir--license pkg))
             (oset pkg created     (elx-created))
@@ -1081,7 +1081,12 @@ Mirror as an `epkg-core-package' instead? " name))))))
             (oset pkg maintainers (emir--maintainers))
             (oset pkg commentary  (elx-commentary nil t))
             (oset pkg homepage    (emir--homepage pkg))
-            (oset pkg wikipage    (emir--wikipage pkg)))
+            (oset pkg wikipage    (emir--wikipage pkg))
+            (when (string-prefix-p "monorepo-" name) ; sad
+              (oset pkg summary "A monorepo containing unrelated packages")
+              (oset pkg commentary "\
+A monorepo containing unrelated packages.  This is only mirrored
+because some of these packages are also available from Melpa.")))
         (unless (or (epkg-shelved-package-p pkg)
                     (equal name "emacs"))
           (error "Cannot determine main library"))))
@@ -1103,6 +1108,9 @@ Mirror as an `epkg-core-package' instead? " name))))))
             (load-file-rep-suffixes '("")))
         (or (ignore-errors
               (packed-main-library default-directory name nil t))
+            (and (string-prefix-p "monorepo-" name)
+                 ;; Roll eyes and pick a random library.
+                 (car (packed-libraries default-directory)))
             (and (or (epkg-shelved-package-p pkg)
                      (equal name "gnu-elpa")) ; KLUDGE No feature.
                  (let ((file (expand-file-name (concat name ".el"))))
