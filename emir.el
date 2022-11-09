@@ -362,7 +362,7 @@ Mirror as an `epkg-core-package' instead? " name))))))
 (defun emir-update-other-packages (&optional from recreate)
   (interactive (list (and current-prefix-arg
                           (epkg-read-package "Limit to packages after: "))))
-  (emir--update-packages [mirrored* !github* !wiki !subtree !subrepo]
+  (emir--update-packages [mirrored* !github* !wiki !subtree* !subrepo*]
                          from recreate))
 
 (defun emir--update-packages (types from recreate)
