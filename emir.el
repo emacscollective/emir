@@ -226,33 +226,24 @@ repository specified by variable `epkg-repository'."
   (pcase-dolist (`(,name ,url ,class)
                  (gelpa-recipes [name url class]))
     (let ((pkg (epkg name)))
-      (when (and (not (emir--config name :delayed))
-                 (not (emir--config name :secondary))
-                 (not (emir--config name :builtin-preferred))
-                 (or (not pkg)
-                     (and (epkg-builtin-package-p pkg)
-                          (eq class 'core)
-                          (or dry-run
-                              (y-or-n-p (format "\
-%s is already being tracked as an `epkg-builtin-package'.
-Mirror as an `epkg-core-package' instead? " name))))))
+      (unless (or pkg
+                  (eq class 'core)
+                  (emir--config name :delayed)
+                  (emir--config name :secondary)
+                  (emir--config name :builtin-preferred))
         (message "Adding %s..." name)
         (unless dry-run
           (let ((libs (and (epkg-builtin-package-p pkg)
                            (oref pkg builtin-libraries))))
             (when libs
               (closql-delete pkg))
-            (cl-ecase class
-              (external
-               (let ((class (emir--read-class
-                             url "gnu-elpa"
-                             (format "Package type for %s from %s: "
-                                     name url))))
-                 (setq pkg (if (eq class 'epkg-gnu-elpa-package)
-                               (epkg-gnu-elpa-package :name name)
-                             (funcall class :name name :url url)))))
-              (core (setq pkg (epkg-core-package :name name))
-                    (oset pkg url (emir--format-url pkg 'url-format))))
+            (let ((class (emir--read-class
+                          url "gnu-elpa"
+                          (format "Package type for %s from %s: "
+                                  name url))))
+              (setq pkg (if (eq class 'epkg-gnu-elpa-package)
+                            (epkg-gnu-elpa-package :name name)
+                          (funcall class :name name :url url))))
             (emir-add pkg)
             (when-let ((u (emir--format-url pkg 'url-format)))
               (oset pkg url u))
@@ -838,17 +829,12 @@ Mirror as an `epkg-core-package' instead? " name))))))
 
 (cl-defmethod emir-pull ((pkg epkg-subrepo-package) &optional _force)
   (let* ((name   (oref pkg name))
-         (core   (cl-typep pkg 'epkg-core-package))
          (origin (oref pkg url))
          (branch (oref pkg upstream-branch))
-         (source (if core
-                     (expand-file-name
-                      "shallow/" (f-parent emir-emacs-repository))
-                   (format ".git/modules/%s/unfiltered" name)))
+         (source (format ".git/modules/%s/unfiltered" name))
          (target (format "mirror/%s" name)))
     (with-emir-repository t
-      (cond (core) ; FIXME Disabled because git-subrepo isn't good enough.
-            ((not (file-exists-p source))
+      (cond ((not (file-exists-p source))
              (magit-git "clone" "--single-branch"
                         (and branch (list "--branch" branch))
                         origin source)
@@ -864,11 +850,8 @@ Mirror as an `epkg-core-package' instead? " name))))))
                  "--force"
                  "--source" source
                  "--target" target
-                 (if core
-                     (list "--refs" "refs/heads/master"
-                           (emir-gelpa--core-filter-args name))
-                   ;; For this class this is a list of arguments.
-                   (oref pkg upstream-tree))
+                 ;; For this class this is a list of arguments.
+                 (oref pkg upstream-tree)
                  "--prune-empty=always"
                  "--prune-degenerate=always"))))
 
@@ -880,11 +863,9 @@ Mirror as an `epkg-core-package' instead? " name))))))
       (when (or (magit-anything-modified-p) force)
         (magit-git "add" ".")
         (let ((process-environment process-environment)
-              (mainlib (or (and (not (cl-typep pkg 'epkg-core-package))
-                                (oref pkg library))
-                           (ignore-errors
-                             (packed-main-library
-                              default-directory name t t)))))
+              (mainlib (ignore-errors
+                         (packed-main-library
+                          default-directory name t t))))
           (when mainlib
             (with-temp-buffer
               (insert-file-contents mainlib)
@@ -1117,8 +1098,7 @@ because some of these packages are also available from Melpa.")))
 ;;; Extract
 
 (cl-defmethod emir--main-library ((pkg epkg-package))
-  (or (and (not (cl-typep pkg 'epkg-core-package))
-           (oref pkg library))
+  (or (oref pkg library)
       (let ((name (oref pkg name))
             (load-suffixes '(".el" ".el.in" ".el.tmpl"))
             (load-file-rep-suffixes '("")))
