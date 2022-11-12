@@ -64,6 +64,8 @@
 
 (setq epkg--db-prefer-binary t)
 
+(setq message-log-max (max message-log-max 30000))
+
 (defconst emir-rewrite-threshold 16)
 
 ;;; Repositories
@@ -609,7 +611,6 @@ Mirror as an `epkg-core-package' instead? " name))))))
 ;;;###autoload
 (defun emir-setup-modules ()
   (interactive)
-  (setq message-log-max 20000)
   (let* ((start (current-time))
          (pkgs (epkgs 'name [mirrored* shelved]))
          (total (length pkgs))
