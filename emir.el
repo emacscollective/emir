@@ -464,9 +464,11 @@ Mirror as an `epkg-core-package' instead? " name))))))
    (let* ((name     (epkg-read-package "Package: "))
           (pkg      (epkg name))
           (features (oref pkg provided))
-          (feature  (intern (read-string "Join provide: ")))
+          (feature  (intern (completing-read "Join provide: "
+                                             (mapcar #'car features))))
           (reason   (read-string "Reason: " (nth 2 (assq feature features)))))
-     (list name feature reason)))
+     (list name feature
+           (and (not (equal reason "")) reason))))
   (let* ((pkg (epkg name))
          (val (oref pkg provided))
          (elt (assq feature val)))
