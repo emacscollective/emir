@@ -98,6 +98,21 @@ repository specified by variable `epkg-repository'."
        (magit-process-buffer t))
      ,@body))
 
+(defmacro emir-with-emacs-worktree (&rest body)
+  (declare (indent defun))
+  (let ((worktree (gensym "emacs-worktree-")))
+    `(let ((,worktree nil))
+       (unwind-protect
+         (let ((emir-emacs-repository
+                (let ((default-directory emir-emacs-repository))
+                  (setq ,worktree (make-temp-file "emir-emacs-" t))
+                  (magit-worktree-checkout ,worktree emir-emacs-reference)
+                  ,worktree)))
+           ,@body)
+         (let ((default-directory emir-emacs-repository))
+           (with-demoted-errors "Cleanup Emacs worktree: %S"
+             (magit-worktree-delete ,worktree)))))))
+
 (cl-defmethod epkg-repository ((_pkg epkg-builtin-package))
   emir-emacs-repository)
 (cl-defmethod epkg-repository ((_class (subclass epkg-gnu-elpa-package)))
@@ -124,38 +139,37 @@ repository specified by variable `epkg-repository'."
 ;;;###autoload
 (defun emir-import-emacs-packages ()
   (interactive)
-  (let ((default-directory emir-emacs-repository)
-        (alist (emir--builtin-packages-alist)))
-    (magit-git "checkout" emir-emacs-reference)
-    (emacsql-with-transaction (epkg-db)
-      (pcase-dolist (`(,name . ,value) alist)
-        (message "Updating %s..." name)
-        (let ((pkg (epkg name)))
-          (if pkg
-              (let ((old (oref pkg builtin-libraries)))
-                (setq old (cl-sort old #'string< :key #'car))
-                (dolist (o (cl-set-difference old value :test #'equal))
-                  (message "  - %S" o))
-                (dolist (n (cl-set-difference value old :test #'equal))
-                  (message "  + %S" n)))
-            (message "  = %S" value)
-            (setq pkg (epkg-builtin-package :name name))
-            (emir-add pkg))
-          (oset pkg builtin-libraries value)
-          (if value
-              (emir-update pkg)
-            (message "  ! nothing left")))
-        (message "Updating %s...done" name))
-      (dolist (pkg (epkgs))
-        (let ((name (oref pkg name)))
-          (when (and (oref pkg builtin-libraries)
-                     (not (assoc name alist)))
-            (message "Deleting %s..." name)
-            (if (epkg-builtin-package-p pkg)
-                (closql-delete pkg)
-              (oset pkg builtin-libraries nil))
-            (message "Deleting %s...done" name)))))
-    (emir-commit "Update built-in packages" nil :dump)))
+  (let ((alist (emir--builtin-packages-alist)))
+    (emir-with-emacs-worktree
+      (emacsql-with-transaction (epkg-db)
+        (pcase-dolist (`(,name . ,value) alist)
+          (message "Updating %s..." name)
+          (let ((pkg (epkg name)))
+            (if pkg
+                (let ((old (oref pkg builtin-libraries)))
+                  (setq old (cl-sort old #'string< :key #'car))
+                  (dolist (o (cl-set-difference old value :test #'equal))
+                    (message "  - %S" o))
+                  (dolist (n (cl-set-difference value old :test #'equal))
+                    (message "  + %S" n)))
+              (message "  = %S" value)
+              (setq pkg (epkg-builtin-package :name name))
+              (emir-add pkg))
+            (oset pkg builtin-libraries value)
+            (if value
+                (emir-update pkg)
+              (message "  ! nothing left")))
+          (message "Updating %s...done" name))
+        (dolist (pkg (epkgs))
+          (let ((name (oref pkg name)))
+            (when (and (oref pkg builtin-libraries)
+                       (not (assoc name alist)))
+              (message "Deleting %s..." name)
+              (if (epkg-builtin-package-p pkg)
+                  (closql-delete pkg)
+                (oset pkg builtin-libraries nil))
+              (message "Deleting %s...done" name)))))
+      (emir-commit "Update built-in packages" nil :dump))))
 
 ;;;###autoload
 (defun emir-import-ewiki-packages (&optional drew-only)
@@ -422,7 +436,8 @@ Mirror as an `epkg-core-package' instead? " name))))))
 (defun emir-regenerate-metadata (&optional from)
   (interactive (list (and current-prefix-arg
                           (epkg-read-package "Limit to packages after: "))))
-  (emir--update-packages nil from "Regenerate metadata"))
+  (emir-with-emacs-worktree
+    (emir--update-packages nil from "Regenerate metadata")))
 
 ;;;###autoload
 (defun emir-update-licenses (&optional all)
@@ -1223,7 +1238,7 @@ because some of these packages are also available from Melpa.")))
                         join)))))))
 
 (defun emir--builtin-packages-alist ()
-  (let ((default-directory emir-emacs-repository))
+  (emir-with-emacs-worktree
     (mapcar
      (lambda (elt)
        (cons (car elt) (mapcar #'cdr (cdr elt))))
