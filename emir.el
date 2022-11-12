@@ -1198,7 +1198,7 @@ because some of these packages are also available from Melpa.")))
           (load-suffixes '(".el" ".el.in" ".el.tmpl"))
           (load-file-rep-suffixes '(""))
           (name (oref pkg name))
-          provided hard soft)
+          provided provided-join provided-full hard soft)
       (dolist (lib (if (epkg-builtin-package-p pkg)
                        (mapcar #'car (oref pkg builtin-libraries))
                      (packed-libraries default-directory)))
@@ -1212,30 +1212,31 @@ because some of these packages are also available from Melpa.")))
               (dolist (h h) (cl-pushnew h hard))
               (dolist (s s) (cl-pushnew s soft))
               (dolist (p p) (cl-pushnew p provided))))))
+      (setq provided-join
+            (mapcan (pcase-lambda (`(,feature ,reason))
+                      (and (not (memq feature provided))
+                           (list (list feature nil reason))))
+                    (epkg-sql [:select [feature join] :from provided
+                               :where (and (= package $s1) (notnull join))
+                               :order-by [(asc feature)]]
+                              name)))
+      (setq provided-full (append provided (mapcar #'car provided-join)))
       (list
        (let ((drop (epkg-sql [:select [feature drop] :from required
                               :where (and (= package $s1) (notnull drop))
                               :order-by [(asc feature)]]
                              name)))
-         (setq hard (cl-set-difference hard provided))
-         (setq soft (cl-set-difference soft provided))
+         (setq hard (cl-set-difference hard provided-full))
+         (setq soft (cl-set-difference soft provided-full))
          (setq soft (cl-set-difference soft hard))
          (nconc (mapcar (##list % t   nil (cadr (assoc % drop))) hard)
                 (mapcar (##list % nil nil (cadr (assoc % drop))) soft)))
        (let ((drop (epkg-sql [:select [feature drop] :from provided
                               :where (and (= package $s1) (notnull drop))
                               :order-by [(asc feature)]]
-                             name))
-             (join (epkg-sql [:select [feature join] :from provided
-                              :where (and (= package $s1) (notnull join))
-                              :order-by [(asc feature)]]
                              name)))
          (nconc (mapcar (##list % (cadr (assoc % drop)) nil) provided)
-                (mapcan (pcase-lambda (`(,feature ,reason))
-                          (unless (memq feature provided)
-                            (push feature provided)
-                            (list (list feature nil reason))))
-                        join)))))))
+                provided-join))))))
 
 (defun emir--builtin-packages-alist ()
   (emir-with-emacs-worktree
