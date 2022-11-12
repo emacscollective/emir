@@ -70,7 +70,7 @@
 
 ;;; Repositories
 
-(defconst emir-emacs-reference "emacs-28.1")
+(defconst emir-emacs-reference "emacs-28.2")
 
 (defconst emir-emacs-repository "~/src/emacs/emacs/")
 (defconst emir-gelpa-repository (expand-file-name "gelpa/" epkg-repository))
@@ -1253,8 +1253,7 @@ because some of these packages are also available from Melpa.")))
           (and (string-suffix-p ".el" file)
                (if (or (string-match-p finder-no-scan-regexp file)
                        (member file
-                               '("lisp/gnus/.dir-locals.el"
-                                 ;; Old versions:
+                               '(;; Old versions:
                                  "lisp/obsolete/old-emacs-lock.el"
                                  "lisp/obsolete/otodo-mode.el"
                                  ;; Moved to GNU Elpa:
