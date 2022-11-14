@@ -201,8 +201,8 @@
      (not (or (and (eq fetcher 'hg)
                    (string-prefix-p "hg::" url)
                    (equal murl (substring url 4)))
-              (string-prefix-p "git@github.com:emacsmirror/" murl)
-              (string-prefix-p "git@github.com:emacsattic/"  murl)
+              (string-prefix-p "https://github.com/emacsmirror/" murl)
+              (string-prefix-p "https://github.com/emacsattic/"  murl)
               (equal
                (if (string-suffix-p ".git"  url) (substring  url 0 -4)  url)
                (if (string-suffix-p ".git" murl) (substring murl 0 -4) murl)))))
