@@ -105,12 +105,6 @@
                       (lm-header "version")))
                 "0"))))
 
-(defun emir-gelpa--core-filter-args (name)
-  (let* ((files (oref (gelpa-get name) url))
-         (files (if (listp files) files (list files))))
-    (nconc (mapcan (##list "--path" %) files)
-           (list "--path-rename" (concat (f-common-parent files) ":")))))
-
 ;;; _
 (provide 'emir-gelpa)
 ;;; emir-gelpa.el ends here
