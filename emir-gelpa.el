@@ -37,7 +37,7 @@
     (message "Importing Gelpa recipes...")
     (emacsql-with-transaction (epkg-db)
       (let ((alist (emir-gelpa--recipes-alist)))
-        (emir-gelpa--recipe-asserts alist)
+        (emir-gelpa--validate-recipes alist)
         (pcase-dolist (`(,name . ,spec) alist)
           (message "Updating %s recipe..." name)
           (emir-import-gelpa-recipe name spec)
@@ -77,7 +77,7 @@
      (expand-file-name "elpa-packages" emir-gelpa-repository))
     (read (current-buffer))))
 
-(defun emir-gelpa--recipe-asserts (alist)
+(defun emir-gelpa--validate-recipes (alist)
   (let ((default-directory emir-gelpa-repository))
     (dolist (line (magit-list-refnames "refs/heads/externals"))
       (let ((name (substring line 10)))
