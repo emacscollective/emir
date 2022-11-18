@@ -36,7 +36,7 @@
       (message "Fetching Gelpa recipes...done"))
     (message "Importing Gelpa recipes...")
     (emacsql-with-transaction (epkg-db)
-      (let ((alist (emir-gelpa--package-alist)))
+      (let ((alist (emir-gelpa--recipes-alist)))
         (emir-gelpa--recipe-asserts alist)
         (pcase-dolist (`(,name . ,spec) alist)
           (message "Updating %s recipe..." name)
@@ -54,7 +54,7 @@
 
 (defun emir-import-gelpa-recipe (name &optional spec)
   (unless spec
-    (setq spec (alist-get name (emir-gelpa--package-alist))))
+    (setq spec (alist-get name (emir-gelpa--recipes-alist))))
   (let ((rcp (gelpa-get name))
         (class (cond ((plist-member spec :core) 'gelpa-core-recipe)
                      ((plist-member spec :url)  'gelpa-external-recipe)
@@ -71,7 +71,7 @@
       (oset rcp released (emir-gelpa--released-p name)))
     (oset rcp epkg-package (and (epkg name) name))))
 
-(defun emir-gelpa--package-alist ()
+(defun emir-gelpa--recipes-alist ()
   (with-temp-buffer
     (insert-file-contents
      (expand-file-name "elpa-packages" emir-gelpa-repository))
