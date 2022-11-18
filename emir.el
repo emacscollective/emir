@@ -227,6 +227,7 @@ repository specified by variable `epkg-repository'."
                  (gelpa-recipes [name url class]))
     (let ((pkg (epkg name)))
       (unless (or pkg
+                  (emir--lookup-url url)
                   (eq class 'core)
                   (emir--config name :delayed)
                   (emir--config name :secondary)
