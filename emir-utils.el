@@ -115,7 +115,7 @@
         (let ((name (oref obj name)))
           (message "Re-inserting %s..." name)
           (closql--resolve-slots obj)
-          (closql--oset obj 'gelpa-recipes eieio--unbound)
+          (closql--oset obj 'gnu-elpa-recipes eieio--unbound)
           (closql--oset obj 'melpa-recipes eieio--unbound)
           (closql-insert new obj)
           (message "Re-inserting %s...done" name))))
@@ -123,7 +123,8 @@
     (emacsql-close new)
     (rename-file new-file old-file t)
     (epkg-db)
-    (emir-import-gelpa-recipes '("--fetch" "--all"))
+    (emir-import-gnu-elpa-recipes '("--fetch" "--all"))
+    (emir-import-nongnu-elpa-recipes '("--fetch" "--all"))
     (emir-import-melpa-recipes '("--fetch" "--all")))
   (message "Recreating Epkg database...done"))
 

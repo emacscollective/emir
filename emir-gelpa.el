@@ -1,4 +1,4 @@
-;;; emir-gelpa.el --- Import GNU Elpa recipes  -*- lexical-binding:t -*-
+;;; emir-gelpa.el --- Import [Non]GNU Elpa recipes  -*- lexical-binding:t -*-
 
 ;; Copyright (C) 2016-2022 Jonas Bernoulli
 
@@ -26,82 +26,137 @@
 (require 'emir)
 
 ;;;###autoload
-(defun emir-import-gelpa-recipes (args)
+(defun emir-import-all-elpa-recipes (args)
   (interactive (list (transient-args 'emir-import-recipes)))
-  (let ((default-directory emir-gelpa-repository))
-    (when (transient-arg-value "--fetch" args)
-      (message "Fetching Gelpa recipes...")
-      (magit-git "checkout" "mirror")
-      (magit-git "pull" "--ff-only" "origin")
-      (message "Fetching Gelpa recipes...done"))
-    (message "Importing Gelpa recipes...")
-    (emacsql-with-transaction (epkg-db)
-      (let ((alist (emir-gelpa--recipes-alist)))
-        (emir-gelpa--validate-recipes alist)
-        (pcase-dolist (`(,name . ,spec) alist)
-          (message "Updating %s recipe..." name)
-          (emir-import-gelpa-recipe name spec)
-          (message "Updating %s recipe...done" name))
-        (message "Importing Gelpa recipes...")
-        (dolist (name (gelpa-recipes 'name))
-          (unless (assoc name alist)
-            (message "Removing %s..." name)
-            (closql-delete (gelpa-get name))
-            (message "Removing %s...done" name)))))
-    (magit-git "tag" "-f" "mirror-imported")
-    (emir-commit "Update Gelpa recipes" nil :dump)
-    (message "Importing Gelpa recipes...done")))
+  (emir-import-melpa-recipes args)
+  (emir-import-nongnu-elpa-recipes args)
+  (emir-import-gnu-elpa-recipes args))
 
-(defun emir-import-gelpa-recipe (name &optional spec)
-  (unless spec
-    (setq spec (alist-get name (emir-gelpa--recipes-alist))))
-  (let ((rcp (gelpa-get name))
-        (class (cond ((plist-member spec :core) 'gelpa-core-recipe)
-                     ((plist-member spec :url)  'gelpa-external-recipe)
-                     (t (error "Invalid recipe %S" (cons name spec))))))
+;;;###autoload
+(defun emir-import-nongnu-elpa-recipes (args)
+  (interactive (list (transient-args 'emir-import-recipes)))
+  (let ((default-directory emir-nongnu-elpa-repository ))
+    (emir-gelpa--import-recipes 'nongnu "NonGNU Elpa" args)))
+
+;;;###autoload
+(defun emir-import-gnu-elpa-recipes (args)
+  (interactive (list (transient-args 'emir-import-recipes)))
+  (let ((default-directory emir-gnu-elpa-repository))
+    (emir-gelpa--import-recipes 'gnu "GNU Elpa" args)))
+
+(defun emir-gelpa--import-recipes (elpa desc args)
+  (when (transient-arg-value "--fetch" args)
+    (message "Fetching %s recipes..." desc)
+    (magit-git "checkout" "mirror")
+    (magit-git "pull" "--ff-only" "origin")
+    (message "Fetching %s recipes...done" desc))
+  (message "Importing %s recipes..." desc)
+  (emacsql-with-transaction (epkg-db)
+    (let ((alist (emir-gelpa--recipes-alist)))
+      (emir-gelpa--validate-recipes elpa alist)
+      (pcase-dolist (`(,name . ,spec) alist)
+        (message "Updating %s recipe..." name)
+        (emir-gelpa--import-recipe elpa name spec)
+        (message "Updating %s recipe...done" name))
+      (message "Importing %s recipes..." desc)
+      (dolist (name (epkg-list-recipes elpa 'name))
+        (unless (assoc name alist)
+          (message "Removing %s..." name)
+          (closql-delete (epkg-get-recipe elpa name))
+          (message "Removing %s...done" name)))))
+  (magit-git "tag" "-f" "mirror-imported")
+  (emir-commit (format "Update %s recipes" desc) nil :dump)
+  (message "Importing %s recipes...done" desc))
+
+(defun emir-gelpa--import-recipe (elpa name plist)
+  (let* ((rcp (epkg-get-recipe elpa name))
+         (kind  (car  plist))
+         (value (cadr plist))
+         (plist (cddr plist))
+         (class
+          (pcase-exhaustive (list elpa kind value)
+            (`(gnu :core  ,_) 'epkg-gnu-elpa-core-recipe)
+            (`(gnu  :url nil) 'epkg-gnu-elpa-internal-recipe)
+            (`(gnu  :url  ,_)
+             (cond
+              ;; We don't support bzr; treat elpa as the upstream.
+              ((string-prefix-p "bzr::" value) 'epkg-gnu-elpa-internal-recipe)
+              ((string-prefix-p "hg::"  value) 'epkg-gnu-elpa-hg-recipe)
+              ((emir--url-to-class value 'epkg-gnu-elpa-external-recipe))
+              ;; emir--url-to-class doesn't support unsafe git:// urls
+              ;; but [Non]GNU Elpa uses those.  Additionally they mix
+              ;; "savannah.[non]gnu.org" and the alias "sv.[non]gnu.org".
+              ((string-match-p "git\\.\\(sv\\|savannah\\)\\.gnu\\.org" value)
+               'epkg-gnu-elpa-gnu-recipe)
+              ((string-match-p "git\\.\\(sv\\|savannah\\)\\.nongnu\\.org" value)
+               'epkg-gnu-elpa-nongnu-recipe)
+              (t 'epkg-gnu-elpa-git-recipe)))
+            (`(nongnu :url nil) 'epkg-nongnu-elpa-internal-recipe)
+            (`(nongnu :url  ,_)
+             (cond
+              ((string-prefix-p "bzr::" value) 'epkg-nongnu-elpa-internal-recipe)
+              ((string-prefix-p "hg::"  value) 'epkg-nongnu-elpa-hg-recipe)
+              ((emir--url-to-class value 'epkg-nongnu-elpa-external-recipe))
+              ((string-match-p "git\\.\\(sv\\|savannah\\)\\.gnu\\.org" value)
+               'epkg-nongnu-elpa-gnu-recipe)
+              ((string-match-p "git\\.\\(sv\\|savannah\\)\\.nongnu\\.org" value)
+               'epkg-nongnu-elpa-nongnu-recipe)
+              (t 'epkg-nongnu-elpa-git-recipe))))))
     (when (and rcp (not (eq (type-of rcp) class)))
       (closql-delete rcp)
       (setq rcp nil))
     (unless rcp
       (setq rcp (funcall class :name name))
       (closql-insert (epkg-db) rcp))
-    (oset rcp url (or (plist-get spec :core)
-                      (plist-get spec :url)))
-    (when (eq class 'gelpa-external-recipe)
-      (oset rcp released (emir-gelpa--released-p name)))
-    (oset rcp epkg-package (and (epkg name) name))))
+    (oset rcp released
+          (or (eq class 'epkg-gnu-elpa-core-recipe)
+              (emir-gelpa--released-p elpa name)))
+    (pcase kind
+      (:url  (oset rcp url value))
+      (:core (oset rcp core value)))
+    (while plist
+      (let ((slot (intern (substring (symbol-name (pop plist)) 1))))
+        (unless (memq slot epkg--elpa-recipe-slots)
+          (error "Unknown %s recipe slot: %s" elpa slot))
+        (eieio-oset rcp slot (pop plist))))
+    (cond ((epkg name)
+           (oset rcp epkg-package name))
+          ((not (emir--config name :delayed))
+           (when-let ((name (or (emir--lookup-url (oref rcp url))
+                                (emir--config name :secondary))))
+             (oset rcp epkg-package name))))))
 
-(defun emir-gelpa--recipes-alist ()
+(defun emir-gelpa--recipes-alist (&optional dir)
   (with-temp-buffer
-    (insert-file-contents
-     (expand-file-name "elpa-packages" emir-gelpa-repository))
+    (insert-file-contents (expand-file-name "elpa-packages" dir))
     (read (current-buffer))))
 
-(defun emir-gelpa--validate-recipes (alist)
-  (let ((default-directory emir-gelpa-repository))
+(defun emir-gelpa--validate-recipes (elpa alist)
+  (when (eq elpa 'gnu)
     (dolist (line (magit-list-refnames "refs/heads/externals"))
       (let ((name (substring line 10)))
         (when-let ((spec (alist-get name alist)))
           (when (plist-member spec :core)
             (error "`%s's type is `:core' but branch `externals/%s' also exists"
-                   name name)))))
-    (pcase-dolist (`(,name . ,spec) alist)
+                   name name))))))
+  (pcase-dolist (`(,name . ,spec) alist)
+    (let ((branch (format "%s/%s" (if (eq elpa 'gnu) "externals" "elpa") name)))
       (when (and (plist-member spec :url)
-                 (not (magit-branch-p (concat "refs/heads/externals/" name))))
-        (error "`%s's type is `:url' but branch `externals/%s' is missing"
-               name name)))))
+                 (not (magit-branch-p (concat "refs/heads/" branch))))
+        (error "`%s's type is `:url' but branch `%s' is missing" name branch)))))
 
-(defun emir-gelpa--released-p (name)
-  ;; See section "Public incubation" in "<gelpa>/README".
-  (let ((default-directory emir-gelpa-repository))
-    (not (equal (with-temp-buffer
-                  (magit-git-insert
-                   "cat-file" "-p"
-                   (format "refs/heads/externals/%s:%s.el" name name))
-                  (goto-char (point-min))
-                  (or (lm-header "package-version")
-                      (lm-header "version")))
-                "0"))))
+(defun emir-gelpa--released-p (elpa name)
+  ;; See section "Public incubation" in "<gnu>/README".
+  (not (equal (with-temp-buffer
+                (magit-git-insert
+                 "cat-file" "-p"
+                 (format "refs/heads/%s/%s:%s.el"
+                         (if (eq elpa 'gnu) "externals" "elpa")
+                         name name))
+                (goto-char (point-min))
+                (or (lm-header "package-version")
+                    (lm-header "version")))
+              "0")))
 
 ;;; _
 (provide 'emir-gelpa)

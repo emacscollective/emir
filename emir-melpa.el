@@ -61,21 +61,21 @@
         (emacsql-with-transaction (epkg-db)
           (dolist-with-progress-reporter (name imports)
               "Importing Melpa recipes..."
-            (emir-import-melpa-recipe name)))
+            (emir-melpa--import-recipe name)))
         (message "Importing Melpa recipes..."))
-      (dolist (name (cl-set-difference (melpa-recipes 'name)
+      (dolist (name (cl-set-difference (epkg-list-recipes 'melpa 'name)
                                        recipes :test #'equal))
         (message "Removing %s recipe..." name)
-        (closql-delete (melpa-get name))
+        (closql-delete (epkg-get-recipe 'melpa name))
         (message "Removing %s recipe...done" name)))
     (magit-git "tag" "-f" "mirror-imported")
     (emir-commit "Update Melpa recipes" nil :dump)
     (message "Importing Melpa recipes...done")))
 
-(defun emir-import-melpa-recipe (name)
-  (let* ((rcp   (melpa-get name))
+(defun emir-melpa--import-recipe (name)
+  (let* ((rcp   (epkg-get-recipe 'melpa name))
          (plist (emir-melpa--recipe-plist name))
-         (class (intern (format "melpa-%s-recipe"
+         (class (intern (format "epkg-melpa-%s-recipe"
                                 (plist-get plist :fetcher)))))
     (when (and rcp (not (eq (type-of rcp) class)))
       (closql-delete rcp)
@@ -103,7 +103,7 @@
 (defun emir-melpa--recipe-file (name)
   (expand-file-name (concat "recipes/" name) emir-melpa-repository))
 
-(cl-defmethod emir--format-url ((rcp melpa-recipe) slot)
+(cl-defmethod emir--format-url ((rcp epkg-melpa-recipe) slot)
   (ignore-errors
     (and-let* ((format (eieio-oref-default rcp slot)))
       (save-match-data
@@ -136,7 +136,7 @@
                (mapcan (lambda (name)
                          (let ((pkg (epkg name)))
                            (and (eq (oref pkg upstream-state) 'archived)
-                                (melpa-get name)
+                                (epkg-get-recipe 'melpa name)
                                 (list (list name
                                             (oref pkg repopage)
                                             (oref pkg upstream-user))))))
@@ -159,7 +159,7 @@
   (let ((default-directory emir-melpa-repository)
         (file (concat "recipes/" name))
         (pkg (epkg name))
-        (rcp (melpa-get name)))
+        (rcp (epkg-get-recipe 'melpa name)))
     (when (file-exists-p file)
       (with-temp-file file
         (insert-file-contents file)
@@ -174,13 +174,13 @@
                    (setq fetcher "git"))
                   ("bitbucket"
                    (setq fetcher "hg")))
-                (unless (fboundp (intern (format "melpa-%s-recipe" fetcher)))
+                (unless (fboundp (intern (format "epkg-melpa-%s-recipe" fetcher)))
                   (error "%s isn't a valid Melpa fetcher" fetcher))
                 (replace-match fetcher t t nil 1))
             (message "WARNING: Cannot find `:fetcher'")))
         (if (re-search-forward (format ":\\(repo\\|url\\) ?\"[^\"]+\"") nil t)
             (replace-match
-             (if (cl-typep rcp 'melpa--platform-recipe)
+             (if (cl-typep rcp 'epkg--platform-recipe)
                  (format ":repo \"%s\"" (emir--format-url pkg "%u/%n"))
                (format ":url \"%s\"" (oref pkg url)))
              t t)

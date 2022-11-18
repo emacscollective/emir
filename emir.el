@@ -82,7 +82,8 @@
 (defconst emir-emacs-reference "emacs-28.2")
 
 (defconst emir-emacs-repository "~/src/emacs/emacs/")
-(defconst emir-gelpa-repository (expand-file-name "gelpa/" epkg-repository))
+(defconst emir-gnu-elpa-repository (expand-file-name "gnu-elpa/" epkg-repository))
+(defconst emir-nongnu-elpa-repository (expand-file-name "nongnu-elpa/" epkg-repository))
 (defconst emir-melpa-repository (expand-file-name "melpa/" epkg-repository))
 (defconst emir-ewiki-repository (expand-file-name "ewiki/" epkg-repository))
 (defconst emir-stats-repository (expand-file-name "stats/" epkg-repository))
@@ -124,8 +125,10 @@ repository specified by variable `epkg-repository'."
 
 (cl-defmethod epkg-repository ((_pkg epkg-builtin-package))
   emir-emacs-repository)
+(cl-defmethod epkg-repository ((_class (subclass epkg-nongnu-elpa-package)))
+  emir-nongnu-elpa-repository)
 (cl-defmethod epkg-repository ((_class (subclass epkg-gnu-elpa-package)))
-  emir-gelpa-repository)
+  emir-gnu-elpa-repository)
 (cl-defmethod epkg-repository ((_class (subclass epkg-wiki-package)))
   emir-ewiki-repository)
 (cl-defmethod epkg-repository ((_class (subclass epkg-builtin-package)))
@@ -139,11 +142,13 @@ repository specified by variable `epkg-repository'."
   "Import Gelpa or Melpa recipes."
   :value '("--fetch")
   ["Arguments"
-   ("a" "Re-import all recipes" "--all")
-   ("f" "Fetch before import"   "--fetch")]
+   ("-a" "Re-import all recipes" "--all")
+   ("-f" "Fetch before import"   "--fetch")]
   ["Import"
-   ("m" "Melpa" emir-import-melpa-recipes)
-   ("g" "Gelpa" emir-import-gelpa-recipes)])
+   ("a" "All"         emir-import-all-elpa-recipes)
+   ("m" "Melpa"       emir-import-melpa-recipes)
+   ("n" "NonGNU Elpa" emir-import-nongnu-elpa-recipes)
+   ("g" "GNU Elpa"    emir-import-gnu-elpa-recipes)])
 
 ;;;###autoload
 (defun emir-import-emacs-packages ()
@@ -223,17 +228,25 @@ repository specified by variable `epkg-repository'."
         ((emir--config name :delayed)
          (user-error "Package %s is on hold" name)))
   (emir-add (apply class :name name :url url plist))
-  (when-let ((recipe (melpa-get name)))
+  (when-let ((recipe (epkg-get-recipe 'melpa name)))
     (oset recipe epkg-package name))
-  (when-let ((recipe (gelpa-get name)))
+  (when-let ((recipe (epkg-get-recipe 'gnu name)))
     (oset recipe epkg-package name))
   (emir-commit (format "Add %S package" name) name :dump :sort))
 
 ;;;###autoload
-(defun emir-add-gelpa-packages (&optional dry-run)
+(defun emir-add-nongnu-elpa-packages (&optional dry-run)
   (interactive "P")
+  (emir--add-elpa-packages 'nongnu dry-run))
+
+;;;###autoload
+(defun emir-add-gnu-elpa-packages (&optional dry-run)
+  (interactive "P")
+  (emir--add-elpa-packages 'gnu dry-run))
+
+(defun emir--add-elpa-packages (elpa dry-run)
   (pcase-dolist (`(,name ,url ,class)
-                 (gelpa-recipes [name url class]))
+                 (epkg-list-recipes elpa [name url class]))
     (let ((pkg (epkg name)))
       (unless (or pkg
                   (emir--lookup-url url)
@@ -248,7 +261,8 @@ repository specified by variable `epkg-repository'."
             (when libs
               (closql-delete pkg))
             (let ((class (emir--read-class
-                          url "gnu-elpa"
+                          url
+                          (format "%s-elpa" elpa)
                           (format "Package type for %s from %s: "
                                   name url))))
               (setq pkg (if (eq class 'epkg-gnu-elpa-package)
@@ -259,7 +273,7 @@ repository specified by variable `epkg-repository'."
               (oset pkg url u))
             (when libs
               (oset pkg builtin-libraries libs)))
-          (oset (gelpa-get name) epkg-package name)
+          (oset (epkg-get-recipe elpa name) epkg-package name)
           (emir-commit (format "Add %S package" name) name :dump :sort))
         (message "Adding %s...done" name)))))
 
@@ -267,7 +281,7 @@ repository specified by variable `epkg-repository'."
 (defun emir-add-melpa-packages (&optional dry-run)
   (interactive "P")
   (pcase-dolist (`(,name ,class ,url ,branch)
-                 (melpa-recipes [name class url branch]))
+                 (epkg-list-recipes 'melpa [name class url branch]))
     (unless (or (epkg name)
                 (emir--lookup-url url)
                 (emir--config name :delayed)
@@ -701,7 +715,8 @@ repository specified by variable `epkg-repository'."
       (emir-dump-database))
     (when sort
       (borg--sort-submodule-sections ".gitmodules"))
-    (magit-git "add" ".gitmodules" "epkg.sql" "ewiki" "gelpa" "melpa")))
+    (magit-git "add" ".gitmodules" "epkg.sql"
+               "ewiki" "gnu-elpa" "nongnu-elpa" "melpa")))
 
 (defun emir-dump-database ()
   (interactive)
@@ -750,6 +765,8 @@ repository specified by variable `epkg-repository'."
       (cl-typecase pkg
         (epkg-wiki-package
          (setq branch name))
+        (epkg-nongnu-elpa-package
+         (setq branch (concat "elpa/" name)))
         (epkg-gnu-elpa-package
          (setq branch (concat "externals/" name))))
       (magit-git "clone"
@@ -761,10 +778,14 @@ repository specified by variable `epkg-repository'."
          (with-emir-repository pkg
            (magit-git "config" "remote.origin.url"
                       (file-relative-name emir-ewiki-repository))))
+        (epkg-nongnu-elpa-package
+         (with-emir-repository pkg
+           (magit-git "config" "remote.origin.url"
+                      (file-relative-name emir-nongnu-elpa-repository))))
         (epkg-gnu-elpa-package
          (with-emir-repository pkg
            (magit-git "config" "remote.origin.url"
-                      (file-relative-name emir-gelpa-repository)))))
+                      (file-relative-name emir-gnu-elpa-repository)))))
       (magit-git "submodule" "add" "--name" name mirror module)
       (magit-git "submodule" "absorbgitdirs" module))
     (with-emir-repository pkg
@@ -1005,8 +1026,12 @@ repository specified by variable `epkg-repository'."
     (magit-git "config" "remote.pushDefault" "mirror")
     (let ((origin
            (cl-typecase pkg
-             (epkg-wiki-package     (file-relative-name emir-ewiki-repository))
-             (epkg-gnu-elpa-package (file-relative-name emir-gelpa-repository))
+             (epkg-wiki-package
+              (file-relative-name emir-ewiki-repository))
+             (epkg-nongnu-elpa-package
+              (file-relative-name emir-nongnu-elpa-repository))
+             (epkg-gnu-elpa-package
+              (file-relative-name emir-gnu-elpa-repository))
              (t (oref pkg url))))
           (branch (oref pkg branch)))
       (cl-typecase pkg
@@ -1456,21 +1481,27 @@ because some of these packages are also available from Melpa.")))
         (while (re-search-forward "%\\(.\\)" nil t)
           (pcase-let ((`(,char . ,slot)
                        (assq (string-to-char (match-string 1))
-                             '((?m . mirror-name)
+                             '(;; epkg-package
+                               (?m . mirror-name)
                                (?n . upstream-name)
-                               (?u . upstream-user)))))
+                               (?u . upstream-user)
+                               ;; epkg-*elpa-recipe
+                               (?r . repo)))))
             (push slot slots)
-            (replace-match (if (= char ?u) "\\(.+\\)" "\\([^/]+?\\)") t t)))
+            (replace-match (if (memq char '(?u ?r))
+                               "\\(.+\\)"
+                             "\\([^/]+?\\)")
+                           t t)))
         (and (string-match (concat "\\`" (buffer-string) "\\'") url)
              (let ((i 0))
                (mapcar (##cons % (match-string (cl-incf i) url))
                        (nreverse slots))))))))
 
-(defun emir--url-to-class (url)
+(defun emir--url-to-class (url &optional base-class)
   (cl-find-if (lambda (class)
                 (ignore-errors
                   (emir--match-url (oref-default class url-format) url)))
-              (closql--list-subclasses 'epkg-package)))
+              (closql--list-subclasses (or base-class 'epkg-package))))
 
 (defun emir--url-get (url slot)
   (and-let* ((class (emir--url-to-class url))
