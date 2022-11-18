@@ -6,7 +6,17 @@
 ;; Homepage: https://github.com/emacscollective/emir
 ;; Keywords: local
 
-;; Package-Requires: ((emacs "28.1") (f "0.20.0") (llama "0.2.0"))
+;; Package-Requires: (
+;;     (emacs "28.1")
+;;     (compat "28.1.1.0")
+;;     (borg "3.3.1")
+;;     (elx "1.5.1")
+;;     (emacsql-sqlite-builtin "3.2.0")
+;;     (epkg "3.3.3")
+;;     (ghub "3.5.6")
+;;     (llama "0.2.0")
+;;     (org "9.5.5")
+;;     (packed "3.0.4"))
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -36,11 +46,10 @@
 (require 'closql)
 (require 'eieio)
 (require 'elx)
-(require 'emacsql-sqlite)
+(require 'emacsql-sqlite-builtin)
 (require 'epkg)
 (require 'epkg-org)
 (require 'epkg-utils)
-(require 'f)
 (require 'finder)
 (require 'ghub)
 (require 'llama)
