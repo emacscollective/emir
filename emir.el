@@ -663,7 +663,7 @@ repository specified by variable `epkg-repository'."
 (defun emir--gh-maybe-migrate (pkg new)
   (let* ((old (concat (oref pkg upstream-user) "/"
                       (oref pkg upstream-name)))
-         (url (format "git@github.com:%s.git" new))
+         (url (format "https://github.com/%s" new))
          (name (oref pkg name)))
     (unless (equal new old)
       (message "Migrating %s from %s to %s..." name old url)
