@@ -23,7 +23,8 @@
 
 ;;; Code:
 
-(require 'emir)
+(with-suppressed-warnings ((obsolete autoload))
+  (require 'emir))
 (require 'url)
 
 (defvar url-http-end-of-headers)
