@@ -62,7 +62,9 @@ clean:
 
 $(PKG)-autoloads.el: $(ELS)
 	@printf " Creating $@\n"
-	@$(EMACS) -Q --batch -l autoload -l cl-lib --eval "\
+	@$(EMACS) -Q --batch --eval "(progn\
+(setq byte-compile-warnings '(not obsolete))\
+(require 'autoload)\
 (let ((file (expand-file-name \"$@\"))\
       (autoload-timestamps nil) \
       (backup-inhibited t)\
@@ -72,5 +74,4 @@ $(PKG)-autoloads.el: $(ELS)
   (cl-letf (((symbol-function 'progress-reporter-do-update) (lambda (&rest _)))\
             ((symbol-function 'progress-reporter-done) (lambda (_))))\
     (let ((generated-autoload-file file))\
-      (update-directory-autoloads default-directory))))" \
-	2>&1 | sed "/^Package autoload is deprecated$$/d"
+      (update-directory-autoloads default-directory)))))"
