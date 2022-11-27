@@ -130,7 +130,9 @@
 (defun emir-gelpa--recipes-alist (&optional dir)
   (with-temp-buffer
     (insert-file-contents (expand-file-name "elpa-packages" dir))
-    (read (current-buffer))))
+    (mapcar (pcase-lambda (`(,sym . ,rest))
+              (cons (symbol-name sym) rest))
+            (read (current-buffer)))))
 
 (defun emir-gelpa--validate-recipes (elpa alist)
   (when (eq elpa 'gnu)
