@@ -15,8 +15,7 @@
 ;;     (epkg "3.3.3")
 ;;     (ghub "3.5.6")
 ;;     (llama "0.2.0")
-;;     (org "9.5.5")
-;;     (packed "3.0.4"))
+;;     (org "9.5.5"))
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -56,7 +55,6 @@
 (require 'llama)
 (require 'magit)
 (require 'org)
-(require 'packed)
 (require 'subr-x)
 (require 'transient)
 
@@ -896,7 +894,7 @@ repository specified by variable `epkg-repository'."
         (magit-git "add" ".")
         (let ((process-environment process-environment)
               (mainlib (ignore-errors
-                         (packed-main-library
+                         (elx-main-library
                           default-directory name t t))))
           (when mainlib
             (with-temp-buffer
@@ -1139,10 +1137,10 @@ because some of these packages are also available from Melpa.")))
             (load-suffixes '(".el" ".el.in" ".el.tmpl"))
             (load-file-rep-suffixes '("")))
         (or (ignore-errors
-              (packed-main-library default-directory name nil t))
+              (elx-main-library default-directory name nil t))
             (and (string-prefix-p "monorepo-" name)
                  ;; Roll eyes and pick a random library.
-                 (car (packed-libraries default-directory)))
+                 (car (elx-libraries default-directory)))
             (and (or (epkg-shelved-package-p pkg)
                      (equal name "gnu-elpa")) ; KLUDGE No feature.
                  (let ((file (expand-file-name (concat name ".el"))))
@@ -1219,14 +1217,14 @@ because some of these packages are also available from Melpa.")))
           provided provided-join provided-full hard soft)
       (dolist (lib (if (epkg-builtin-package-p pkg)
                        (mapcar #'car (oref pkg builtin-libraries))
-                     (packed-libraries default-directory)))
+                     (elx-libraries default-directory)))
         (with-temp-buffer
           (insert-file-contents lib)
           (setq buffer-file-name lib)
           (set-buffer-modified-p nil)
           (with-syntax-table emacs-lisp-mode-syntax-table
-            (pcase-let ((`(,h ,s) (packed-required))
-                        (p        (packed-provided)))
+            (pcase-let ((`(,h ,s) (elx-required))
+                        (p        (elx-provided)))
               (dolist (h h) (cl-pushnew h hard))
               (dolist (s s) (cl-pushnew s soft))
               (dolist (p p) (cl-pushnew p provided))))))
@@ -1297,7 +1295,7 @@ because some of these packages are also available from Melpa.")))
                               file-name-nondirectory
                               file-name-sans-extension)))))
                      (prog1 (mapcar (##list package file %)
-                                    (or (packed-provided)
+                                    (or (elx-provided)
                                         (list nil)))
                        (message "Importing %s...done" file)))))))
         (magit-git-items "ls-tree" "-z" "-r" "--name-only" "HEAD" "lisp/"))
