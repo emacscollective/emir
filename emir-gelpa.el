@@ -23,8 +23,7 @@
 
 ;;; Code:
 
-(with-suppressed-warnings ((obsolete autoload))
-  (require 'emir))
+(require 'emir)
 
 ;;;###autoload
 (defun emir-import-all-elpa-recipes (args)

@@ -40,8 +40,7 @@
 
 ;;; Code:
 
-(with-suppressed-warnings ((obsolete autoload))
-  (require 'borg))
+(require 'borg)
 (require 'cl-lib)
 (require 'closql)
 (require 'eieio)
