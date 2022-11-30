@@ -688,6 +688,8 @@ repository specified by variable `epkg-repository'."
          (name (oref pkg name)))
     (unless (equal new old)
       (message "Migrating %s from %s to %s..." name old url)
+      (when (string-prefix-p "emacsorphanage/" new)
+        (closql--set-object-class (epkg-db) pkg 'epkg-orphaned-package))
       (oset pkg url url)
       (emir--set-urls pkg)
       (oset pkg repopage (emir--format-url pkg 'repopage-format))
