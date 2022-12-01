@@ -1332,16 +1332,19 @@ because some of these packages are also available from Melpa.")))
   (emir-gh pkg "WAIT" "/repos/%o/%m"))
 
 (cl-defmethod emir-gh-init ((pkg epkg-github-package))
-  (if (cl-flet ((forked (rsp key)
-                  (and-let* ((name (cdr (assq 'full_name (cdr (assq key rsp))))))
-                    (cl-find-if
-                     (lambda (fork)
-                       (equal (cdr (assq 'login (cdr (assq 'owner fork))))
-                              "emacsmirror"))
-                     (emir-gh pkg "GET" (format "/repos/%s/forks" name))))))
-        (let ((rsp (emir-gh pkg "GET" "/repos/%u/%n")))
-          (or (forked rsp 'source)
-              (forked rsp 'parent))))
+  (if (let-alist (cdr (ghub--graphql-vacuum
+	               '(query (repository
+	                        [(owner $owner String!)
+	                         (name  $name  String!)]
+	                        (parent
+	                         (forks [(:edges t)
+		                         (affiliations ORGANIZATION_MEMBER)]
+		                        (owner login)))))
+	               `((owner . ,(oref pkg upstream-user))
+	                 (name  . ,(oref pkg upstream-name)))
+	               'synchronous))
+        (seq-some (##equal (let-alist % .owner.login) "emacsmirror")
+	          .repository.parent.forks))
       (cl-call-next-method)
     (emir-gh pkg "POST" "/repos/%u/%n/forks" '((organization . "emacsmirror")))
     (emir-gh pkg "WAIT" "/repos/%o/%n")
