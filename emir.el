@@ -669,6 +669,7 @@ repository specified by variable `epkg-repository'."
     (oset pkg url url)
     (oset pkg upstream-user nil)
     (oset pkg upstream-name nil)
+    (oset pkg upstream-state nil)
     (oset pkg stars nil)
     (dolist (slot '(upstream-branch upstream-tree library libraries patched))
       (when-let ((value (slot-value pkg slot)))
@@ -695,6 +696,7 @@ repository specified by variable `epkg-repository'."
       (oset pkg repopage (emir--format-url pkg 'repopage-format))
       (with-emir-repository pkg
         (magit-call-git "config" "remote.origin.url" url))
+      (oset pkg upstream-state nil)
       (emir-dump-database)
       (emir-melpa-migrate-recipe name "Update url of %s's repository" t)
       (message "Migrating %s from %s to %s...done" name old url))))
