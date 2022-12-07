@@ -24,6 +24,7 @@
 ;;; Code:
 
 (require 'emir)
+(require 'package-build)
 (require 'url)
 
 (defvar url-http-end-of-headers)
@@ -235,6 +236,93 @@
                                   (isnull  melpa-recipes:branch))
                              (!= packages:branch melpa-recipes:branch)))
              :order-by [(asc packages:name)]]))
+
+;;; Build ELPA Packages
+
+(defvar emir-pb-checkout-base "/tmp/emir/")
+
+(defun emir-pb-default-config ()
+  (interactive)
+  (setq package-build-get-version-function #'emir-pb-timestamp-version)
+  (setq package-build-predicate-function #'emir-pb-build-p)
+  (setq package-build-early-worktree-function #'emir-pb-early-worktree)
+  (setq package-build-worktree-function #'emir-pb-worktree)
+  (setq package-build-fetch-function #'ignore)
+  (setq package-build-checkout-function #'emir-pb-checkout)
+  (setq package-build-cleanup-function #'emir-pb-cleanup)
+  (setq package-build-use-git-remote-hg t))
+
+(defun emir-pb-build-p (rcp)
+  (let ((name (oref rcp name))
+        (pkg (epkg-recipe-to-package rcp)))
+    (not (or (not pkg)
+             (cl-typep pkg 'epkg-builtin-package)
+             (and (cl-typep pkg 'epkg-minority-package)
+                  (member name '("clang-format" "po-mode" "thrift"))) ;FIXME
+             (equal name "@") ; FIXME problematic name
+             (equal name "stumpwm-mode") ; FIXME diverging repository
+             ;; FIXME "elnode" "prettier" "tree-sitter" "tree-sitter-langs"
+             (member name (mapcar #'car (emir-melpa--diverging-branches)))
+             ))))
+
+;; Insufficient because of the minority special case.
+;; (cl-defmethod epkg-repository ((rcp package-recipe))
+;;   (epkg-repository (epkg-recipe-to-package rcp)))
+(defun emir-pb-early-worktree (rcp)
+  (let* ((pkg (epkg-recipe-to-package rcp))
+         (repo (epkg-repository pkg)))
+    (if (cl-typep pkg 'epkg-minority-package)
+        ;; REPO contains the filtered history but the recipes files
+        ;; spec expects the unfiltered history, which we can find here.
+        (expand-file-name (format ".git/modules/%s/unfiltered/" (oref rcp name))
+                          epkg-repository)
+      repo)))
+
+(defun emir-pb-worktree (rcp)
+  (expand-file-name (oref rcp name) emir-pb-checkout-base))
+
+(defun emir-pb-checkout (rcp)
+  (unless package-build--inhibit-checkout
+    (let ((rev (oref rcp commit)))
+      (package-build--message "Checking out %s" rev)
+      (let ((default-directory (emir-pb-early-worktree rcp))
+            (enable-local-variables nil))
+        (magit-run-git "worktree" "add" (emir-pb-worktree rcp) rev)))))
+
+(defun emir-pb-cleanup (rcp)
+  (with-demoted-errors "Cleanup failed: %S"
+    (let ((default-directory (emir-pb-early-worktree rcp)))
+      (magit-run-git "worktree" "remove" "--force" (emir-pb-worktree rcp)))))
+
+(defun emir-pb-timestamp-version (rcp)
+  ;; Like `package-build-get-timestamp-version' but don't
+  ;; use `package-build--get-timestamp-version' because:
+  ;; 1. We use git-remote-hg for mercurial repositories.
+  ;; 2. Cannot use "origin/HEAD" because we don't update it.
+  ;; 3. Use "origin/X" if "X" is filtered on mirror.
+  (pcase-let
+      ((`(,hash ,time)
+        ;; Replacing (package-build--get-timestamp-version rcp):
+        (let* ((pkg (epkg-recipe-to-package rcp))
+               (commit (oref rcp commit))
+               (rev (cond
+                     (commit)
+                     ((or (cl-typep pkg 'epkg-subtree-package)
+                          (cl-typep pkg 'epkg-minority-package))
+                      (or (and-let* ((branch (oref pkg upstream-branch)))
+                            (concat "origin/" branch))
+                          (magit-branch-p "origin/master")
+                          (magit-branch-p "origin/main")
+                          (car (magit-list-remote-branch-names "origin"))))
+                     ("master"))))
+          ;;(prog2 (message "--A")
+          (package-build--select-commit rcp rev commit)
+          ;;(message "--B"))
+          )))
+    (list hash time
+          (concat (format-time-string "%Y%m%d." time t)
+                  (format "%d" (string-to-number
+                                (format-time-string "%H%M" time t)))))))
 
 ;;; _
 (provide 'emir-melpa)

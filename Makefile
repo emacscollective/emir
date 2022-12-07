@@ -19,6 +19,7 @@ DEPS += ghub/lisp
 DEPS += graphql
 DEPS += llama
 DEPS += magit/lisp
+DEPS += package-build
 DEPS += transient/lisp
 DEPS += treepy
 DEPS += with-editor/lisp

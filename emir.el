@@ -915,7 +915,7 @@ repository specified by variable `epkg-repository'."
   (with-emir-repository pkg
     (let ((name (oref pkg name))
           (branch (or (oref pkg upstream-branch)
-                      (magit-remote-head (oref pkg url)))))
+                      (magit-remote-head (oref pkg url))))) ; FIXME
       (magit-git "fetch" "origin")
       (magit-git "checkout" (concat "origin/" branch))
       (let ((time (current-time)))
