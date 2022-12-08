@@ -439,11 +439,11 @@ repository specified by variable `epkg-repository'."
       (when skipped
         (message "Skipped %i packages:\n%s"
                  (length skipped)
-                 (mapconcat (lambda (n) (concat "  " n)) (nreverse skipped) "\n")))
+                 (mapconcat (##concat "  " %) (nreverse skipped) "\n")))
       (when failed
         (message "Building %i packages failed:\n%s"
                  (length failed)
-                 (mapconcat (lambda (n) (concat "  " n)) (nreverse failed) "\n"))))))
+                 (mapconcat (##concat "  " %) (nreverse failed) "\n"))))))
 
 ;;;###autoload
 (defun emir-regenerate-metadata (&optional from)
@@ -1099,8 +1099,7 @@ repository specified by variable `epkg-repository'."
                    (not (equal name "emacs")))
           (setf library
                 (or (let ((main (concat "/" name ".el")))
-                      (car (cl-find-if (pcase-lambda (`(,lib))
-                                         (string-suffix-p main lib))
+                      (car (cl-find-if (##string-suffix-p main (car %))
                                        builtin-libraries)))
                     library))))
       (if-let ((lib (emir--main-library pkg)))
@@ -1378,7 +1377,7 @@ because some of these packages are also available from Melpa.")))
     (with-emir-repository pkg
       (when-let ((branches
                   (delete "master" (magit-list-remote-branches "mirror"))))
-        (magit-git "push" "mirror" (mapcar (lambda (b) (concat ":" b)) branches))))))
+        (magit-git "push" "mirror" (mapcar (##concat ":" %) branches))))))
 
 (cl-defmethod emir-gh-delete ((pkg epkg-package))
   (emir-gh pkg "DELETE" "/repos/%o/%m"))

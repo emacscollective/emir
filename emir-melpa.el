@@ -46,11 +46,11 @@
       (message "Fetching Melpa recipes...done"))
     (message "Importing Melpa recipes...")
     (let* ((recipes (cl-remove-if
-                     (lambda (n) (string-prefix-p "." n))
+                     (##string-prefix-p "." %)
                      (magit-git-items "ls-tree" "-z" "--name-only"
                                       "HEAD:recipes")))
            (imports (cl-remove-if
-                     (lambda (n) (string-prefix-p "." n))
+                     (##string-prefix-p "." %)
                      (if all
                          recipes
                        (magit-git-items "diff-tree" "-z" "--name-only"
