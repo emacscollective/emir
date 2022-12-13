@@ -1329,8 +1329,9 @@ because some of these packages are also available from Melpa.")))
                     :errorback errorback))))
 
 (cl-defmethod emir-gh-init ((pkg epkg-package))
-  (emir-gh pkg "POST" "/orgs/%o/repos" `((name . ,(oref pkg mirror-name))))
-  (emir-gh pkg "WAIT" "/repos/%o/%m"))
+  (when (oref pkg mirrored)
+    (emir-gh pkg "POST" "/orgs/%o/repos" `((name . ,(oref pkg mirror-name))))
+    (emir-gh pkg "WAIT" "/repos/%o/%m")))
 
 (cl-defmethod emir-gh-init ((pkg epkg-github-package))
   (if (let-alist (cdr (ghub--graphql-vacuum
@@ -1361,16 +1362,18 @@ because some of these packages are also available from Melpa.")))
                                  (oref pkg upstream-name) err))))
 
 (cl-defmethod emir-gh-update ((pkg epkg-package) &optional _clone)
-  (emir-gh pkg "PATCH" "/repos/%o/%m"
-           `((name           . ,(oref pkg mirror-name))
-             (description    . ,(oref pkg summary))
-             (homepage       . ,(oref pkg homepage))
-             (has_issues     . nil)
-             (has_wiki       . nil)
-             (has_downloads  . nil))
-           :errorback (lambda (err &rest _)
-                        (message "Error: Failed to publish metadata for %s: %S"
-                                 (oref pkg mirror-name) err))))
+  (when (oref pkg mirrored)
+    (emir-gh pkg "PATCH" "/repos/%o/%m"
+             `((name           . ,(oref pkg mirror-name))
+               (description    . ,(oref pkg summary))
+               (homepage       . ,(oref pkg homepage))
+               (has_issues     . nil)
+               (has_wiki       . nil)
+               (has_downloads  . nil))
+             :errorback
+             (lambda (err &rest _)
+               (message "Error: Failed to publish metadata for %s: %S"
+                        (oref pkg mirror-name) err)))))
 
 (cl-defmethod emir-gh-update :after ((pkg epkg-github-package) &optional clone)
   (when clone
@@ -1380,7 +1383,8 @@ because some of these packages are also available from Melpa.")))
         (magit-git "push" "mirror" (mapcar (##concat ":" %) branches))))))
 
 (cl-defmethod emir-gh-delete ((pkg epkg-package))
-  (emir-gh pkg "DELETE" "/repos/%o/%m"))
+  (when (oref pkg mirrored)
+    (emir-gh pkg "DELETE" "/repos/%o/%m")))
 
 (defun emir-gh-foreach-query (query callback &optional per-page packages)
   (let* ((page 0)
