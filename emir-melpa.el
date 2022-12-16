@@ -315,10 +315,7 @@
                           (magit-branch-p "origin/main")
                           (car (magit-list-remote-branch-names "origin"))))
                      ("master"))))
-          ;;(prog2 (message "--A")
-          (package-build--select-commit rcp rev commit)
-          ;;(message "--B"))
-          )))
+          (package-build--select-commit rcp rev commit))))
     (list hash time
           (concat (format-time-string "%Y%m%d." time t)
                   (format "%d" (string-to-number
