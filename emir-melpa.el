@@ -295,31 +295,47 @@
       (magit-run-git "worktree" "remove" "--force" (emir-pb-worktree rcp)))))
 
 (defun emir-pb-timestamp-version (rcp)
-  ;; Like `package-build-get-timestamp-version' but don't
-  ;; use `package-build--get-timestamp-version' because:
-  ;; 1. We use git-remote-hg for mercurial repositories.
-  ;; 2. Cannot use "origin/HEAD" because we don't update it.
-  ;; 3. Use "origin/X" if "X" is filtered on mirror.
-  (pcase-let
-      ((`(,hash ,time)
-        ;; Replacing (package-build--get-timestamp-version rcp):
-        (let* ((pkg (epkg-recipe-to-package rcp))
-               (commit (oref rcp commit))
-               (rev (cond
-                     (commit)
-                     ((or (cl-typep pkg 'epkg-subtree-package)
-                          (cl-typep pkg 'epkg-minority-package))
-                      (or (and-let* ((branch (oref pkg upstream-branch)))
-                            (concat "origin/" branch))
-                          (magit-branch-p "origin/master")
-                          (magit-branch-p "origin/main")
-                          (car (magit-list-remote-branch-names "origin"))))
-                     ("master"))))
-          (package-build--select-commit rcp rev commit))))
+  ;; Like `package-build-get-timestamp-version'
+  ;; but use `emir-pb-timestamp-version-1`.
+  (pcase-let ((`(,hash ,time) (emir-pb-timestamp-version-1 rcp)))
     (list hash time
+          ;; We remove zero-padding of the HH portion, as
+          ;; that is lost when stored in archive-contents.
           (concat (format-time-string "%Y%m%d." time t)
                   (format "%d" (string-to-number
                                 (format-time-string "%H%M" time t)))))))
+
+(defun emir-pb-timestamp-version-1 (rcp)
+  ;; Replace `package-build--get-timestamp-version'.
+  ;; 1. We use git-remote-hg for mercurial repositories.
+  ;; 2. Ignore branch slot.
+  ;; 3. Cannot use "origin/HEAD" because we don't update it.
+  ;; 4. Use "origin/X" if "X" is filtered on mirror.
+  (pcase-let*
+      ((pkg (epkg-recipe-to-package rcp))
+       (commit (oref rcp commit))
+       ;; (branch (oref rcp branch))
+       ;; (branch (and branch (concat "origin/" branch)))
+       (rev (cond (commit)
+                  ((or (cl-typep pkg 'epkg-subtree-package)
+                       (cl-typep pkg 'epkg-minority-package))
+                   (or (and-let* ((branch (oref pkg upstream-branch)))
+                         (concat "origin/" branch))
+                       (magit-branch-p "origin/master")
+                       (magit-branch-p "origin/main")
+                       (car (magit-list-remote-branch-names "origin"))))
+                  ("master")))
+       (`(,rev-hash ,rev-time) (package-build--select-commit rcp rev commit))
+       (`(,tag-hash ,tag-time) (package-build-get-tag-version rcp)))
+    (if (and tag-hash
+             (zerop (call-process "git" nil nil nil
+                                  "merge-base" "--is-ancestor"
+                                  rev-hash tag-hash))
+             (zerop (call-process "git" nil nil nil
+                                  "merge-base" "--is-ancestor"
+                                  tag-hash rev)))
+        (list tag-hash tag-time)
+      (list rev-hash rev-time))))
 
 ;;; _
 (provide 'emir-melpa)
