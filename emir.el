@@ -77,9 +77,9 @@
 
 ;;; Repositories
 
-(defconst emir-emacs-reference "emacs-28.2")
+(defconst emir-emacs-reference "emacs-29.0.50-gebc5263667b")
 
-(defconst emir-emacs-repository "~/src/emacs/emacs/")
+(defconst emir-emacs-repository "~/src/emacs/emacs/master")
 (defconst emir-gnu-elpa-repository (expand-file-name "gnu-elpa/" epkg-repository))
 (defconst emir-nongnu-elpa-repository (expand-file-name "nongnu-elpa/" epkg-repository))
 (defconst emir-melpa-repository (expand-file-name "melpa/" epkg-repository))
@@ -1270,7 +1270,6 @@ because some of these packages are also available from Melpa.")))
                (if (or (string-match-p finder-no-scan-regexp file)
                        (member file
                                '(;; Old versions:
-                                 "lisp/obsolete/old-emacs-lock.el"
                                  "lisp/obsolete/otodo-mode.el"
                                  ;; Moved to GNU Elpa:
                                  "lisp/obsolete/crisp.el"
@@ -1282,10 +1281,24 @@ because some of these packages are also available from Melpa.")))
                    (emacs-lisp-mode)
                    (let ((package
                           (cond
-                           ((equal file "lisp/epa-ks.el") "epa")
+                           ;; Unfortunately the Emacs maintainers often
+                           ;; forget to assign new libraries to the appropiate
+                           ;; packages.  So I have to do it instead but since
+                           ;; I know little about them, I will occationally
+                           ;; get it wrong.
+                           ((equal file "lisp/emacs-lisp/oclosure.el") "emacs")
+                           ((equal file "lisp/emacs-lisp/package-vc.el") "package")
                            ((equal file "lisp/emacs-lisp/shorthands.el") "emacs")
-                           ((string-prefix-p "lisp/leim/"     file) "emacs")
+                           ((equal file "lisp/epa-ks.el") "epa")
+                           ((equal file "lisp/keymap.el") "emacs")
+                           ((equal file "lisp/mail/ietf-drums-date.el") "ietf-drums")
+                           ((equal file "lisp/net/tramp-container.el") "tramp")
+                           ((string-prefix-p "lisp/leim/" file) "emacs")
+                           ((string-prefix-p "lisp/net/eudc" file) "eudc")
                            ((string-prefix-p "lisp/obsolete/" file) "emacs")
+                           ((string-prefix-p "lisp/use-package/use-package-" file) "use-package")
+                           ((string-prefix-p "lisp/image/image-dired-" file) "image-dired")
+                           ((string-suffix-p "-ts-mode.el" file) "emacs")
                            ((lm-header "Package"))
                            ((and-let* ((elt (assoc (thread-first file
                                                      file-name-directory
