@@ -7,7 +7,7 @@
 ;; Keywords: local
 
 ;; Package-Requires: (
-;;     (emacs "28.1")
+;;     (emacs "29.0.60")
 ;;     (compat "28.1.1.0")
 ;;     (borg "3.3.1")
 ;;     (elx "1.5.1")
