@@ -115,10 +115,14 @@
       (:url  (oset rcp url value))
       (:core (oset rcp core value)))
     (while plist
-      (let ((slot (intern (substring (symbol-name (pop plist)) 1))))
+      (let ((slot (intern (substring (symbol-name (pop plist)) 1)))
+            (value (pop plist)))
         (unless (memq slot epkg--elpa-recipe-slots)
           (error "Unknown %s recipe slot: %s" elpa slot))
-        (eieio-oset rcp slot (pop plist))))
+        ;; `maintainer' is used for a single package.
+        ;; Let's ignore it for the time being.
+        (unless (eq slot 'maintainer)
+          (eieio-oset rcp slot value))))
     (cond ((epkg name)
            (oset rcp epkg-package name))
           ((not (emir--config name :delayed))
