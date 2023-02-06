@@ -74,6 +74,7 @@
 (setq message-log-max (max message-log-max 30000))
 
 (defconst emir-rewrite-threshold 16)
+(defconst emir-rewrite-always-update '("ideasman42"))
 
 ;;; Repositories
 
@@ -854,7 +855,10 @@ repository specified by variable `epkg-repository'."
         (pcase-let* ((`(,ours ,theirs) (magit-rev-diff-count "master" upstream))
                      (msg (format "history rewritten (master %s, %s %s)"
                                   ours upstream theirs)))
-          (cond ((or force (< (+ ours theirs) emir-rewrite-threshold))
+          (cond ((or force
+                     (< (+ ours theirs) emir-rewrite-threshold)
+                     (member (oref pkg upstream-user)
+                             emir-rewrite-always-update))
                  (message "Update warning (%s): %s" (oref pkg name) msg)
                  (magit-git "reset" "--hard" upstream)
                  (setq emir--force-push t))
