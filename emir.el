@@ -444,7 +444,10 @@ repository specified by variable `epkg-repository'."
       (when failed
         (message "Building %i packages failed:\n%s"
                  (length failed)
-                 (mapconcat (##concat "  " %) (nreverse failed) "\n"))))))
+                 (mapconcat (lambda (name)
+                              (format "  %-20s %s" name
+                                      (oref (epkg name) url)))
+                            (nreverse failed) "\n"))))))
 
 ;;;###autoload
 (defun emir-regenerate-metadata (&optional from)
