@@ -8,7 +8,7 @@
 
 ;; Package-Requires: (
 ;;     (emacs "29.0.60")
-;;     (compat "28.1.1.0")
+;;     (compat "29.1.3.4")
 ;;     (borg "3.3.1")
 ;;     (elx "1.5.1")
 ;;     (emacsql-sqlite-builtin "3.2.0")
