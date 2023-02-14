@@ -120,8 +120,8 @@
         (unless (memq slot epkg--elpa-recipe-slots)
           (error "Unknown %s recipe slot: %s" elpa slot))
         ;; `maintainer' is used for a single package.
-        ;; Let's ignore it for the time being.
-        (unless (eq slot 'maintainer)
+        ;; `manual-sync' is not relevant for us.
+        (unless (memq slot '(maintainer manual-sync))
           (eieio-oset rcp slot value))))
     (cond ((epkg name)
            (oset rcp epkg-package name))
