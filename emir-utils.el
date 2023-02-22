@@ -101,15 +101,17 @@
   (emir-commit (format "Bump database version to %s" version) nil :dump))
 
 (defun emir--recreate-db ()
+  (error "BUG emir--recreate-db has to be updated")
   (require 'epkg-schemata)
-  (when epkg--db-connection
-    (emacsql-close epkg--db-connection))
+  (when-let ((db (epkg-db t)))
+    (emacsql-close db))
   (message "Recreating Epkg database...")
   (let* ((old-file (expand-file-name "epkg.sqlite" epkg-repository))
          (new-file (expand-file-name "new.sqlite" epkg-repository))
+         ;; FIXME No longer possible to open two instances like this.
          (old (closql-db 'epkg-database nil old-file))
          (new (closql-db 'epkg-database nil new-file)))
-    (closql--db-set-version new epkg-db-version)
+    (closql--db-set-version new (oref-default 'epkg-database version))
     (emacsql-with-transaction new
       (dolist (obj (closql-entries old))
         (let ((name (oref obj name)))
