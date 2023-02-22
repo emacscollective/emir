@@ -726,25 +726,7 @@ repository specified by variable `epkg-repository'."
 
 (defun emir-dump-database ()
   (interactive)
-  (message "Dumping Epkg database...")
-  (with-emir-repository t
-    (let ((bin (expand-file-name "epkg.sqlite"))
-          (txt (expand-file-name "epkg.sql")))
-      (with-temp-file txt
-        (unless (zerop (save-excursion
-                         (call-process "sqlite3" nil t nil
-                                       bin ".dump")))
-          (error "Failed to dump %s" bin))
-        (insert (format "PRAGMA user_version=%s;\n" epkg-db-version))
-        ;; Here the value of the `foreign_keys' pragma does not actually
-        ;; matter.  The dump *always* contains a line that disables it.
-        ;; That would be the case even if we extended the above command
-        ;; to explicitly enable it.  That is strange but does not really
-        ;; matter because `closql-db' always enables foreign key support.
-        ;; We do this just to avoid alarming observant users.
-        (when (re-search-forward "^PRAGMA foreign_keys=\\(OFF\\);" 1000 t)
-          (replace-match "ON" t t nil 1)))))
-  (message "Dumping Epkg database...done"))
+  (emacsql-sqlite-dump-database (oref (epkg-db) connection)))
 
 ;;; Git
 ;;;; Import
