@@ -300,17 +300,18 @@ repository specified by variable `epkg-repository'."
 (defvar emir--force-push nil)
 
 ;;;###autoload
-(defun emir-update-package (name &optional force)
+(defun emir-update-package (name &optional interactive)
   (interactive (list (epkg-read-package "Update package: ")
-                     current-prefix-arg))
+                     (prefix-numeric-value current-prefix-arg)))
   (setq emir--force-push nil)
-  (let* ((pkg (epkg name))
+  (let* ((force (and interactive (>= interactive 4)))
+         (pkg (epkg name))
          (tip (oref pkg hash)))
     (condition-case err
         (with-emir-repository pkg
           (emir--assert-clean-worktree)
           (when (and (cl-typep pkg 'epkg-mirrored-package)
-                     (or (called-interactively-p 'any)
+                     (or interactive
                          (not (cl-typep pkg 'epkg-github-package))))
             (emir--update-branch pkg))
           (when (or force (cl-typep pkg 'epkg-mirrored-package))
@@ -318,7 +319,7 @@ repository specified by variable `epkg-repository'."
           (emir-update pkg)
           (when (or force (not (equal (oref pkg hash) tip)))
             (unless (epkg-builtin-package-p pkg)
-              (emir-stage name (and (called-interactively-p 'any) :dump)))
+              (emir-stage name (and interactive :dump)))
             (emir-gh-update pkg)
             (emir-push pkg))
           t)
@@ -595,10 +596,11 @@ repository specified by variable `epkg-repository'."
 
 ;;;###autoload
 (defun emir-remove-package (name)
-  (interactive (list (epkg-read-package "Remove package: ")))
-  (when (and (called-interactively-p 'any)
-             (not (y-or-n-p (format "Really REMOVE (not shelve) %s?" name))))
-    (user-error "Abort"))
+  (interactive
+   (let ((name (epkg-read-package "Remove package: ")))
+     (unless (y-or-n-p (format "Really REMOVE (not shelve) %s?" name))
+       (user-error "Abort"))
+     (list name)))
   (let ((pkg (epkg name)))
     (unless (epkg-builtin-package-p pkg)
       (emir--remove-module-worktree name)
