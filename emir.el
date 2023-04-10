@@ -184,8 +184,8 @@ repository specified by variable `epkg-repository'."
               (if (epkg-builtin-package-p pkg)
                   (closql-delete pkg)
                 (oset pkg builtin-libraries nil))
-              (message "Deleting %s...done" name)))))
-      (emir-commit "Update built-in packages" nil :dump))))
+              (message "Deleting %s...done" name)))))))
+  (emir-commit "Update built-in packages" nil :dump))
 
 ;;;###autoload
 (defun emir-import-ewiki-packages (&optional drew-only)
