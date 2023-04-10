@@ -78,7 +78,7 @@
 
 ;;; Repositories
 
-(defconst emir-emacs-reference "emacs-29.0.50-gebc5263667b")
+(defconst emir-emacs-reference "emacs-29.0.90-0-g9b0bf694da4")
 
 (defconst emir-emacs-repository "~/src/emacs/emacs/master")
 (defconst emir-gnu-elpa-repository (expand-file-name "gnu-elpa/" epkg-repository))
@@ -1275,24 +1275,23 @@ because some of these packages are also available from Melpa.")))
                    (emacs-lisp-mode)
                    (let ((package
                           (cond
-                           ;; Unfortunately the Emacs maintainers often
-                           ;; forget to assign new libraries to the appropiate
-                           ;; packages.  So I have to do it instead but since
-                           ;; I know little about them, I will occationally
-                           ;; get it wrong.
+                           ;; Not handled properly as of `29.0.90' ([[notmuch-tree:thread:000000000001545a][#62751]]):
                            ((equal file "lisp/emacs-lisp/oclosure.el") "emacs")
-                           ((equal file "lisp/emacs-lisp/package-vc.el") "package")
-                           ((equal file "lisp/emacs-lisp/shorthands.el") "emacs")
-                           ((equal file "lisp/epa-ks.el") "epa")
                            ((equal file "lisp/keymap.el") "emacs")
                            ((equal file "lisp/mail/ietf-drums-date.el") "ietf-drums")
-                           ((equal file "lisp/net/tramp-container.el") "tramp")
-                           ((string-prefix-p "lisp/leim/" file) "emacs")
                            ((string-prefix-p "lisp/net/eudc" file) "eudc")
+                           ((string-prefix-p "lisp/use-package/use-package-" file)
+                            "use-package")
+                           ((string-prefix-p "lisp/image/image-dired-" file)
+                            "image-dired")
+                           ;; Not handled properly as of `28.2' (nobug?):
+                           ;; Not handled properly as of `28.1' ([[notmuch-tree:thread:00000000000123e8][#55388]]):
+                           ;; - shorthands.el still provides no feature
+                           ((equal file "lisp/emacs-lisp/shorthands.el") "emacs")
+                           ;; Directories missing from `finder--builtins-alist':
+                           ((string-prefix-p "lisp/leim/" file) "emacs")
                            ((string-prefix-p "lisp/obsolete/" file) "emacs")
-                           ((string-prefix-p "lisp/use-package/use-package-" file) "use-package")
-                           ((string-prefix-p "lisp/image/image-dired-" file) "image-dired")
-                           ((string-suffix-p "-ts-mode.el" file) "emacs")
+                           ;; Properly specified packages:
                            ((lm-header "Package"))
                            ((and-let* ((elt (assoc (thread-first file
                                                      file-name-directory
