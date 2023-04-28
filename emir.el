@@ -930,11 +930,12 @@ repository specified by variable `epkg-repository'."
 ;;;; Push
 
 (cl-defmethod emir-push ((pkg epkg-package) &optional force)
-  (with-emir-repository pkg
-    (magit-git "push"
-               (and (or force emir--force-push (oref pkg patched)) "--force")
-               (and (not (emir--ignore-tags-p pkg)) "--follow-tags")
-               "mirror" "master")))
+  (when (oref pkg mirrored)
+    (with-emir-repository pkg
+      (magit-git "push"
+                 (and (or force emir--force-push (oref pkg patched)) "--force")
+                 (and (not (emir--ignore-tags-p pkg)) "--follow-tags")
+                 "mirror" "master"))))
 
 ;;;; Commit
 
