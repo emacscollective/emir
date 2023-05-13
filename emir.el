@@ -7,15 +7,15 @@
 ;; Keywords: local
 
 ;; Package-Requires: (
-;;     (emacs "29.0.60")
-;;     (compat "29.1.3.4")
+;;     (emacs "29.0.90")
+;;     (compat "29.1.4.1")
 ;;     (borg "3.3.1")
-;;     (elx "1.5.1")
+;;     (elx "2.0.0")
 ;;     (emacsql "4.0.0")
 ;;     (epkg "3.3.3")
-;;     (ghub "3.5.6")
+;;     (ghub "3.6.0")
 ;;     (llama "0.2.0")
-;;     (org "9.5.5"))
+;;     (org "9.6.5"))
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
