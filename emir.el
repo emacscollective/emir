@@ -280,23 +280,36 @@ repository specified by variable `epkg-repository'."
         (message "Adding %s...done" name)))))
 
 ;;;###autoload
-(defun emir-add-melpa-packages (&optional dry-run)
-  (interactive "P")
-  (pcase-dolist (`(,name ,class ,url ,branch)
-                 (epkg-list-recipes 'melpa [name class url branch]))
-    (unless (or (epkg name)
-                (emir--lookup-url url)
-                (emir--config name :delayed)
-                (emir--config name :secondary))
-      (message "Adding %s..." name)
-      (unless dry-run
-        (when (equal branch "melpa")
-          (setq branch nil))
-        (apply #'emir-add-package name url
-               (or (emir--url-to-class url)
-                   (intern (format "epkg-%s-package" class)))
-               (and branch (list :upstream-branch branch))))
-      (message "Adding %s...done" name))))
+(defun emir-add-melpa-packages (&optional dry-run interactive)
+  (interactive (list current-prefix-arg t))
+  (pcase-dolist
+      (`(,name ,url ,class ,branch)
+       (seq-keep (pcase-lambda (`(,url . ,pkgs))
+                   (cond
+                    ((not (cdr pkgs))
+                     (car pkgs))
+                    (interactive
+                     (assoc (completing-read (format "Mirror %s as: " url)
+                                             pkgs nil t)
+                            pkgs))))
+                 (seq-group-by
+                  #'cadr
+                  (cl-remove-if
+                   (pcase-lambda (`(,name ,url))
+                     (or (epkg name)
+                         (emir--lookup-url url)
+                         (emir--config name :delayed)
+                         (emir--config name :secondary)))
+                   (epkg-list-recipes 'melpa [name url class branch])))))
+    (message "Adding %s..." name)
+    (unless dry-run
+      (when (equal branch "melpa")
+        (setq branch nil))
+      (apply #'emir-add-package name url
+             (or (emir--url-to-class url)
+                 (intern (format "epkg-%s-package" class)))
+             (and branch (list :upstream-branch branch))))
+    (message "Adding %s...done" name)))
 
 ;;;; Update
 
