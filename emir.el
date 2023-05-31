@@ -628,7 +628,8 @@ repository specified by variable `epkg-repository'."
 
 (defun emir--stash-module-gitdir (name)
   (with-emir-repository t
-    (let ((default-directory (magit-gitdir)))
+    (let* ((magit--refresh-cache nil)
+           (default-directory (magit-gitdir)))
       (make-directory "removed/" t)
       (rename-file (format "modules/%s" name)
                    (format "removed/%s-%s" name
