@@ -644,9 +644,11 @@ repository specified by variable `epkg-repository'."
     (let* ((magit--refresh-cache nil)
            (default-directory (magit-gitdir)))
       (make-directory "removed/" t)
-      (rename-file (format "modules/%s" name)
-                   (format "removed/%s-%s" name
-                           (format-time-string "%FT%T"))))))
+      (let ((gitdir (format "modules/%s" name)))
+        (when (file-exists-p gitdir)
+          (rename-file gitdir
+                       (format "removed/%s-%s" name
+                               (format-time-string "%FT%T"))))))))
 
 ;;;; Setup
 
