@@ -778,10 +778,10 @@ repository specified by variable `epkg-repository'."
          (setq branch (concat "elpa/" name)))
         (epkg-gnu-elpa-package
          (setq branch (concat "externals/" name))))
-      (magit-git "clone"
+      (magit-git "clone" "--reject-shallow" "--single-branch"
                  (and (emir--ignore-tags-p pkg) "--no-tags")
                  (and branch (list "--branch" branch))
-                 "--single-branch" origin module)
+                 origin module)
       (cl-typecase pkg
         (epkg-wiki-package
          (with-emir-repository pkg
@@ -878,7 +878,7 @@ repository specified by variable `epkg-repository'."
          (target (format "mirror/%s" name)))
     (with-emir-repository t
       (cond ((not (file-exists-p source))
-             (magit-git "clone" "--single-branch"
+             (magit-git "clone" "--reject-shallow" "--single-branch"
                         (and branch (list "--branch" branch))
                         origin source)
              (unless branch
