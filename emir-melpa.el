@@ -187,7 +187,7 @@
              t t)
           (message "WARNING: Cannot find `:repo' or `:url'")))
       (if (magit-anything-unstaged-p nil file)
-          (magit-git "commit" "-m"
+          (magit-git "commit" "--gpg-sign" "-m"
                      (concat (format msg name)
                              (and redirected
                                   "\n\nThe old url redirects to the new url."))
