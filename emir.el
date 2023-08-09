@@ -403,13 +403,13 @@ repository specified by variable `epkg-repository'."
 (defun emir-update-slow-packages (&optional from recreate)
   (interactive (list (and current-prefix-arg
                           (epkg-read-package "Limit to packages after: "))))
-  (emir--update-packages [subtree minority] from recreate))
+  (emir--update-packages [subtree] from recreate))
 
 ;;;###autoload
 (defun emir-update-other-packages (&optional from recreate)
   (interactive (list (and current-prefix-arg
                           (epkg-read-package "Limit to packages after: "))))
-  (emir--update-packages [mirrored* !github* !wiki !subtree* !subrepo*]
+  (emir--update-packages [mirrored* !github* !wiki !subtree*]
                          from recreate))
 
 (defun emir--update-packages (types from recreate)
@@ -816,22 +816,6 @@ repository specified by variable `epkg-repository'."
          (emir-pull pkg))))
     (oset pkg branch branch)))
 
-(cl-defmethod emir-clone ((pkg epkg-subrepo-package))
-  (let* ((name   (oref pkg name))
-         (mirror (oref pkg mirror-url))
-         (module (concat "mirror/" name)))
-    (with-emir-repository t
-      (magit-git "init" "--initial-branch" "master" module))
-    (with-emir-repository pkg
-      (magit-git "commit" "--allow-empty" "-m" "dummy"))
-    (with-emir-repository t
-      (magit-git "submodule" "add" "--name" name mirror module)
-      (magit-git "submodule" "absorbgitdirs" module))
-    (emir-pull pkg)
-    (with-emir-repository pkg
-      (magit-git "remote" "add" "mirror" mirror)
-      (magit-git "config" "remote.pushDefault" "mirror"))))
-
 (cl-defmethod emir-clone ((pkg epkg-file-package))
   (let* ((name   (oref pkg name))
          (mirror (oref pkg mirror-url))
@@ -869,34 +853,6 @@ repository specified by variable `epkg-repository'."
                  (magit-git "reset" "--hard" upstream)
                  (setq emir--force-push t))
                 ((error "%s" msg)))))))))
-
-(cl-defmethod emir-pull ((pkg epkg-subrepo-package) &optional _force)
-  (let* ((name   (oref pkg name))
-         (origin (oref pkg url))
-         (branch (oref pkg upstream-branch))
-         (source (format ".git/modules/%s/unfiltered" name))
-         (target (format "mirror/%s" name)))
-    (with-emir-repository t
-      (cond ((not (file-exists-p source))
-             (magit-git "clone" "--reject-shallow" "--single-branch"
-                        (and branch (list "--branch" branch))
-                        origin source)
-             (unless branch
-               (setq branch (magit-get-current-branch)))
-             (unless (equal branch "master")
-               (let ((default-directory (expand-file-name source)))
-                 (magit-git "branch" "--move" branch "master"))))
-            (t
-             (let ((default-directory (expand-file-name source)))
-               (magit-git "pull" "--ff-only" "origin"))))
-      (magit-git "filter-repo"
-                 "--force"
-                 "--source" source
-                 "--target" target
-                 ;; For this class this is a list of arguments.
-                 (oref pkg upstream-tree)
-                 "--prune-empty=always"
-                 "--prune-degenerate=always"))))
 
 (cl-defmethod emir-pull ((pkg epkg-file-package) &optional force)
   (with-emir-repository pkg
@@ -977,8 +933,7 @@ repository specified by variable `epkg-repository'."
   (unless (or (cl-typep pkg 'epkg-file-package)     ; no upstream repository
               (cl-typep pkg 'epkg-wiki-package)     ; constant name
               (cl-typep pkg 'epkg-gnu-elpa-package) ; constant name
-              (cl-typep pkg 'epkg-subtree-package)  ; no tracked upstream
-              (cl-typep pkg 'epkg-subrepo-package)) ; no tracked upstream
+              (cl-typep pkg 'epkg-subtree-package)) ; no tracked upstream
     (with-emir-repository pkg
       (let ((name (oref pkg name))
             (forced (oref pkg upstream-branch))
@@ -1051,8 +1006,6 @@ repository specified by variable `epkg-repository'."
         (epkg-shelved-package
          (magit-git "branch" "--unset-upstream"))
         (epkg-file-package
-         (magit-git "branch" "--unset-upstream"))
-        (epkg-subrepo-package
          (magit-git "branch" "--unset-upstream"))
         (epkg-subtree-package
          (magit-git "branch" "--unset-upstream")
@@ -1467,11 +1420,7 @@ because some of these packages are also available from Melpa.")))
                  (not (equal conflict name))
                  (not (emir--config name :sharing-repo))
                  (not (cl-typep pkg 'epkg-wiki-package))
-                 (not (cl-typep pkg 'epkg-gnu-elpa-package))
-                 (not (and (cl-typep pkg 'epkg-subrepo-package)
-                           (let ((old (epkg conflict)))
-                             (cl-typep old 'epkg-subrepo-package)
-                             (cl-typep old 'epkg-builtin-package)))))
+                 (not (cl-typep pkg 'epkg-gnu-elpa-package)))
         (user-error "Another package, %s, is already mirrored from %s"
                     conflict url)))
     (when-let ((url-format (oref pkg url-format)))
@@ -1599,7 +1548,6 @@ because some of these packages are also available from Melpa.")))
 
 (defun emir--ignore-tags-p (pkg)
   (or (cl-typep pkg 'epkg-subtree-package)
-      (cl-typep pkg 'epkg-subrepo-package)
       (cl-typep pkg 'epkg-wiki-package)
       (cl-typep pkg 'epkg-gnu-elpa-package)))
 

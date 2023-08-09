@@ -171,7 +171,7 @@
                 (pcase fetcher
                   ("orphaned"
                    (setq fetcher "github"))
-                  ((or "gnu" "nongnu" "subtree" "subrepo" "minority")
+                  ((or "gnu" "nongnu" "subtree")
                    (setq fetcher "git"))
                   ("bitbucket"
                    (setq fetcher "hg")))
