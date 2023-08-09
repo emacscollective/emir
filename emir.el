@@ -837,7 +837,7 @@ repository specified by variable `epkg-repository'."
          (mirror (oref pkg mirror-url))
          (module (concat "mirror/" name)))
     (with-emir-repository t
-      (magit-git "init" module))
+      (magit-git "init" "--initial-branch" "master" module))
     (emir-pull pkg t)
     (with-emir-repository t
       (magit-git "submodule" "add" "--name" name mirror module)
