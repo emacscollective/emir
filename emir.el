@@ -78,7 +78,7 @@
 
 ;;; Repositories
 
-(defconst emir-emacs-reference "emacs-29.0.90-0-g9b0bf694da4")
+(defconst emir-emacs-reference "emacs-29.1")
 
 (defconst emir-emacs-repository "~/src/emacs/emacs/master")
 (defconst emir-gnu-elpa-repository (expand-file-name "gnu-elpa/" epkg-repository))
@@ -1246,9 +1246,7 @@ because some of these packages are also available from Melpa.")))
                    (emacs-lisp-mode)
                    (let ((package
                           (cond
-                           ;; Not handled properly as of `29.0.90' ([[notmuch-tree:thread:000000000001545a][#62751]]):
-                           ((equal file "lisp/emacs-lisp/oclosure.el") "emacs")
-                           ((equal file "lisp/keymap.el") "emacs")
+                           ;; Not handled properly as of `29.1' ([[notmuch-tree:thread:000000000001545a][#62751]]):
                            ((equal file "lisp/mail/ietf-drums-date.el") "ietf-drums")
                            ((string-prefix-p "lisp/net/eudc" file) "eudc")
                            ((string-prefix-p "lisp/use-package/use-package-" file)
