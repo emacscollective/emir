@@ -907,7 +907,7 @@ repository specified by variable `epkg-repository'."
       (magit-git "push"
                  (and (or force emir--force-push (oref pkg patched)) "--force")
                  (and (not (emir--ignore-tags-p pkg)) "--follow-tags")
-                 "mirror" "master"))))
+                 "mirror" "heads/master"))))
 
 ;;;; Commit
 
