@@ -91,7 +91,9 @@
     (oset rcp repopage (emir--format-url rcp 'repopage-format))
     (cond ((epkg name)
            (oset rcp epkg-package name))
-          ((not (emir--config name :delayed))
+          ((emir--config name :delayed)
+           (oset rcp epkg-package nil))
+          (t
            (when-let ((name (or (emir--lookup-url (oref rcp url))
                                 (emir--config name :secondary))))
              (oset rcp epkg-package name))))))
