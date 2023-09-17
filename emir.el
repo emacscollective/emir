@@ -891,8 +891,8 @@ repository specified by variable `epkg-repository'."
                    (or (magit-git-string "subtree" "-P"
                                          (oref pkg upstream-tree) "split")
                        (error "git-subtree failed or is missing")))
-        (message "Filtering subtree of %s...done (%.1fs)" name
-                 (float-time (time-subtract (current-time) time))))
+        (message "Filtering subtree of %s...done (%.0fm)" name
+                 (/ (float-time (time-subtract (current-time) time)) 60)))
       (magit-git "checkout" branch))))
 
 (cl-defmethod emir-pull ((pkg epkg-shelved-package) &optional _force)
