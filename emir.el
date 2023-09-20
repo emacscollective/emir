@@ -1223,60 +1223,66 @@ because some of these packages are also available from Melpa.")))
 
 (defun emir--builtin-packages-alist ()
   (emir-with-emacs-worktree
-    (mapcar
-     (lambda (elt)
-       (cons (car elt) (mapcar #'cdr (cdr elt))))
-     (seq-group-by
-      #'car
-      (cl-sort
-       (cl-mapcan
-        (lambda (file)
-          (and (string-suffix-p ".el" file)
-               (if (or (string-match-p finder-no-scan-regexp file)
-                       (member file
-                               '(;; Old versions:
-                                 "lisp/obsolete/otodo-mode.el"
-                                 ;; Moved to GNU Elpa:
-                                 "lisp/obsolete/crisp.el"
-                                 "lisp/obsolete/landmark.el")))
-                   (prog1 nil (message "Skipping %s...done" file))
-                 (message "Importing %s..." file)
-                 (with-temp-buffer
-                   (insert-file-contents file)
-                   (emacs-lisp-mode)
-                   (let ((package
-                          (cond
-                           ;; Not handled properly as of `29.1' ([[notmuch-tree:thread:000000000001545a][#62751]]):
-                           ((equal file "lisp/mail/ietf-drums-date.el") "ietf-drums")
-                           ((string-prefix-p "lisp/net/eudc" file) "eudc")
-                           ((string-prefix-p "lisp/use-package/use-package-" file)
-                            "use-package")
-                           ((string-prefix-p "lisp/image/image-dired-" file)
-                            "image-dired")
-                           ;; Not handled properly as of `28.2' (nobug?):
-                           ;; Not handled properly as of `28.1' ([[notmuch-tree:thread:00000000000123e8][#55388]]):
-                           ;; - shorthands.el still provides no feature
-                           ((equal file "lisp/emacs-lisp/shorthands.el") "emacs")
-                           ;; Directories missing from `finder--builtins-alist':
-                           ((string-prefix-p "lisp/leim/" file) "emacs")
-                           ((string-prefix-p "lisp/obsolete/" file) "emacs")
-                           ;; Properly specified packages:
-                           ((lm-header "Package"))
-                           ((and-let* ((elt (assoc (thread-first file
-                                                     file-name-directory
-                                                     directory-file-name
-                                                     file-name-nondirectory)
-                                                   finder--builtins-alist)))
-                              (symbol-name (cdr elt))))
-                           ((thread-first file
-                              file-name-nondirectory
-                              file-name-sans-extension)))))
-                     (prog1 (mapcar (##list package file %)
-                                    (or (elx-provided)
-                                        (list nil)))
-                       (message "Importing %s...done" file)))))))
-        (magit-git-items "ls-tree" "-z" "-r" "--name-only" "HEAD" "lisp/"))
-       #'string< :key #'car)))))
+    (let ((builtins-alist
+           (with-temp-buffer
+             (insert-file-contents "lisp/finder.el")
+             (re-search-forward "^(defvar finder--builtins-alist")
+             (goto-char (match-beginning 0))
+             (eval (nth 2 (read (current-buffer)))))))
+      (mapcar
+       (lambda (elt)
+         (cons (car elt) (mapcar #'cdr (cdr elt))))
+       (seq-group-by
+        #'car
+        (cl-sort
+         (cl-mapcan
+          (lambda (file)
+            (and (string-suffix-p ".el" file)
+                 (if (or (string-match-p finder-no-scan-regexp file)
+                         (member file
+                                 '(;; Old versions:
+                                   "lisp/obsolete/otodo-mode.el"
+                                   ;; Moved to GNU Elpa:
+                                   "lisp/obsolete/crisp.el"
+                                   "lisp/obsolete/landmark.el")))
+                     (prog1 nil (message "Skipping %s...done" file))
+                   (message "Importing %s..." file)
+                   (with-temp-buffer
+                     (insert-file-contents file)
+                     (emacs-lisp-mode)
+                     (let ((package
+                            (cond
+                             ;; Not handled properly as of `29.1' ([[notmuch-tree:thread:000000000001545a][#62751]]):
+                             ((equal file "lisp/mail/ietf-drums-date.el") "ietf-drums")
+                             ((string-prefix-p "lisp/net/eudc" file) "eudc")
+                             ((string-prefix-p "lisp/use-package/use-package-" file)
+                              "use-package")
+                             ((string-prefix-p "lisp/image/image-dired-" file)
+                              "image-dired")
+                             ;; Not handled properly as of `28.2' (nobug?):
+                             ;; Not handled properly as of `28.1' ([[notmuch-tree:thread:00000000000123e8][#55388]]):
+                             ;; - shorthands.el still provides no feature
+                             ((equal file "lisp/emacs-lisp/shorthands.el") "emacs")
+                             ;; Directories missing from `finder--builtins-alist':
+                             ((string-prefix-p "lisp/leim/" file) "emacs")
+                             ((string-prefix-p "lisp/obsolete/" file) "emacs")
+                             ;; Properly specified packages:
+                             ((lm-header "Package"))
+                             ((and-let* ((elt (assoc (thread-first file
+                                                       file-name-directory
+                                                       directory-file-name
+                                                       file-name-nondirectory)
+                                                     builtins-alist)))
+                                (symbol-name (cdr elt))))
+                             ((thread-first file
+                                file-name-nondirectory
+                                file-name-sans-extension)))))
+                       (prog1 (mapcar (##list package file %)
+                                      (or (elx-provided)
+                                          (list nil)))
+                         (message "Importing %s...done" file)))))))
+          (magit-git-items "ls-tree" "-z" "-r" "--name-only" "HEAD" "lisp/"))
+         #'string< :key #'car))))))
 
 ;;; Github
 
