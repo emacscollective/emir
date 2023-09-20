@@ -78,7 +78,7 @@
 
 ;;; Repositories
 
-(defconst emir-emacs-reference "emacs-29.1")
+(defconst emir-emacs-reference "emacs-29.1-236-ga2953ea3003")
 
 (defconst emir-emacs-repository "~/src/emacs/emacs/master")
 (defconst emir-gnu-elpa-repository (expand-file-name "gnu-elpa/" epkg-repository))
@@ -1242,9 +1242,10 @@ because some of these packages are also available from Melpa.")))
             (and (string-suffix-p ".el" file)
                  (if (or (string-match-p finder-no-scan-regexp file)
                          (member file
-                                 '(;; Old versions:
+                                 '(;; Pending [[notmuch-tree:thread:000000000001545a][#62751]]:
+                                   ;; - Old versions:
                                    "lisp/obsolete/otodo-mode.el"
-                                   ;; Moved to GNU Elpa:
+                                   ;; - Moved to GNU Elpa:
                                    "lisp/obsolete/crisp.el"
                                    "lisp/obsolete/landmark.el")))
                      (prog1 nil (message "Skipping %s...done" file))
@@ -1254,28 +1255,17 @@ because some of these packages are also available from Melpa.")))
                      (emacs-lisp-mode)
                      (let ((package
                             (cond
-                             ;; Not handled properly as of `29.1' ([[notmuch-tree:thread:000000000001545a][#62751]]):
-                             ((equal file "lisp/mail/ietf-drums-date.el") "ietf-drums")
-                             ((string-prefix-p "lisp/net/eudc" file) "eudc")
-                             ((string-prefix-p "lisp/use-package/use-package-" file)
-                              "use-package")
-                             ((string-prefix-p "lisp/image/image-dired-" file)
-                              "image-dired")
-                             ;; Not handled properly as of `28.2' (nobug?):
-                             ;; Not handled properly as of `28.1' ([[notmuch-tree:thread:00000000000123e8][#55388]]):
-                             ;; - shorthands.el still provides no feature
-                             ((equal file "lisp/emacs-lisp/shorthands.el") "emacs")
-                             ;; Directories missing from `finder--builtins-alist':
-                             ((string-prefix-p "lisp/leim/" file) "emacs")
-                             ((string-prefix-p "lisp/obsolete/" file) "emacs")
+                             ;; Pending [[notmuch-tree:thread:000000000001545a][#62751]]:
+                             ((equal file "lisp/use-package/bind-key.el")
+                              "bind-key")
                              ;; Properly specified packages:
-                             ((lm-header "Package"))
                              ((and-let* ((elt (assoc (thread-first file
                                                        file-name-directory
                                                        directory-file-name
                                                        file-name-nondirectory)
                                                      builtins-alist)))
                                 (symbol-name (cdr elt))))
+                             ((lm-header "Package"))
                              ((thread-first file
                                 file-name-nondirectory
                                 file-name-sans-extension)))))
