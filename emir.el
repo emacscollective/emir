@@ -1359,7 +1359,7 @@ because some of these packages are also available from Melpa.")))
   (when (oref pkg mirrored)
     (emir-gh pkg "DELETE" "/repos/%o/%m")))
 
-(defun emir-gh-foreach-query (query callback &optional per-page packages)
+(defun emir-gh-foreach-query (query &optional callback per-page packages)
   (let* ((page 0)
          (result nil)
          (groups
@@ -1385,26 +1385,40 @@ because some of these packages are also available from Melpa.")))
                      (take packages (epkgs nil [github*])))
                     ((mapcar #'epkg packages))))
            (or per-page 100)))
-         (length (length groups)))
-    (cl-labels
-        ((cb (&optional data _headers _status _req)
-           (setq result (nconc result (cdar data)))
-           (cond
-            (groups
-             (message "Fetching page...%s/%s" (cl-incf page) length)
-             (ghub-graphql
-              (gsexp-encode
-               (ghub--graphql-prepare-query
-                (cons 'query (pop groups))))
-              nil :callback #'cb :auth 'emir))
-            (t
-             (message "Fetching page...done")
-             (dolist (elt result)
-               (setcar elt (base64-decode-string
-                            (string-replace
-                             "_" "=" (substring (symbol-name (car elt)) 1)))))
-             (funcall callback result)))))
-      (cb))))
+         (length (length groups))
+         (decode (lambda (result)
+                   (dolist (elt result)
+                     (setcar elt (base64-decode-string
+                                  (string-replace
+                                   "_" "="
+                                   (substring (symbol-name (car elt)) 1)))))
+                   result)))
+    (if callback
+        (cl-labels
+            ((cb (&optional data _headers _status _req)
+               (setq result (nconc result (cdar data)))
+               (cond
+                (groups
+                 (message "Fetching page...%s/%s" (cl-incf page) length)
+                 (ghub-graphql
+                  (gsexp-encode
+                   (ghub--graphql-prepare-query
+                    (cons 'query (pop groups))))
+                  nil :callback #'cb :auth 'emir))
+                (t
+                 (message "Fetching page...done")
+                 (funcall callback (funcall decode result))))))
+          (cb))
+      (prog1 (funcall decode (mapcan (lambda (group)
+                                       (message "Fetching page...%s/%s"
+                                                (cl-incf page) length)
+                                       (cdar (ghub-graphql
+                                              (gsexp-encode
+                                               (ghub--graphql-prepare-query
+                                                (cons 'query group)))
+                                              nil :auth 'emir)))
+                                     groups))
+        (message "Fetching page...done")))))
 
 ;;; Urls
 
