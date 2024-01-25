@@ -112,15 +112,15 @@ repository specified by variable `epkg-repository'."
   (let ((worktree (gensym "emacs-worktree-")))
     `(let ((,worktree nil))
        (unwind-protect
-         (let* ((emir-emacs-repository
-                 (let ((default-directory emir-emacs-repository))
-                   (setq ,worktree (make-temp-file "emir-emacs-" t))
-                   (magit-run-git "worktree" "add"
-                                  (magit--expand-worktree ,worktree)
-                                  emir-emacs-reference)
-                   ,worktree))
-                (default-directory emir-emacs-repository))
-           ,@body)
+           (let* ((emir-emacs-repository
+                   (let ((default-directory emir-emacs-repository))
+                     (setq ,worktree (make-temp-file "emir-emacs-" t))
+                     (magit-run-git "worktree" "add"
+                                    (magit--expand-worktree ,worktree)
+                                    emir-emacs-reference)
+                     ,worktree))
+                  (default-directory emir-emacs-repository))
+             ,@body)
          (let ((default-directory emir-emacs-repository))
            (with-demoted-errors "Cleanup Emacs worktree: %S"
              (magit-worktree-delete ,worktree)))))))
