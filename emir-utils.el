@@ -133,9 +133,9 @@
 (defun emir-enable-sql-logging ()
   "Enable logging Epkg SQL queries."
   (interactive)
-  (let ((db (epkg-db)))
-    (emacsql-enable-debugging db)
-    (switch-to-buffer-other-window (emacsql-log-buffer db))))
+  (let ((conn (oref (epkg-db) connection)))
+    (emacsql-enable-debugging conn)
+    (switch-to-buffer-other-window (oref conn log-buffer))))
 
 ;;; _
 (provide 'emir-utils)
