@@ -586,13 +586,13 @@ repository specified by variable `epkg-repository'."
     (let ((default-directory emir-melpa-repository)
           (rcp (concat "recipes/" name)))
       (when (file-exists-p rcp)
-      (let ((msg (ignore-errors
-                   (read-string
-                    "Also remove from Melpa with message (empty to skip): "
-                    (format (or melpa-msg "Remove %S package") name)))))
-        (unless (equal msg "")
-          (magit-git "rm" rcp)
-          (magit-git "commit" "-m" msg "--" rcp)))))))
+        (let ((msg (ignore-errors
+                     (read-string
+                      "Also remove from Melpa with message (empty to skip): "
+                      (format (or melpa-msg "Remove %S package") name)))))
+          (unless (equal msg "")
+            (magit-git "rm" rcp)
+            (magit-git "commit" "-m" msg "--" rcp)))))))
 
 ;;;###autoload
 (defun emir-shelve-archived-github-packages ()
