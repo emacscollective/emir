@@ -556,7 +556,7 @@ repository specified by variable `epkg-repository'."
 ;;;; Shelve
 
 ;;;###autoload
-(defun emir-shelve-package (name &optional melpa-msg)
+(defun emir-shelve-package (name)
   (interactive (list (epkg-read-package "Shelve package: " nil [mirrored*])))
   (let ((pkg (epkg name)))
     (with-demoted-errors "Error: %S"
@@ -584,19 +584,41 @@ repository specified by variable `epkg-repository'."
       (emir-gh-init pkg)
       (emir-push    pkg)
       (emir-commit (format "Shelve %S package" name) name :dump))
-    (let ((default-directory emir-melpa-repository)
-          (rcp (concat "recipes/" name)))
+    (let* ((name "auto-complete-auctex")
+          (default-directory emir-melpa-repository)
+          (rcp (concat "recipes/" name))
+          action reason)
       (when (file-exists-p rcp)
-        (let ((msg (ignore-errors
-                     (read-string
-                      "Also remove from Melpa with message (empty to skip): "
-                      (format (or melpa-msg "Remove %S package") name)))))
-          (unless (equal msg "")
-            (magit-git "rm" rcp)
-            (magit-git "commit" "-m" msg "--" rcp)))))))
+        (magit-read-char-case (format "Handle %s recipe: " name) nil
+          (?i "[i]gnore")
+          (?r "[r]emove recipe"  (setq action 'remove))
+          (?a "get from [a]ttic" (setq action 'update)))
+        (when action
+          (magit-read-char-case "Reason: " nil
+            (?a "[a]rchived"
+                (setq reason "The upstream repository has been archived."))
+            (?r "[r]emoved"
+                (setq reason "The upstream repository has been removed.")))
+          (pcase action
+            ('remove
+             (magit-git "rm" rcp)
+             (magit-run-git-with-editor
+              "commit" "--edit" "-m"
+              (format "Remove \"%s\" package\n\n%s" name reason)
+              "--" rcp))
+            ('update
+             (with-temp-file rcp
+               (insert
+                (format "(%s\n :fetcher github\n :repo \"emacsattic/%s\")"
+                        name name)))
+             (magit-run-git-with-editor
+              "commit" "--edit" "-m"
+              (format "Get \"%s\" from Emacsattic\n\n%s\n" name reason)
+              "--" rcp))))))))
 
 ;;;###autoload
 (defun emir-shelve-archived-github-packages ()
+  ;; TODO Update to take advantage of changes to `emir-shelve-package'.
   (interactive)
   (dolist (name (epkgs 'name [github*]))
     (let ((pkg (epkg name)))
@@ -608,7 +630,7 @@ repository specified by variable `epkg-repository'."
                  (message "Skipping %s needed by %s..." name dependants))
                 (t
                  (message "Shelve %s..." name)
-                 (emir-shelve-package name "Remove archived %S package")
+                 (emir-shelve-package name)
                  (message "Shelve %s...done" name))))))))
 
 ;;;; Remove
