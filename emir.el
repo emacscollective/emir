@@ -707,7 +707,7 @@ repository specified by variable `epkg-repository'."
     (emir--stash-module-gitdir name)
     (emir-add pkg t)
     (emir-melpa-migrate-recipe name "Update %s's repository")
-    (emir-commit (format "Migrate %S package" name) name :dump :sort)))
+    (emir-commit (format "Migrate \"%s\" package" name) name :dump :sort)))
 
 (defun emir--gh-maybe-migrate (pkg new)
   (let* ((old (concat (oref pkg upstream-user) "/"
