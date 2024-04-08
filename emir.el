@@ -1307,7 +1307,7 @@ because some of these packages are also available from Melpa.")))
     (emir-gh pkg "WAIT" "/repos/%o/%m")))
 
 (cl-defmethod emir-gh-init ((pkg epkg-github-package))
-  (if (let-alist (cdr (ghub--graphql-vacuum
+  (if (let-alist (cdr (ghub--graphql-synchronous
                        '(query (repository
                                 [(owner $owner String!)
                                  (name  $name  String!)]
@@ -1316,8 +1316,7 @@ because some of these packages are also available from Melpa.")))
                                          (affiliations ORGANIZATION_MEMBER)]
                                         (owner login)))))
                        `((owner . ,(oref pkg upstream-user))
-                         (name  . ,(oref pkg upstream-name)))
-                       'synchronous))
+                         (name  . ,(oref pkg upstream-name)))))
         (seq-some (##equal (let-alist % .owner.login) "emacsmirror")
                   .repository.parent.forks))
       (cl-call-next-method)
