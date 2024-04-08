@@ -1307,18 +1307,20 @@ because some of these packages are also available from Melpa.")))
     (emir-gh pkg "WAIT" "/repos/%o/%m")))
 
 (cl-defmethod emir-gh-init ((pkg epkg-github-package))
-  (if (let-alist (cdr (ghub--graphql-synchronous
-                       '(query (repository
-                                [(owner $owner String!)
-                                 (name  $name  String!)]
-                                (parent
-                                 (forks [(:edges t)
-                                         (affiliations ORGANIZATION_MEMBER)]
-                                        (owner login)))))
-                       `((owner . ,(oref pkg upstream-user))
-                         (name  . ,(oref pkg upstream-name)))))
-        (seq-some (##equal (let-alist % .owner.login) "emacsmirror")
-                  .repository.parent.forks))
+  (if (condition-case-unless-debug err
+          (let-alist (cdr (ghub--graphql-synchronous
+                           '(query (repository
+                                    [(owner $owner String!)
+                                     (name  $name  String!)]
+                                    (parent
+                                     (forks [(:edges t)
+                                             (affiliations ORGANIZATION_MEMBER)]
+                                            (owner login)))))
+                           `((owner . ,(oref pkg upstream-user))
+                             (name  . ,(oref pkg upstream-name)))))
+            (seq-some (##equal (let-alist % .owner.login) "emacsmirror")
+                      .repository.parent.forks))
+        (error (message "Error: %S" err) t))
       (cl-call-next-method)
     (emir-gh pkg "POST" "/repos/%u/%n/forks" '((organization . "emacsmirror")))
     (emir-gh pkg "WAIT" "/repos/%o/%n")
