@@ -212,6 +212,17 @@ repository specified by variable `epkg-repository'."
         (magit-run-git-async "filter-emacswiki" "--tag" "--notes"))))
   (emir-commit "Update Emacswiki module"))
 
+;;;###autoload
+(defun emir-import-ewiki-package (name)
+  (interactive (list (read-string "Package: ")))
+  (with-emir-repository 'epkg-wiki-package
+    (magit-process-buffer)
+    (with-environment-variables
+        (("PATH" (format "%sbin:%s"
+                         (file-name-directory (locate-library "emir.el"))
+                         (getenv "PATH"))))
+      (magit-run-git-async "filter-emacswiki" "--tag" "--notes" name))))
+
 ;;;; Add
 
 ;;;###autoload
