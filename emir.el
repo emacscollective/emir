@@ -171,6 +171,10 @@ repository specified by variable `epkg-repository'."
               (message "  = %S" value)
               (setq pkg (epkg-builtin-package :name name))
               (emir-add pkg))
+            ;; FIXME While the table schemata allows for more than one
+            ;; feature per library, Closql only allows for one (PKG LIB
+            ;; "VALUE"), so one will randomly end up being stored in the
+            ;; database.  This affects "lisp/bindings.el" of "emacs".
             (oset pkg builtin-libraries value)
             (if value
                 (emir-update pkg)
