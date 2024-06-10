@@ -78,7 +78,8 @@
 
 ;;; Repositories
 
-(defconst emir-emacs-reference "emacs-29.1-236-ga2953ea3003")
+;; Aka 30.0.50* from 2024-06-10.
+(defconst emir-emacs-reference "emacs-29.3-172347-g37a715c609a")
 
 (defconst emir-emacs-repository "~/src/emacs/emacs/master")
 (defconst emir-gnu-elpa-repository (expand-file-name "gnu-elpa/" epkg-repository))
