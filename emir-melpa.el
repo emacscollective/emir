@@ -231,7 +231,7 @@
                                 melpa-recipes:class]
              :from [packages melpa-recipes]
              :where (and (= packages:name melpa-recipes:name)
-                         (not (= packages:class 'wiki))
+                         (not (in packages:class [wiki shelved]))
                          (or (and (isnull  packages:upstream-branch)
                                   (notnull melpa-recipes:branch))
                              (and (notnull packages:upstream-branch)
