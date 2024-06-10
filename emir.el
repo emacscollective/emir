@@ -1082,7 +1082,7 @@ repository specified by variable `epkg-repository'."
       (if-let ((lib (emir--main-library pkg)))
           (with-temp-buffer
             (insert-file-contents lib)
-            (oset pkg summary (elx-summary nil t))
+            (oset pkg summary     (elx-summary nil t))
             (oset pkg keywords    (elx-keywords-list nil t t))
             (oset pkg license     (emir--license pkg))
             (oset pkg created     (elx-created))
