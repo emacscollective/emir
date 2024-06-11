@@ -192,7 +192,8 @@ repository specified by variable `epkg-repository'."
               (message "Deleting %s...done" name)))))))
   (emir-commit (format "Update built-in packages for %s"
                        emir-emacs-reference)
-               nil :dump))
+               nil :dump)
+  (emir-import-gnu-elpa-recipes))
 
 ;;;###autoload
 (defun emir-import-ewiki-packages (&optional drew-only)
