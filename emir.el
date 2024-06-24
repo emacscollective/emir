@@ -193,7 +193,7 @@ repository specified by variable `epkg-repository'."
   (emir-commit (format "Update built-in packages for %s"
                        emir-emacs-reference)
                nil :dump)
-  (emir-import-gnu-elpa-recipes))
+  (emir-import-gnu-elpa-recipes nil))
 
 ;;;###autoload
 (defun emir-import-ewiki-packages (&optional drew-only)
