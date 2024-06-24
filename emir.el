@@ -78,8 +78,13 @@
 
 ;;; Repositories
 
-;; Aka 30.0.50* from 2024-06-10.
-(defconst emir-emacs-reference "emacs-29.3-172347-g37a715c609a")
+;; Emacs' history, including very recent history, is littered with so many
+;; twig merges, "git describe" cannot make sense of it anymore.  To force
+;; it to use the latest tag, use something like "git describe --match
+;; emacs-29.4".  The count is never-the-less off by several magnitudes.
+;;
+;; This version is also known as 30.0.60* from 2024-06-24.
+(defconst emir-emacs-reference "emacs-29.4-173383-g680155d3f03")
 
 (defconst emir-emacs-repository "~/src/emacs/emacs/master")
 (defconst emir-gnu-elpa-repository (expand-file-name "gnu-elpa/" epkg-repository))
