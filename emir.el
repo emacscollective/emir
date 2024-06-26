@@ -858,7 +858,8 @@ repository specified by variable `epkg-repository'."
 
 (cl-defmethod emir-pull ((pkg epkg-mirrored-package) &optional force)
   (with-emir-repository pkg
-    (magit-git "fetch" "origin")
+    (magit-git "fetch" "origin"
+               (and force '("--tags" "--prune-tags" "--force")))
     (let ((upstream (concat "origin/" (oref pkg branch))))
       (cond
        ((oref pkg patched)
