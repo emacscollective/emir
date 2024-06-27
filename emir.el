@@ -865,7 +865,8 @@ repository specified by variable `epkg-repository'."
        ((oref pkg patched)
         (magit-git "rebase" "@{upstream}"))
        ((not (zerop (magit-git-exit-code "merge" "--ff-only" upstream)))
-        (unless (zerop (magit-git-exit-code "merge-base" "master" upstream))
+        (unless (or force
+                    (zerop (magit-git-exit-code "merge-base" "master" upstream)))
           (error "history completely rewritten"))
         (pcase-let* ((`(,ours ,theirs) (magit-rev-diff-count "master" upstream))
                      (msg (format "history rewritten (master %s, %s %s)"
