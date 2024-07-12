@@ -8,7 +8,7 @@
 
 ;; Package-Requires: (
 ;;     (emacs "29.0.90")
-;;     (compat "29.1.4.1")
+;;     (compat "30.0.0.0")
 ;;     (borg "3.3.1")
 ;;     (elx "2.0.0")
 ;;     (emacsql "4.0.0")
