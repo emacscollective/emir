@@ -1162,7 +1162,7 @@ because some of these packages are also available from Melpa.")))
 
 (cl-defmethod emir--homepage ((pkg epkg-package))
   (or (emir--config pkg :homepage)
-      (and-let* ((url (lm-homepage))
+      (and-let* ((url (lm-website))
                  (url (if (string-suffix-p "/" url)
                           (substring url 0 -1)
                         url)))
