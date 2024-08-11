@@ -612,7 +612,7 @@ repository specified by variable `epkg-repository'."
         (let ((msg (ignore-errors
                      (read-string
                       "Also remove from Melpa with message (empty to skip): "
-                      (format (or melpa-msg "Remove %S package") name)))))
+                      (format (or melpa-msg "Remove receipe for %s") name)))))
           (unless (equal msg "")
             (magit-git "rm" rcp)
             (magit-git "commit" "-m" msg "--" rcp)))))))
@@ -748,7 +748,7 @@ repository specified by variable `epkg-repository'."
         (magit-call-git "config" "remote.origin.url" url))
       (oset pkg upstream-state nil)
       (emir-dump-database)
-      (emir-melpa-migrate-recipe name "Update url of %s's repository" t)
+      (emir-melpa-migrate-recipe name "Change source of %s" t)
       (message "Migrating %s from %s to %s...done" name old url))))
 
 ;;;; Stage
