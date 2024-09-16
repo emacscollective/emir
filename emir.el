@@ -79,13 +79,12 @@
 
 ;;; Repositories
 
-;; Emacs' history, including very recent history, is littered with so many
-;; twig merges, "git describe" cannot make sense of it anymore.  To force
-;; it to use the latest tag, use something like "git describe --match
-;; emacs-29.4".  The count is never-the-less off by several magnitudes.
-;;
-;; This version is also known as 30.0.60* from 2024-06-24.
-(defconst emir-emacs-reference "emacs-29.4-173383-g680155d3f03")
+;; Emacs' history, including very recent history, is littered with so
+;; many twig merges, "git describe" cannot make sense of it anymore.
+;; To force it to use the latest tag, use something like "git describe
+;; --long --match 'emacs-30.0*'".  Except when we are very close to a,
+;; tag the count never-the-less tends to be off by several magnitudes.
+(defconst emir-emacs-reference "emacs-30.0.91-0-g9a1c76bf7ff")
 
 (defconst emir-emacs-repository "~/src/emacs/emacs/master")
 (defconst emir-gnu-elpa-repository (expand-file-name "gnu-elpa/" epkg-repository))
@@ -167,6 +166,14 @@ repository specified by variable `epkg-repository'."
       (emacsql-with-transaction (epkg-db)
         (pcase-dolist (`(,name . ,value) alist)
           (message "Updating %s..." name)
+          ;; While the table schemata allows for more than one feature
+          ;; per library, Closql only allows for one (PKG LIB "VALUE"),
+          ;; so one would randomly end up being stored in the database.
+          ;; Nothing explicitly requires these features, so store none.
+          (when (equal name "emacs")
+            (setq value `(("lisp/bindings.el" nil)
+                          ,@(cl-remove "lisp/bindings.el" value
+                                       :key #'car :test #'equal))))
           (let ((pkg (epkg name)))
             (if pkg
                 (let ((old (oref pkg builtin-libraries)))
@@ -178,10 +185,6 @@ repository specified by variable `epkg-repository'."
               (message "  = %S" value)
               (setq pkg (epkg-builtin-package :name name))
               (emir-add pkg))
-            ;; FIXME While the table schemata allows for more than one
-            ;; feature per library, Closql only allows for one (PKG LIB
-            ;; "VALUE"), so one will randomly end up being stored in the
-            ;; database.  This affects "lisp/bindings.el" of "emacs".
             (oset pkg builtin-libraries value)
             (if value
                 (emir-update pkg)
