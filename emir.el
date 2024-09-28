@@ -751,7 +751,7 @@ repository specified by variable `epkg-repository'."
         (magit-call-git "config" "remote.origin.url" url))
       (oset pkg upstream-state nil)
       (emir-dump-database)
-      (emir-melpa-migrate-recipe name "Change source of %s" t)
+      (emir-melpa-migrate-recipe name "Update upstream of %s" t)
       (message "Migrating %s from %s to %s...done" name old url))))
 
 ;;;; Stage
