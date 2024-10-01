@@ -6,17 +6,17 @@
 ;; Homepage: https://github.com/emacscollective/emir
 ;; Keywords: local
 
-;; Package-Version: 3.0.1
+;; Package-Version: 3.0.2
 ;; Package-Requires: (
 ;;     (emacs "29.1")
 ;;     (compat "30.0.0.0")
-;;     (borg "4.0.0")
+;;     (borg "4.1.0")
 ;;     (elx "2.0.3")
-;;     (emacsql "4.0.0")
-;;     (epkg "4.0.0")
-;;     (ghub "4.0.0")
+;;     (emacsql "4.0.3")
+;;     (epkg "4.0.2")
+;;     (ghub "4.1.1")
 ;;     (llama "0.3.1")
-;;     (org "9.7.8"))
+;;     (org "9.7.11"))
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
