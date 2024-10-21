@@ -615,7 +615,7 @@ repository specified by variable `epkg-repository'."
         (let ((msg (ignore-errors
                      (read-string
                       "Also remove from Melpa with message (empty to skip): "
-                      (format (or melpa-msg "Remove receipe for %s") name)))))
+                      (format (or melpa-msg "Remove recipe for %s") name)))))
           (unless (equal msg "")
             (magit-git "rm" rcp)
             (magit-git "commit" "-m" msg "--" rcp)))))))
