@@ -1265,7 +1265,7 @@ because some of these packages are also available from Melpa.")))
        (seq-group-by
         #'car
         (cl-sort
-         (cl-mapcan
+         (mapcan
           (lambda (file)
             (and (string-suffix-p ".el" file)
                  (if (or (string-match-p finder-no-scan-regexp file)
