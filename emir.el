@@ -1350,11 +1350,10 @@ because some of these packages are also available from Melpa.")))
                       .repository.parent.forks))
         (error (message "Error: %S" err) t))
       (cl-call-next-method)
-    (emir-gh pkg "POST" "/repos/%u/%n/forks" '((organization . "emacsmirror")))
-    (emir-gh pkg "WAIT" "/repos/%o/%n")
-    (unless (equal (oref pkg mirror-name)
-                   (oref pkg upstream-name))
-      (emir-gh pkg "PATCH" "/repos/%o/%n" `((name . ,(oref pkg mirror-name)))))))
+    (emir-gh pkg "POST" "/repos/%u/%n/forks"
+             `((organization . "emacsmirror")
+               (name . ,(oref pkg mirror-name))))
+    (emir-gh pkg "WAIT" "/repos/%o/%m")))
 
 (cl-defmethod emir-gh-unsubscribe :after ((pkg epkg-package))
   (emir-gh pkg "DELETE" "/repos/%o/%m/subscription"
