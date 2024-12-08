@@ -1352,7 +1352,8 @@ because some of these packages are also available from Melpa.")))
       (cl-call-next-method)
     (emir-gh pkg "POST" "/repos/%u/%n/forks"
              `((organization . "emacsmirror")
-               (name . ,(oref pkg mirror-name))))
+               (name . ,(oref pkg mirror-name))
+               (default-branch-only . t)))
     (emir-gh pkg "WAIT" "/repos/%o/%m")))
 
 (cl-defmethod emir-gh-unsubscribe :after ((pkg epkg-package))
