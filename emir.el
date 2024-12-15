@@ -160,6 +160,7 @@ repository specified by variable `epkg-repository'."
 
 ;;;###autoload
 (defun emir-import-emacs-packages ()
+  "Import built-in packages."
   (interactive)
   (let ((alist (emir--builtin-packages-alist)))
     (emir-with-emacs-worktree
@@ -206,6 +207,8 @@ repository specified by variable `epkg-repository'."
 
 ;;;###autoload
 (defun emir-import-ewiki-packages (&optional drew-only)
+  "Import packages from the Emacswiki
+With a prefix argument, only import Drew's packages."
   (interactive "P")
   (with-emir-repository 'epkg-wiki-package
     (magit-git "checkout" "master")
@@ -229,6 +232,7 @@ repository specified by variable `epkg-repository'."
 
 ;;;###autoload
 (defun emir-import-ewiki-package (name)
+  "Import the package named NAME from the Emacswiki."
   (interactive (list (read-string "Package: ")))
   (with-emir-repository 'epkg-wiki-package
     (magit-process-buffer)
@@ -242,6 +246,8 @@ repository specified by variable `epkg-repository'."
 
 ;;;###autoload
 (defun emir-add-package (name url class &rest plist)
+  "Mirror the package named NAME from URL using CLASS
+Keys in PLIST must be supported by the CLASS constructor."
   (interactive
    (let* ((url (emir-read-url "Add package from url"))
           (class (emir--read-class url))
@@ -266,11 +272,15 @@ repository specified by variable `epkg-repository'."
 
 ;;;###autoload
 (defun emir-add-nongnu-elpa-packages (&optional dry-run)
+  "Mirror new packages from NonGNU ELPA.
+With a prefix argument, only show which packages would be added."
   (interactive "P")
   (emir--add-elpa-packages 'nongnu dry-run))
 
 ;;;###autoload
 (defun emir-add-gnu-elpa-packages (&optional dry-run)
+  "Mirror new packages from GNU ELPA.
+With a prefix argument, only show which packages would be added."
   (interactive "P")
   (emir--add-elpa-packages 'gnu dry-run))
 
@@ -309,6 +319,8 @@ repository specified by variable `epkg-repository'."
 
 ;;;###autoload
 (defun emir-add-melpa-packages (&optional dry-run interactive)
+  "Mirror new packages from Melpa.
+With a prefix argument, only show which packages would be added."
   (interactive (list current-prefix-arg t))
   (pcase-dolist
       (`(,name ,url ,class ,branch)
@@ -345,6 +357,8 @@ repository specified by variable `epkg-repository'."
 
 ;;;###autoload
 (defun emir-update-package (name &optional interactive)
+  "Update the package named NAME.
+With a prefix argument, update even if there are no new commits."
   (interactive (list (epkg-read-package "Update package: ")
                      (prefix-numeric-value current-prefix-arg)))
   (setq emir--force-push nil)
@@ -373,6 +387,7 @@ repository specified by variable `epkg-repository'."
 
 ;;;###autoload
 (defun emir-update-github-packages ()
+  "Update all mirrored packages that are distributed on Github."
   (interactive)
   (let ((start (current-time)))
     (emir-gh-foreach-query
@@ -423,18 +438,30 @@ repository specified by variable `epkg-repository'."
 
 ;;;###autoload
 (defun emir-update-wiki-packages (&optional from recreate)
+  "Update all mirrored packages that are distributed on the Emacswiki.
+With a prefix argument, read a package, and only update that and later
+packages in alphabetic order.  If optional RECREATE is non-nil, update
+each package, regardless of whether any new commits were fetched."
   (interactive (list (and current-prefix-arg
                           (epkg-read-package "Limit to packages after: "))))
   (emir--update-packages [wiki] from recreate))
 
 ;;;###autoload
 (defun emir-update-slow-packages (&optional from recreate)
+  "Update mirrored packages that are expensive to update.
+With a prefix argument, read a package, and only update that and later
+packages in alphabetic order.  If optional RECREATE is non-nil, update
+each package, regardless of whether any new commits were fetched."
   (interactive (list (and current-prefix-arg
                           (epkg-read-package "Limit to packages after: "))))
   (emir--update-packages [subtree] from recreate))
 
 ;;;###autoload
 (defun emir-update-other-packages (&optional from recreate)
+  "Update mirrored packages that are not updated by another update command.
+With a prefix argument, read a package, and only update that and later
+packages in alphabetic order.  If optional RECREATE is non-nil, update
+each package, regardless of whether any new commits were fetched."
   (interactive (list (and current-prefix-arg
                           (epkg-read-package "Limit to packages after: "))))
   (emir--update-packages [mirrored* !github* !wiki !subtree*]
@@ -496,6 +523,9 @@ repository specified by variable `epkg-repository'."
 
 ;;;###autoload
 (defun emir-regenerate-metadata (&optional from)
+  "Re-generate metadata for all mirrored packages.
+With a prefix argument, read a package, and only update that and later
+packages in alphabetic order."
   (interactive (list (and current-prefix-arg
                           (epkg-read-package "Limit to packages after: "))))
   (emir-with-emacs-worktree
@@ -503,6 +533,8 @@ repository specified by variable `epkg-repository'."
 
 ;;;###autoload
 (defun emir-update-licenses (&optional all)
+  "Update license information for packages with problematic licenses.
+With a prefix argument, update license information for all packages."
   (interactive "P")
   (dolist (pkg (epkgs))
     (with-slots (name) pkg
@@ -522,6 +554,7 @@ repository specified by variable `epkg-repository'."
 
 ;;;###autoload
 (defun emir-join-provided (name feature reason)
+  "Declare that the package NAME provides FEATURE because of REASON."
   (interactive
    (let* ((name     (epkg-read-package "Package: "))
           (pkg      (epkg name))
@@ -542,6 +575,7 @@ repository specified by variable `epkg-repository'."
 
 ;;;###autoload
 (defun emir-drop-provided (name feature reason)
+  "Declare that the package NAME does not provide FEATURE because of REASON."
   (interactive
    (let* ((name     (epkg-read-package "Package: "))
           (pkg      (epkg name))
@@ -561,6 +595,7 @@ repository specified by variable `epkg-repository'."
 
 ;;;###autoload
 (defun emir-drop-required (name feature reason)
+  "Declare that the package NAME does not require FEATURE because of REASON."
   (interactive
    (let* ((name     (epkg-read-package "Package: "))
           (pkg      (epkg name))
@@ -582,6 +617,7 @@ repository specified by variable `epkg-repository'."
 
 ;;;###autoload
 (defun emir-shelve-package (name &optional melpa-msg)
+  "Shelve the package named NAME."
   (interactive (list (epkg-read-package "Shelve package: " nil [mirrored*])))
   (let ((pkg (epkg name)))
     (with-demoted-errors "Error: %S"
@@ -622,6 +658,7 @@ repository specified by variable `epkg-repository'."
 
 ;;;###autoload
 (defun emir-shelve-archived-github-packages ()
+  "Shelve packages hosted on Github which have been archived by upstream."
   (interactive)
   (dolist (name (epkgs 'name [github*]))
     (let ((pkg (epkg name)))
@@ -640,6 +677,7 @@ repository specified by variable `epkg-repository'."
 
 ;;;###autoload
 (defun emir-remove-package (name)
+  "Remove the package named NAME."
   (interactive
    (let ((name (epkg-read-package "Remove package: ")))
      (unless (y-or-n-p (format "Really REMOVE (not shelve) %s?" name))
@@ -706,6 +744,7 @@ repository specified by variable `epkg-repository'."
 ;;;; Migrate
 
 (defun emir-migrate-package (name url class)
+  "Change the upstream repository from which to get the package named NAME."
   (interactive
    (let* ((name (epkg-read-package "Migrate package: "))
           (melpa-url (nth 4 (assoc name (emir-melpa--migrated-packages))))
@@ -753,6 +792,11 @@ repository specified by variable `epkg-repository'."
 ;;;; Stage
 
 (defun emir-stage (&optional name dump sort)
+  "Stage changes in the Epkg repository.
+If optional NAME is non-nil, stage the module of the package by that
+name.  If optional DUMP is non-nil (which interactively it is, then
+dump the Epkg database.  If optional SORT is non-nil, then sort the
+\".gitmodules\" file."
   (interactive (list nil t t))
   (with-emir-repository t
     (when name
@@ -770,6 +814,7 @@ repository specified by variable `epkg-repository'."
                "ewiki" "gnu-elpa" "nongnu-elpa" "melpa")))
 
 (defun emir-dump-database ()
+  "Dump the Epkg database as SQL statements to a file."
   (interactive)
   (emacsql-sqlite-dump-database (oref (epkg-db) connection)))
 
