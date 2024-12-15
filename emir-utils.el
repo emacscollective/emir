@@ -30,11 +30,13 @@
 
 ;;;###autoload
 (defun emir-report ()
+  "Open the main maintainance report file."
   (interactive)
   (find-file-other-frame
    (expand-file-name "compare.org" emir-stats-repository)))
 
 (defun emir-remove-obsolete-wiki-branches ()
+  "Remove branches corresponding to shelved and removed packages."
   (interactive)
   (with-epkg-repository 'epkg-wiki-package
     (dolist (branch (magit-list-local-branch-names))

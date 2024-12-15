@@ -27,6 +27,7 @@
 
 ;;;###autoload
 (defun emir-import-all-elpa-recipes (args)
+  "Import GNU Elpa, NonGNU Elpa and Melpa package recipes."
   (interactive (list (transient-args 'emir-import-recipes)))
   (emir-import-melpa-recipes args)
   (emir-import-nongnu-elpa-recipes args)
@@ -34,12 +35,14 @@
 
 ;;;###autoload
 (defun emir-import-nongnu-elpa-recipes (args)
+  "Import NonGNU Elpa package recipes."
   (interactive (list (transient-args 'emir-import-recipes)))
   (let ((default-directory emir-nongnu-elpa-repository ))
     (emir-gelpa--import-recipes 'nongnu "NonGNU Elpa" args)))
 
 ;;;###autoload
 (defun emir-import-gnu-elpa-recipes (args)
+  "Import GNU Elpa package recipes."
   (interactive (list (transient-args 'emir-import-recipes)))
   (let ((default-directory emir-gnu-elpa-repository))
     (emir-gelpa--import-recipes 'gnu "GNU Elpa" args)))

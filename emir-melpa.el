@@ -33,6 +33,7 @@
 
 ;;;###autoload
 (defun emir-import-melpa-recipes (args)
+  "Import Melpa package recipes."
   (interactive (list (transient-args 'emir-import-recipes)))
   (let* ((default-directory emir-melpa-repository)
          (imported (magit-rev-verify "mirror-imported"))
@@ -114,6 +115,7 @@
 
 ;;;###autoload
 (defun emir-import-melpa-downloads ()
+  "Import Melpa download counts."
   (interactive)
   (message "Importing Melpa downloads...")
   (with-current-buffer
