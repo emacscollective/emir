@@ -1388,66 +1388,52 @@ because some of these packages are also available from Melpa.")))
   (when (oref pkg mirrored)
     (emir-gh pkg "DELETE" "/repos/%o/%m")))
 
-(defun emir-gh-foreach-query (query &optional callback per-page packages)
-  (let* ((page 0)
-         (result nil)
-         (groups
-          (seq-partition
-           (mapcar (lambda (pkg)
-                     ;; Package names may contain characters that are
-                     ;; invalid here.  Identifiers also may not begin
-                     ;; with a number or contain an equal sign.
-                     `((,(concat "_"
-                                 (string-replace
-                                  "=" "_"
-                                  (base64-encode-string (oref pkg name))))
-                        repository)
-                       [(owner ,(oref pkg upstream-user))
-                        (name  ,(oref pkg upstream-name))]
-                       ,@(if (functionp query)
-                             (funcall query pkg)
-                           query)))
-                   (cond
-                    ((not packages)
-                     (epkgs nil [github*]))
-                    ((integerp packages)
-                     (take packages (epkgs nil [github*])))
-                    ((mapcar #'epkg packages))))
-           (or per-page 100)))
-         (length (length groups))
-         (decode (lambda (result)
+(defun emir-gh-foreach-query (query callback &optional per-page packages)
+  (letrec ((result nil)
+           (page 0)
+           (pages
+            (seq-partition
+             (mapcar (lambda (pkg)
+                       ;; Package names may contain characters that are
+                       ;; invalid here.  Identifiers also may not begin
+                       ;; with a number or contain an equal sign.
+                       `((,(concat "_"
+                                   (string-replace
+                                    "=" "_"
+                                    (base64-encode-string (oref pkg name))))
+                          repository)
+                         [(owner ,(oref pkg upstream-user))
+                          (name  ,(oref pkg upstream-name))]
+                         ,@(if (functionp query)
+                               (funcall query pkg)
+                             query)))
+                     (cond
+                      ((not packages)
+                       (epkgs nil [github*]))
+                      ((integerp packages)
+                       (take packages (epkgs nil [github*])))
+                      ((mapcar #'epkg packages))))
+             (or per-page 100)))
+           (len (length pages))
+           (run (lambda (&optional data _headers _status _req)
+                 (setq result (nconc result (cdar data)))
+                 (cond
+                  (pages
+                   (message "Fetching page...%s/%s" (cl-incf page) len)
+                   (ghub-graphql
+                    (gsexp-encode
+                     (ghub--graphql-prepare-query
+                      (cons 'query (pop pages))))
+                    nil :callback run :auth 'emir))
+                  (t
+                   (message "Fetching page...done")
                    (dolist (elt result)
                      (setcar elt (base64-decode-string
                                   (string-replace
                                    "_" "="
                                    (substring (symbol-name (car elt)) 1)))))
-                   result)))
-    (if callback
-        (cl-labels
-            ((cb (&optional data _headers _status _req)
-               (setq result (nconc result (cdar data)))
-               (cond
-                (groups
-                 (message "Fetching page...%s/%s" (cl-incf page) length)
-                 (ghub-graphql
-                  (gsexp-encode
-                   (ghub--graphql-prepare-query
-                    (cons 'query (pop groups))))
-                  nil :callback #'cb :auth 'emir))
-                (t
-                 (message "Fetching page...done")
-                 (funcall callback (funcall decode result))))))
-          (cb))
-      (prog1 (funcall decode (mapcan (lambda (group)
-                                       (message "Fetching page...%s/%s"
-                                                (cl-incf page) length)
-                                       (cdar (ghub-graphql
-                                              (gsexp-encode
-                                               (ghub--graphql-prepare-query
-                                                (cons 'query group)))
-                                              nil :auth 'emir)))
-                                     groups))
-        (message "Fetching page...done")))))
+                   (funcall callback result))))))
+    (funcall run)))
 
 ;;; Urls
 
