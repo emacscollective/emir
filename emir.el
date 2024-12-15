@@ -1019,8 +1019,10 @@ dump the Epkg database.  If optional SORT is non-nil, then sort the
           (unless default
             (error "BUG: No default branch for %s" name))
           (when (and forced
-                     (not (member forced
-                                  (magit-remote-list-branches "origin"))))
+                     (not (member
+                           forced
+                           (or (magit-remote-list-branches "origin")
+                               (error "Could not list remote branches")))))
             (setq unset-forced t)))
         (cond
          ((not forced)
