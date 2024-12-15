@@ -680,18 +680,14 @@ repository specified by variable `epkg-repository'."
 
 ;;;; Setup
 
-;;;###autoload
 (defun emir-setup-module (name)
-  (interactive (list (epkg-read-package "Setup package module: ")))
   (condition-case err
       (emir-setup (epkg name))
     (error
      (message "Update error (%s): %s" name (error-message-string err))
      nil)))
 
-;;;###autoload
 (defun emir-setup-modules ()
-  (interactive)
   (let* ((start (current-time))
          (pkgs (epkgs 'name [mirrored* shelved]))
          (total (length pkgs))
