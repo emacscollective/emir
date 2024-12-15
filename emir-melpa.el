@@ -132,32 +132,6 @@
   (emir-commit "Update Melpa download counts" nil :dump)
   (message "Importing Melpa downloads...done"))
 
-(defun emir-melpa-list-archived-packages ()
-  (interactive)
-  (and-let* ((archived
-              (cl-sort
-               (mapcan (lambda (name)
-                         (let ((pkg (epkg name)))
-                           (and (eq (oref pkg upstream-state) 'archived)
-                                (epkg-get-recipe 'melpa name)
-                                (list (list name
-                                            (oref pkg repopage)
-                                            (oref pkg upstream-user))))))
-                       (epkgs 'name #'epkg-github-package--eieio-childp))
-               #'string< :key #'car)))
-    (let ((buf (get-buffer-create "*melpa archive*")))
-      (pop-to-buffer buf)
-      (with-current-buffer buf
-        (erase-buffer)
-        (pcase-dolist (`(,name ,page ,user) archived)
-          (insert
-           (format "- [ ] [%s](%s) by @%s%s\n" name page user
-                   (if-let ((dependents (epkg-reverse-dependencies name)))
-                       (format " (required by %s)"
-                               (mapconcat (pcase-lambda (`(,name . ,_features)) name)
-                                          dependents " "))
-                     ""))))))))
-
 (defun emir-melpa-migrate-recipe (name msg &optional redirected)
   (let ((default-directory emir-melpa-repository)
         (file (concat "recipes/" name))
