@@ -16,6 +16,7 @@
 ;;     (epkg "4.0.2")
 ;;     (ghub "4.1.1")
 ;;     (llama "0.3.1")
+;;     (magit "4.2.0")
 ;;     (org "9.7.11"))
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
