@@ -1,6 +1,6 @@
 ;;; emir.el --- Maintain the Emacsmirror  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2016-2024 Jonas Bernoulli
+;; Copyright (C) 2016-2025 Jonas Bernoulli
 
 ;; Author: Jonas Bernoulli <emacs.emir@jonas.bernoulli.dev>
 ;; Homepage: https://github.com/emacscollective/emir
