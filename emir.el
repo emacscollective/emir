@@ -6,10 +6,10 @@
 ;; Homepage: https://github.com/emacscollective/emir
 ;; Keywords: local
 
-;; Package-Version: 3.0.2
+;; Package-Version: 3.0.3
 ;; Package-Requires: (
 ;;     (emacs "29.1")
-;;     (compat "30.0.0.0")
+;;     (compat "30.0.1.0")
 ;;     (borg "4.1.0")
 ;;     (elx "2.0.3")
 ;;     (emacsql "4.0.3")
