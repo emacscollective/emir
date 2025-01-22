@@ -83,8 +83,8 @@
 ;; Emacs' history, including very recent history, is littered with so
 ;; many twig merges, "git describe" cannot make sense of it anymore.
 ;; To force it to use the latest tag, use something like "git describe
-;; --long --match 'emacs-30.0*'".  Except when we are very close to a,
-;; tag the count never-the-less tends to be off by several magnitudes.
+;; --long --match 'emacs-30.0*'".  Except when we are very close to a
+;; tag, the count never-the-less tends to be off by several magnitudes.
 (defconst emir-emacs-reference "emacs-30.0.91-0-g9a1c76bf7ff")
 
 (defconst emir-emacs-repository "~/src/emacs/emacs/master")
@@ -108,8 +108,8 @@ repository specified by variable `epkg-repository'."
      ;; BODY could call `magit-git', which could cause the
      ;; `magit-process-mode' buffer to be created, which could
      ;; cause a prompt about unsafe directory-local variables.
-     ;; Prevent that by creating the process buffer upfront
-     ;; local variables disabled.
+     ;; Prevent that by creating the process buffer upfront,
+     ;; with local variables disabled.
      (let ((enable-local-variables nil))
        (magit-process-buffer t))
      ,@body))
@@ -208,7 +208,7 @@ repository specified by variable `epkg-repository'."
 
 ;;;###autoload
 (defun emir-import-ewiki-packages (&optional drew-only)
-  "Import packages from the Emacswiki
+  "Import packages from the Emacswiki.
 With a prefix argument, only import Drew's packages."
   (interactive "P")
   (with-emir-repository 'epkg-wiki-package
@@ -247,7 +247,7 @@ With a prefix argument, only import Drew's packages."
 
 ;;;###autoload
 (defun emir-add-package (name url class &rest plist)
-  "Mirror the package named NAME from URL using CLASS
+  "Mirror the package named NAME from URL using CLASS.
 Keys in PLIST must be supported by the CLASS constructor."
   (interactive
    (let* ((url (emir-read-url "Add package from url"))
@@ -659,7 +659,7 @@ With a prefix argument, update license information for all packages."
 
 ;;;###autoload
 (defun emir-shelve-archived-github-packages ()
-  "Shelve packages hosted on Github which have been archived by upstream."
+  "Shelve packages, hosted on Github, which have been archived by upstream."
   (interactive)
   (dolist (name (epkgs 'name [github*]))
     (let ((pkg (epkg name)))
