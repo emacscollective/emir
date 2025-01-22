@@ -191,12 +191,8 @@
               :where (and (= melpa-recipes:epkg-package packages:name)
                           (= melpa-recipes:epkg-package melpa-recipes:name)
                           (not (= melpa-recipes:url packages:url))
-                          (in packages:class $v1))]
-             (vconcat (closql-where-class-in
-                       [file hg git
-                        github gitlab codeberg sourcehut gnu nongnu
-                        shelved]
-                       (epkg-db))))))
+                          (not (in packages:class $v1)))]
+             (vconcat (closql-where-class-in [subtree builtin] (epkg-db))))))
 
 (defun emir-melpa--diverging-branches ()
   (epkg-sql [:select :distinct [packages:name
