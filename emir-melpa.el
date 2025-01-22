@@ -174,7 +174,7 @@
 
 ;;; Queries
 
-(defun emir-melpa--migrated-packages ()
+(defun emir-melpa--migrated-packages (&optional include-builtin)
   (seq-filter
    (pcase-lambda (`(,_name ,_type ,url ,fetcher ,murl))
      (not (or (and (eq fetcher 'hg)
@@ -192,7 +192,9 @@
                           (= melpa-recipes:epkg-package melpa-recipes:name)
                           (not (= melpa-recipes:url packages:url))
                           (not (in packages:class $v1)))]
-             (vconcat (closql-where-class-in [subtree builtin] (epkg-db))))))
+             (vconcat (closql-where-class-in
+                       (if include-builtin [subtree] [subtree builtin])
+                       (epkg-db))))))
 
 (defun emir-melpa--diverging-branches ()
   (epkg-sql [:select :distinct [packages:name
