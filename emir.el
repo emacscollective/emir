@@ -15,9 +15,9 @@
 ;;     (emacsql "4.1.0")
 ;;     (epkg "4.0.3")
 ;;     (ghub "4.2.0")
-;;     (llama "0.4.1")
+;;     (llama "0.5.0")
 ;;     (magit "4.2.0")
-;;     (org "9.7.19"))
+;;     (org "9.7.20"))
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
