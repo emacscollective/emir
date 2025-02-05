@@ -179,7 +179,7 @@ repository specified by variable `epkg-repository'."
           (let ((pkg (epkg name)))
             (if pkg
                 (let ((old (oref pkg builtin-libraries)))
-                  (setq old (cl-sort old #'string< :key #'car))
+                  (setq old (sort #'string< :key #'car))
                   (dolist (o (cl-set-difference old value :test #'equal))
                     (message "  - %S" o))
                   (dolist (n (cl-set-difference value old :test #'equal))
@@ -1308,7 +1308,7 @@ because some of these packages are also available from Melpa.")))
          (cons (car elt) (mapcar #'cdr (cdr elt))))
        (seq-group-by
         #'car
-        (cl-sort
+        (sort
          (mapcan
           (lambda (file)
             (and (string-suffix-p ".el" file)
@@ -1346,7 +1346,7 @@ because some of these packages are also available from Melpa.")))
                                           (list nil)))
                          (message "Importing %s...done" file)))))))
           (magit-git-items "ls-tree" "-z" "-r" "--name-only" "HEAD" "lisp/"))
-         #'string< :key #'car))))))
+         :key #'car))))))
 
 ;;; Github
 
@@ -1592,9 +1592,8 @@ because some of these packages are also available from Melpa.")))
 (defun emir--store-table (table data)
   (epkg-sql [:create-table-if-not-exists $i1 $S2] table [k v])
   (emacsql-with-transaction (epkg-db)
-    (let ((old (cl-sort (epkg-sql [:select * :from $i1] table)
-                        #'string< :key #'car))
-          (new (cl-sort data #'string< :key #'car)))
+    (let ((old (sort (epkg-sql [:select * :from $i1] table) :key #'car))
+          (new (sort data :key #'car)))
       (while (or old new)
         (pcase-let ((`(,okey ,oval) (car old))
                     (`(,nkey ,nval) (car new)))

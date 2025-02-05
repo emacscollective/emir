@@ -122,13 +122,13 @@
       (url-retrieve-synchronously "https://melpa.org/download_counts.json")
     (goto-char (1+ url-http-end-of-headers))
     (emacsql-with-transaction (epkg-db)
-      (pcase-dolist (`(,name . ,count)
-                     (cl-sort
-                      (json-read-from-string
-                       (decode-coding-string
-                        (buffer-substring-no-properties (point) (point-max))
-                        'utf-8))
-                      #'string< :key #'car))
+      (pcase-dolist
+          (`(,name . ,count)
+           (sort (json-read-from-string
+                  (decode-coding-string
+                   (buffer-substring-no-properties (point) (point-max))
+                   'utf-8))
+                 :key #'car))
         (when-let ((pkg (epkg (symbol-name name))))
           (oset pkg downloads count)))))
   (emir-commit "Update Melpa download counts" nil :dump)
