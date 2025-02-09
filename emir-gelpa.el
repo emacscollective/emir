@@ -59,6 +59,12 @@
       (emir-gelpa--validate-recipes elpa alist)
       (pcase-dolist (`(,name . ,spec) alist)
         (message "Updating %s recipe..." name)
+        (let ((url (plist-get spec :url)))
+          (when (and url (symbolp url))
+            (plist-put spec :url
+                       (plist-get
+                        (alist-get (symbol-name url) alist nil nil #'equal)
+                        :url))))
         (emir-gelpa--import-recipe elpa name spec)
         (message "Updating %s recipe...done" name))
       (message "Importing %s recipes..." desc)
