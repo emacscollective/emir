@@ -1319,7 +1319,9 @@ because some of these packages are also available from Melpa.")))
                                    "lisp/obsolete/otodo-mode.el"
                                    ;; - Moved to GNU Elpa:
                                    "lisp/obsolete/crisp.el"
-                                   "lisp/obsolete/landmark.el")))
+                                   "lisp/obsolete/landmark.el"
+                                   "lisp/obsolete/package-x.el"
+                                   "lisp/emacs-lisp/package-x.el")))
                      (prog1 nil (message "Skipping %s...done" file))
                    (message "Importing %s..." file)
                    (with-temp-buffer
