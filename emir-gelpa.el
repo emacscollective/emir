@@ -25,6 +25,8 @@
 
 (require 'emir)
 
+;;; Mirror recipes
+
 ;;;###autoload
 (defun emir-import-all-elpa-recipes (args)
   "Import GNU Elpa, NonGNU Elpa and Melpa package recipes."
@@ -172,6 +174,38 @@
                 (or (lm-header "package-version")
                     (lm-header "version")))
               "0")))
+
+;;; Queries
+
+(defun emir-gnu-elpa--migrated-packages (&optional include-builtin)
+  (emir--migrated-packages 'gnu-elpa include-builtin))
+
+(defun emir-nongnu-elpa--migrated-packages (&optional include-builtin)
+  (emir--migrated-packages 'nongnu-elpa include-builtin))
+
+(defun emir--migrated-packages (elpa &optional include-builtin)
+  (seq-filter
+   (pcase-lambda (`(,_name ,type ,url ,fetcher ,eurl))
+     (not (or (eq type elpa)
+              (and (eq fetcher 'hg)
+                   (string-prefix-p "hg::" url)
+                   (equal eurl (substring url 4)))
+              (string-prefix-p "https://github.com/emacsmirror/" eurl)
+              (string-prefix-p "https://github.com/emacsattic/"  eurl)
+              (equal
+               (if (string-suffix-p ".git"  url) (substring  url 0 -4)  url)
+               (if (string-suffix-p ".git" eurl) (substring eurl 0 -4) eurl)))))
+   (epkg-sql [:select :distinct [packages:name packages:class packages:url
+                                 recipes:class recipes:url]
+              :from [packages (as $i1 recipes)]
+              :where (and (= recipes:epkg-package packages:name)
+                          (= recipes:epkg-package recipes:name)
+                          (not (= recipes:url packages:url))
+                          (not (in packages:class $v2)))]
+             (intern (format "%s-recipes" elpa))
+             (vconcat (closql-where-class-in
+                       (if include-builtin [subtree] [subtree builtin])
+                       (epkg-db))))))
 
 ;;; _
 (provide 'emir-gelpa)

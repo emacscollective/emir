@@ -29,7 +29,7 @@
 
 (defvar url-http-end-of-headers)
 
-;;; Mirror Melpa recipes
+;;; Mirror recipes
 
 ;;;###autoload
 (defun emir-import-melpa-recipes (args)
@@ -175,26 +175,7 @@
 ;;; Queries
 
 (defun emir-melpa--migrated-packages (&optional include-builtin)
-  (seq-filter
-   (pcase-lambda (`(,_name ,_type ,url ,fetcher ,murl))
-     (not (or (and (eq fetcher 'hg)
-                   (string-prefix-p "hg::" url)
-                   (equal murl (substring url 4)))
-              (string-prefix-p "https://github.com/emacsmirror/" murl)
-              (string-prefix-p "https://github.com/emacsattic/"  murl)
-              (equal
-               (if (string-suffix-p ".git"  url) (substring  url 0 -4)  url)
-               (if (string-suffix-p ".git" murl) (substring murl 0 -4) murl)))))
-   (epkg-sql [:select :distinct [packages:name packages:class packages:url
-                                 melpa-recipes:class melpa-recipes:url]
-              :from [packages melpa-recipes]
-              :where (and (= melpa-recipes:epkg-package packages:name)
-                          (= melpa-recipes:epkg-package melpa-recipes:name)
-                          (not (= melpa-recipes:url packages:url))
-                          (not (in packages:class $v1)))]
-             (vconcat (closql-where-class-in
-                       (if include-builtin [subtree] [subtree builtin])
-                       (epkg-db))))))
+  (emir--migrated-packages 'melpa include-builtin))
 
 (defun emir-melpa--diverging-branches ()
   (epkg-sql [:select :distinct [packages:name

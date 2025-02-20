@@ -748,8 +748,12 @@ With a prefix argument, update license information for all packages."
   "Change the upstream repository from which to get the package named NAME."
   (interactive
    (let* ((name (epkg-read-package "Migrate package: "))
-          (melpa-url (nth 4 (assoc name (emir-melpa--migrated-packages))))
-          (url (emir-read-url "New repository url" melpa-url))
+          (url (emir-read-url
+                "New repository url"
+                (nth 4 (or
+                        (assoc name (emir-melpa--migrated-packages))
+                        (assoc name (emir-gnu-elpa--migrated-packages))
+                        (assoc name (emir-nongnu-elpa--migrated-packages))))))
           (class (emir--read-class url)))
      (list name url class)))
   (let ((pkg (epkg name)))
