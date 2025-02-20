@@ -194,7 +194,10 @@
               (string-prefix-p "https://github.com/emacsattic/"  eurl)
               (equal
                (if (string-suffix-p ".git"  url) (substring  url 0 -4)  url)
-               (if (string-suffix-p ".git" eurl) (substring eurl 0 -4) eurl)))))
+               (if (string-suffix-p ".git" eurl) (substring eurl 0 -4) eurl))
+              (equal
+               (if (string-suffix-p "/"  url) (substring  url 0 -1)  url)
+               (if (string-suffix-p "/" eurl) (substring eurl 0 -1) eurl)))))
    (epkg-sql [:select :distinct [packages:name packages:class packages:url
                                  recipes:class recipes:url]
               :from [packages (as $i1 recipes)]
