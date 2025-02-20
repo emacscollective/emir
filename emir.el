@@ -766,7 +766,7 @@ With a prefix argument, update license information for all packages."
     (oset pkg stars nil)
     (dolist (slot '(upstream-branch upstream-tree library libraries patched))
       (when-let ((value (slot-value pkg slot)))
-        (when (y-or-n-p (format "Reset %s (%S)" slot value))
+        (when (y-or-n-p (format "Reset %s (%S)?" slot value))
           (setf (slot-value pkg slot) nil))))
     (closql--set-object-class (epkg-db) pkg class)
     (emir--remove-module-worktree name)
@@ -917,7 +917,7 @@ dump the Epkg database.  If optional SORT is non-nil, then sort the
        ((not (zerop (magit-git-exit-code "merge" "--ff-only" upstream)))
         (unless (or force
                     (zerop (magit-git-exit-code "merge-base" "master" upstream)))
-          (error "history completely rewritten"))
+          (error "History completely rewritten"))
         (pcase-let* ((`(,ours ,theirs) (magit-rev-diff-count "master" upstream))
                      (msg (format "history rewritten (master %s, %s %s)"
                                   ours upstream theirs)))
@@ -966,7 +966,7 @@ dump the Epkg database.  If optional SORT is non-nil, then sort the
         (magit-git "branch" "--force" branch
                    (or (magit-git-string "subtree" "-P"
                                          (oref pkg upstream-tree) "split")
-                       (error "git-subtree failed or is missing")))
+                       (error "`git-subtree' failed or is missing")))
         (message "Filtering subtree of %s...done (%.0fm)" name
                  (/ (float-time (time-subtract (current-time) time)) 60)))
       (magit-git "checkout" branch))))
@@ -1627,14 +1627,14 @@ because some of these packages are also available from Melpa.")))
 
 (defun emir--assert-clean-worktree ()
   (cond ((not (zerop (magit-git-exit-code "diff" "--quiet")))
-         (error "unstaged changes"))
+         (error "Unstaged changes"))
         ((not (zerop (magit-git-exit-code "diff" "--quiet" "--cached")))
-         (error "uncommitted changes"))
+         (error "Uncommitted changes"))
         ;; This may happen due to an earlier failed push.
         ;; ((not (magit-rev-eq "HEAD" "mirror/master"))
-        ;;  (error "unpushed changes"))
+        ;;  (error "Unpushed changes"))
         ((not (equal (magit-get-current-branch) "master"))
-         (error "wrong branch checked out"))))
+         (error "Wrong branch checked out"))))
 
 ;;; _
 (provide 'emir)
