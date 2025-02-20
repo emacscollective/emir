@@ -85,7 +85,7 @@
 ;; To force it to use the latest tag, use something like "git describe
 ;; --long --match 'emacs-30.0*'".  Except when we are very close to a
 ;; tag, the count never-the-less tends to be off by several magnitudes.
-(defconst emir-emacs-reference "emacs-30.0.91-0-g9a1c76bf7ff")
+(defconst emir-emacs-reference "emacs-30.1-rc1-0-g92e96a11752")
 
 (defconst emir-emacs-repository "~/src/emacs/emacs/master")
 (defconst emir-gnu-elpa-repository (expand-file-name "gnu-elpa/" epkg-repository))
