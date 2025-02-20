@@ -179,7 +179,7 @@ repository specified by variable `epkg-repository'."
           (let ((pkg (epkg name)))
             (if pkg
                 (let ((old (oref pkg builtin-libraries)))
-                  (setq old (sort #'string< :key #'car))
+                  (setq old (sort old :key #'car))
                   (dolist (o (cl-set-difference old value :test #'equal))
                     (message "  - %S" o))
                   (dolist (n (cl-set-difference value old :test #'equal))
