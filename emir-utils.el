@@ -30,7 +30,7 @@
 
 ;;;###autoload
 (defun emir-report ()
-  "Open the main maintainance report file."
+  "Open the main maintenance report file."
   (interactive)
   (find-file-other-frame
    (expand-file-name "compare.org" emir-stats-repository)))
