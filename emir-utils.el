@@ -48,6 +48,22 @@
           (magit-call-git "branch" "-D" branch)
           (message "Removing %s...done" branch))))))
 
+(defun emir-keep-wiki-package-p (pkg)
+  (with-slots (name url downloads authors maintainers) pkg
+    (with-epkg-repository pkg
+      (let ((date (string-to-number
+                   (magit-rev-format "%cd" "HEAD" (list "--date=format:%Y"))))
+            (dependants (mapcar #'car (epkg-reverse-dependencies pkg))))
+        (or (> date 2015)
+            (assoc "Drew Adams" authors)
+            (assoc "Drew Adams" maintainers)
+            (seq-some (lambda (dep)
+                        (let ((p (epkg dep)))
+                          (if (epkg-wiki-package-p p)
+                              (emir-keep-wiki-package-p p)
+                            (not (epkg-shelved-package-p p)))))
+                      dependants))))))
+
 (defun epkg--package-type (pkg)
   "Return the class name abbreviation for PKG."
   (intern (substring (symbol-name (eieio-object-class-name pkg)) 5 -8)))
