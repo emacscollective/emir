@@ -621,9 +621,6 @@ With a prefix argument, update license information for all packages."
   "Shelve the package named NAME."
   (interactive (list (epkg-read-package "Shelve package: " nil [mirrored*])))
   (let ((pkg (epkg name)))
-    (with-demoted-errors "Error: %S"
-      ;; The Github api does not support repository transfers.
-      (emir-gh-delete pkg))
     (with-emir-repository pkg
       (magit-git "reset" "--hard" "HEAD"))
     (with-emir-repository t
@@ -642,10 +639,9 @@ With a prefix argument, update license information for all packages."
                    url)
         (magit-git "add" ".gitmodules")))
     (oset pkg upstream-state nil)
+    (with-demoted-errors "Transfer error: %S"
+      (emir-gh-shelve pkg))
     (with-emir-repository t
-      (emir-update  pkg)
-      (emir-gh-init pkg)
-      (emir-push    pkg)
       (emir-commit (format "Shelve %S package" name) name :dump))
     (let ((default-directory emir-melpa-repository)
           (rcp (concat "recipes/" name)))
@@ -1438,6 +1434,10 @@ because some of these packages are also available from Melpa.")))
 (cl-defmethod emir-gh-delete ((pkg epkg-package))
   (when (oref pkg mirrored)
     (emir-gh pkg "DELETE" "/repos/%o/%m")))
+
+(cl-defmethod emir-gh-shelve ((pkg epkg-package))
+  (emir-gh pkg "POST" "/repos/emacsmirror/%m/transfer"
+           '((new_owner . "emacsattic"))))
 
 (defun emir-gh-foreach-query (query callback &optional per-page packages)
   (letrec ((result nil)
