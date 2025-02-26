@@ -48,6 +48,10 @@
           (magit-call-git "branch" "-D" branch)
           (message "Removing %s...done" branch))))))
 
+(defun epkg--package-type (pkg)
+  "Return the class name abbreviation for PKG."
+  (intern (substring (symbol-name (eieio-object-class-name pkg)) 5 -8)))
+
 (defun emir--list-tables (db)
   "Return a list of all tables in DB."
   (emacsql db [:select name :from sqlite_master
