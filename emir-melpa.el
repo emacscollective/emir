@@ -123,14 +123,18 @@
     (goto-char (1+ url-http-end-of-headers))
     (emacsql-with-transaction (epkg-db)
       (pcase-dolist
-          (`(,name . ,count)
+          (`(,symbol . ,count)
            (sort (json-read-from-string
                   (decode-coding-string
                    (buffer-substring-no-properties (point) (point-max))
                    'utf-8))
                  :key #'car))
-        (when-let ((pkg (epkg (symbol-name name))))
-          (oset pkg downloads count)))))
+        (when-let* ((name (symbol-name symbol))
+                    (pkg (epkg name)))
+          (oset pkg downloads
+                (and (file-exists-p
+                      (file-name-concat emir-melpa-repository "recipes" name))
+                     count))))))
   (emir-commit "Update Melpa download counts" nil :dump)
   (message "Importing Melpa downloads...done"))
 
