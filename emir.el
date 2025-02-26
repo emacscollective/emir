@@ -639,7 +639,8 @@ With a prefix argument, update license information for all packages."
       (with-emir-repository t
         (magit-git "config" "-f" ".gitmodules"
                    (concat "submodule." name ".url")
-                   url)))
+                   url)
+        (magit-git "add" ".gitmodules")))
     (oset pkg upstream-state nil)
     (with-emir-repository t
       (emir-update  pkg)
