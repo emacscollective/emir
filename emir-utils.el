@@ -38,7 +38,7 @@
 (defun emir-remove-obsolete-wiki-branches ()
   "Remove branches corresponding to shelved and removed packages."
   (interactive)
-  (with-epkg-repository 'epkg-wiki-package
+  (with-emir-repository 'epkg-wiki-package
     (dolist (branch (magit-list-local-branch-names))
       (let ((pkg (epkg branch)))
         (when (and (not (equal branch "master"))
