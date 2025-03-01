@@ -59,7 +59,8 @@
 (require 'subr-x)
 (require 'transient)
 
-(declare-function emir-melpa--migrated-packages "emir-melpa" ())
+(declare-function emir-melpa--migrated-packages "emir-melpa"
+                  (&optional include-builtin))
 
 (defvar finder-no-scan-regexp)
 (defvar finder--builtins-alist)
