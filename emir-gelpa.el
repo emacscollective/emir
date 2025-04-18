@@ -130,9 +130,10 @@
             (value (pop plist)))
         (unless (memq slot epkg--elpa-recipe-slots)
           (error "Unknown %s recipe slot: %s" elpa slot))
+        ;; `doc-files' is not relevant for us.
         ;; `maintainer' is used for a single package.
         ;; `manual-sync' is not relevant for us.
-        (unless (memq slot '(maintainer manual-sync))
+        (unless (memq slot '(doc-files maintainer manual-sync))
           (eieio-oset rcp slot value))))
     (cond ((epkg name)
            (oset rcp epkg-package name))
