@@ -9,15 +9,15 @@
 ;; Package-Version: 3.2.1
 ;; Package-Requires: (
 ;;     (emacs "30.1")
-;;     (compat "30.0.2.0")
-;;     (borg "4.1.3")
+;;     (compat "30.1.0.0")
+;;     (borg "4.1.4")
 ;;     (elx "2.2.1")
-;;     (emacsql "4.2.0")
-;;     (epkg "4.0.4")
-;;     (ghub "4.2.2")
-;;     (llama "0.6.1")
-;;     (magit "4.3.1")
-;;     (org "9.7.23"))
+;;     (emacsql "4.3.0")
+;;     (epkg "4.0.6")
+;;     (ghub "4.3.0")
+;;     (llama "0.6.2")
+;;     (magit "4.3.2")
+;;     (org "9.7.28"))
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
