@@ -94,10 +94,9 @@
            (oset rcp epkg-package name))
           ((emir--config name :delayed)
            (oset rcp epkg-package nil))
-          (t
-           (when-let ((name (or (emir--lookup-url (oref rcp url))
-                                (emir--config name :secondary))))
-             (oset rcp epkg-package name))))))
+          ((oset rcp epkg-package
+                 (or (emir--lookup-url (oref rcp url))
+                     (emir--config name :secondary)))))))
 
 (defun emir-melpa--recipe-plist (name)
   (with-temp-buffer

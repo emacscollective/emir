@@ -137,10 +137,11 @@
           (eieio-oset rcp slot value))))
     (cond ((epkg name)
            (oset rcp epkg-package name))
-          ((not (emir--config name :delayed))
-           (when-let ((name (or (emir--lookup-url (oref rcp url))
-                                (emir--config name :secondary))))
-             (oset rcp epkg-package name))))))
+          ((emir--config name :delayed)
+           (oset rcp epkg-package nil))
+          ((oset rcp epkg-package
+                 (or (emir--lookup-url (oref rcp url))
+                     (emir--config name :secondary)))))))
 
 (defun emir-gelpa--recipes-alist (&optional dir)
   (with-temp-buffer
