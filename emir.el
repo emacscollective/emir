@@ -1191,7 +1191,7 @@ because some of these packages are also available from Melpa.")))
 (cl-defmethod emir--license ((pkg epkg-package))
   (let ((name (oref pkg name)))
     (or (elx-license nil (epkg-repository pkg) name)
-        (and (string-search "-theme" name)
+        (and (string-match "-theme" name)
              (let ((file (expand-file-name
                           (concat (substring name 0 (match-beginning 0))
                                   ".el"))))
