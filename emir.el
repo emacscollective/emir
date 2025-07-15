@@ -147,7 +147,7 @@ repository specified by variable `epkg-repository'."
 ;;; Commands
 ;;;; Import
 
-;;;###autoload (autoload 'emir-import-recipes "emir" nil t)
+;;;###autoload
 (transient-define-prefix emir-import-recipes ()
   "Import Gelpa or Melpa recipes."
   :value '("--fetch")
