@@ -1382,30 +1382,33 @@ because some of these packages are also available from Melpa.")))
 (cl-defmethod emir-gh-init ((pkg epkg-package))
   (when (oref pkg mirrored)
     (emir-gh pkg "POST" "/orgs/%o/repos" `((name . ,(oref pkg mirror-name))))
-    (emir-gh pkg "WAIT" "/repos/%o/%m")))
+    (with-demoted-errors "Error while waiting for repository creation: %S"
+      (emir-gh pkg "WAIT" "/repos/%o/%m"))))
 
 (cl-defmethod emir-gh-init ((pkg epkg-github-package))
-  (if (let-alist (cdr (ghub-query
-                        '(query (repository
-                                 [(owner $owner String!)
-                                  (name  $name  String!)]
-                                 id
-                                 (parent
-                                  (forks [(:edges t)
-                                          (affiliations ORGANIZATION_MEMBER)]
-                                         (owner login)))))
-                        `((owner . ,(oref pkg upstream-user))
-                          (name  . ,(oref pkg upstream-name)))
-                        :auth 'emir
-                        :synchronous t))
-        (seq-some (##equal (let-alist % .owner.login) "emacsmirror")
-                  .repository.parent.forks))
+  (if (with-demoted-errors "Error while determining related repositories: %S"
+        (let-alist (cdr (ghub-query
+                          '(query (repository
+                                   [(owner $owner String!)
+                                    (name  $name  String!)]
+                                   id
+                                   (parent
+                                    (forks [(:edges t)
+                                            (affiliations ORGANIZATION_MEMBER)]
+                                           (owner login)))))
+                          `((owner . ,(oref pkg upstream-user))
+                            (name  . ,(oref pkg upstream-name)))
+                          :auth 'emir
+                          :synchronous t))
+          (seq-some (##equal (let-alist % .owner.login) "emacsmirror")
+                    .repository.parent.forks)))
       (cl-call-next-method)
     (emir-gh pkg "POST" "/repos/%u/%n/forks"
              `((organization . "emacsmirror")
                (name . ,(oref pkg mirror-name))
                (default-branch-only . t)))
-    (emir-gh pkg "WAIT" "/repos/%o/%m")))
+    (with-demoted-errors "Error while waiting for repository creation: %S"
+      (emir-gh pkg "WAIT" "/repos/%o/%m"))))
 
 (cl-defmethod emir-gh-unsubscribe :after ((pkg epkg-package))
   (emir-gh pkg "DELETE" "/repos/%o/%m/subscription"
