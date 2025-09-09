@@ -342,6 +342,7 @@ With a prefix argument, only show which packages would be added."
                    (pcase-lambda (`(,name ,url))
                      (or (epkg name)
                          (emir--lookup-url url)
+                         (emir--config url :ignored-repos)
                          (emir--config name :delayed)
                          (emir--config name :secondary)))
                    (epkg-list-recipes 'melpa [name url class branch])))))
