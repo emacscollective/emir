@@ -1498,6 +1498,8 @@ because some of these packages are also available from Melpa.")))
 
 (cl-defmethod emir--set-urls ((pkg epkg-mirrored-package))
   (when-let ((url (oref pkg url)))
+    (when (string-suffix-p "/" url)
+      (setq url (substring url 0 -1)))
     (let ((conflict (and url (emir--lookup-url url)))
           (name (oref pkg name)))
       (when (and conflict
