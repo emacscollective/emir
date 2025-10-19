@@ -76,7 +76,7 @@
 
 (setq message-log-max (max message-log-max 30000))
 
-(defconst emir-rewrite-threshold 16)
+(defconst emir-rewrite-threshold 64)
 (defconst emir-rewrite-always-update '("ideasman42" "laishulu"))
 
 ;;; Repositories
