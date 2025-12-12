@@ -56,7 +56,6 @@
 (require 'llama)
 (require 'magit)
 (require 'org)
-(require 'subr-x)
 (require 'transient)
 
 (declare-function emir-melpa--migrated-packages "emir-melpa"
