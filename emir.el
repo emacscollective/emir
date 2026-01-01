@@ -329,12 +329,12 @@ With a prefix argument, only show which packages would be added."
       (`(,name ,url ,class ,branch)
        (seq-keep (pcase-lambda (`(,url . ,pkgs))
                    (cond
-                    ((not (cdr pkgs))
-                     (car pkgs))
-                    (interactive
-                     (assoc (completing-read (format "Mirror %s as: " url)
-                                             pkgs nil t)
-                            pkgs))))
+                     ((not (cdr pkgs))
+                      (car pkgs))
+                     (interactive
+                      (assoc (completing-read (format "Mirror %s as: " url)
+                                              pkgs nil t)
+                             pkgs))))
                  (seq-group-by
                   #'cadr
                   (cl-remove-if
@@ -415,27 +415,27 @@ With a prefix argument, update even if there are no new commits."
          (pcase-dolist (`(,name . ,data) data)
            (cl-incf i)
            (cond
-            ((not data)
-             (oset (epkg name) upstream-state 'removed))
-            ((emir--config name :suspended)
-             (push name skipped))
-            ((let-alist data
-               (let ((pkg (epkg name))
-                     (msg (format "Updating %s (%s/%s)..." name i total)))
-                 ;; These updates are performed silently.
-                 (oset pkg stars (or .stargazers.totalCount 0))
-                 (oset pkg upstream-state (and .isArchived 'archived))
-                 ;; These functions show a message if they do anything.
-                 (emir--gh-maybe-migrate pkg .nameWithOwner)
-                 (emir--update-branch pkg .default.name (not .forced))
-                 (unless (equal (or .tracked.target.oid
-                                    .default.target.oid)
-                                (oref pkg hash))
-                   (message "%s" msg)
-                   (if (emir-update-package name)
-                       (message "%sdone" msg)
-                     (push name failed)
-                     (message "%sfailed" msg))))))))
+             ((not data)
+              (oset (epkg name) upstream-state 'removed))
+             ((emir--config name :suspended)
+              (push name skipped))
+             ((let-alist data
+                (let ((pkg (epkg name))
+                      (msg (format "Updating %s (%s/%s)..." name i total)))
+                  ;; These updates are performed silently.
+                  (oset pkg stars (or .stargazers.totalCount 0))
+                  (oset pkg upstream-state (and .isArchived 'archived))
+                  ;; These functions show a message if they do anything.
+                  (emir--gh-maybe-migrate pkg .nameWithOwner)
+                  (emir--update-branch pkg .default.name (not .forced))
+                  (unless (equal (or .tracked.target.oid
+                                     .default.target.oid)
+                                 (oref pkg hash))
+                    (message "%s" msg)
+                    (if (emir-update-package name)
+                        (message "%sdone" msg)
+                      (push name failed)
+                      (message "%sfailed" msg))))))))
          (emir-commit (emir--update-message) nil :dump)
          (emir--show-update-report start total skipped failed)))
      50)))
@@ -912,23 +912,23 @@ dump the Epkg database.  If optional SORT is non-nil, then sort the
                (and force '("--tags" "--prune-tags" "--force")))
     (let ((upstream (concat "origin/" (oref pkg branch))))
       (cond
-       ((oref pkg patched)
-        (magit-git "rebase" "@{upstream}"))
-       ((not (zerop (magit-git-exit-code "merge" "--ff-only" upstream)))
-        (unless (or force
-                    (zerop (magit-git-exit-code "merge-base" "master" upstream)))
-          (error "History completely rewritten"))
-        (pcase-let* ((`(,ours ,theirs) (magit-rev-diff-count "master" upstream))
-                     (msg (format "history rewritten (master %s, %s %s)"
-                                  ours upstream theirs)))
-          (cond ((or force
-                     (< (+ ours theirs) emir-rewrite-threshold)
-                     (member (oref pkg upstream-user)
-                             emir-rewrite-always-update))
-                 (message "Update warning (%s): %s" (oref pkg name) msg)
-                 (magit-git "reset" "--hard" upstream)
-                 (setq emir--force-push t))
-                ((error "%s" msg)))))))))
+        ((oref pkg patched)
+         (magit-git "rebase" "@{upstream}"))
+        ((not (zerop (magit-git-exit-code "merge" "--ff-only" upstream)))
+         (unless (or force
+                     (zerop (magit-git-exit-code "merge-base" "master" upstream)))
+           (error "History completely rewritten"))
+         (pcase-let* ((`(,ours ,theirs) (magit-rev-diff-count "master" upstream))
+                      (msg (format "history rewritten (master %s, %s %s)"
+                                   ours upstream theirs)))
+           (cond ((or force
+                      (< (+ ours theirs) emir-rewrite-threshold)
+                      (member (oref pkg upstream-user)
+                              emir-rewrite-always-update))
+                  (message "Update warning (%s): %s" (oref pkg name) msg)
+                  (magit-git "reset" "--hard" upstream)
+                  (setq emir--force-push t))
+                 ((error "%s" msg)))))))))
 
 (cl-defmethod emir-pull ((pkg epkg-file-package) &optional force)
   (with-emir-repository pkg
@@ -1030,27 +1030,27 @@ dump the Epkg database.  If optional SORT is non-nil, then sort the
                                (error "Could not list remote branches")))))
             (setq unset-forced t)))
         (cond
-         ((not forced)
-          (unless (equal tracked default)
-            (message "Updating branch of %s (%S => %S)" name tracked default)
-            (emir--update-branch-1 pkg tracked default)
-            (emir-dump-database)))
-         (unset-forced
-          (message "Updating branch of %s (%S (invalid forced) => %S (default))"
-                   name forced default)
-          (oset pkg upstream-branch nil)
-          (emir--update-branch-1 pkg forced default)
-          (emir-dump-database))
-         ((and forced (not (equal forced tracked)))
-          (message "Updating branch of %s (%S (default) => %S (forced))"
-                   name default forced)
-          (emir--update-branch-1 pkg default forced)
-          (emir-dump-database))
-         ((equal forced default)
-          (message "Updating branch of %s (no longer force default %S)"
-                   name default)
-          (oset pkg upstream-branch nil)
-          (emir-dump-database)))))))
+          ((not forced)
+           (unless (equal tracked default)
+             (message "Updating branch of %s (%S => %S)" name tracked default)
+             (emir--update-branch-1 pkg tracked default)
+             (emir-dump-database)))
+          (unset-forced
+           (message "Updating branch of %s (%S (invalid forced) => %S (default))"
+                    name forced default)
+           (oset pkg upstream-branch nil)
+           (emir--update-branch-1 pkg forced default)
+           (emir-dump-database))
+          ((and forced (not (equal forced tracked)))
+           (message "Updating branch of %s (%S (default) => %S (forced))"
+                    name default forced)
+           (emir--update-branch-1 pkg default forced)
+           (emir-dump-database))
+          ((equal forced default)
+           (message "Updating branch of %s (no longer force default %S)"
+                    name default)
+           (oset pkg upstream-branch nil)
+           (emir-dump-database)))))))
 
 (defun emir--update-branch-1 (pkg old new)
   (magit-git "config" "remote.origin.fetch"
@@ -1333,20 +1333,20 @@ because some of these packages are also available from Melpa.")))
                      (emacs-lisp-mode)
                      (let ((package
                             (cond
-                             ;; Pending [[notmuch-tree:thread:000000000001545a][#62751]]:
-                             ((equal file "lisp/use-package/bind-key.el")
-                              "bind-key")
-                             ;; Properly specified packages:
-                             ((and-let* ((elt (assoc (thread-first file
-                                                       file-name-directory
-                                                       directory-file-name
-                                                       file-name-nondirectory)
-                                                     builtins-alist)))
-                                (symbol-name (cdr elt))))
-                             ((lm-header "Package"))
-                             ((thread-first file
-                                file-name-nondirectory
-                                file-name-sans-extension)))))
+                              ;; Pending [[notmuch-tree:thread:000000000001545a][#62751]]:
+                              ((equal file "lisp/use-package/bind-key.el")
+                               "bind-key")
+                              ;; Properly specified packages:
+                              ((and-let* ((elt (assoc (thread-first file
+                                                        file-name-directory
+                                                        directory-file-name
+                                                        file-name-nondirectory)
+                                                      builtins-alist)))
+                                 (symbol-name (cdr elt))))
+                              ((lm-header "Package"))
+                              ((thread-first file
+                                 file-name-nondirectory
+                                 file-name-sans-extension)))))
                        (prog1 (mapcar (##list package file %)
                                       (or (elx-provided)
                                           (list nil)))
@@ -1466,11 +1466,11 @@ because some of these packages are also available from Melpa.")))
                                (funcall query pkg)
                              query)))
                      (cond
-                      ((not packages)
-                       (epkgs nil [github*]))
-                      ((integerp packages)
-                       (take packages (epkgs nil [github*])))
-                      ((mapcar #'epkg packages))))
+                       ((not packages)
+                        (epkgs nil [github*]))
+                       ((integerp packages)
+                        (take packages (epkgs nil [github*])))
+                       ((mapcar #'epkg packages))))
              (or per-page 100)))
            (len (length pages))
            (run (lambda (&optional data _headers _status _req)
@@ -1614,20 +1614,20 @@ because some of these packages are also available from Melpa.")))
         (pcase-let ((`(,okey ,oval) (car old))
                     (`(,nkey ,nval) (car new)))
           (cond
-           ((and okey (or (not nkey) (string< okey nkey)))
-            (epkg-sql [:delete-from $i1 :where (= k $s2)]
-                      table okey)
-            (pop old))
-           ((string= okey nkey)
-            (unless (equal oval nval)
-              (epkg-sql [:update $i1 :set (= v $s2) :where (= k $s3)]
-                        table nval nkey))
-            (pop old)
-            (pop new))
-           (t
-            (epkg-sql [:insert-into $i1 :values $v2]
-                      table (vector nkey nval))
-            (pop new)))))))
+            ((and okey (or (not nkey) (string< okey nkey)))
+             (epkg-sql [:delete-from $i1 :where (= k $s2)]
+                       table okey)
+             (pop old))
+            ((string= okey nkey)
+             (unless (equal oval nval)
+               (epkg-sql [:update $i1 :set (= v $s2) :where (= k $s3)]
+                         table nval nkey))
+             (pop old)
+             (pop new))
+            (t
+             (epkg-sql [:insert-into $i1 :values $v2]
+                       table (vector nkey nval))
+             (pop new)))))))
   (emir-dump-database))
 
 (defun emir--ignore-tags-p (pkg)

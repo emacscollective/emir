@@ -90,29 +90,29 @@
             (`(gnu  :url nil) 'epkg-gnu-elpa-internal-recipe)
             (`(gnu  :url  ,_)
              (cond
-              ;; We don't support bzr; treat elpa as the upstream.
-              ((string-prefix-p "bzr::" value) 'epkg-gnu-elpa-internal-recipe)
-              ((string-prefix-p "hg::"  value) 'epkg-gnu-elpa-hg-recipe)
-              ((emir--url-to-class value 'epkg-gnu-elpa-external-recipe))
-              ;; emir--url-to-class doesn't support unsafe git:// urls
-              ;; but [Non]GNU Elpa uses those.  Additionally they mix
-              ;; "savannah.[non]gnu.org" and the alias "sv.[non]gnu.org".
-              ((string-match-p "git\\.\\(sv\\|savannah\\)\\.gnu\\.org" value)
-               'epkg-gnu-elpa-gnu-recipe)
-              ((string-match-p "git\\.\\(sv\\|savannah\\)\\.nongnu\\.org" value)
-               'epkg-gnu-elpa-nongnu-recipe)
-              (t 'epkg-gnu-elpa-git-recipe)))
+               ;; We don't support bzr; treat elpa as the upstream.
+               ((string-prefix-p "bzr::" value) 'epkg-gnu-elpa-internal-recipe)
+               ((string-prefix-p "hg::"  value) 'epkg-gnu-elpa-hg-recipe)
+               ((emir--url-to-class value 'epkg-gnu-elpa-external-recipe))
+               ;; emir--url-to-class doesn't support unsafe git:// urls
+               ;; but [Non]GNU Elpa uses those.  Additionally they mix
+               ;; "savannah.[non]gnu.org" and the alias "sv.[non]gnu.org".
+               ((string-match-p "git\\.\\(sv\\|savannah\\)\\.gnu\\.org" value)
+                'epkg-gnu-elpa-gnu-recipe)
+               ((string-match-p "git\\.\\(sv\\|savannah\\)\\.nongnu\\.org" value)
+                'epkg-gnu-elpa-nongnu-recipe)
+               (t 'epkg-gnu-elpa-git-recipe)))
             (`(nongnu :url nil) 'epkg-nongnu-elpa-internal-recipe)
             (`(nongnu :url  ,_)
              (cond
-              ((string-prefix-p "bzr::" value) 'epkg-nongnu-elpa-internal-recipe)
-              ((string-prefix-p "hg::"  value) 'epkg-nongnu-elpa-hg-recipe)
-              ((emir--url-to-class value 'epkg-nongnu-elpa-external-recipe))
-              ((string-match-p "git\\.\\(sv\\|savannah\\)\\.gnu\\.org" value)
-               'epkg-nongnu-elpa-gnu-recipe)
-              ((string-match-p "git\\.\\(sv\\|savannah\\)\\.nongnu\\.org" value)
-               'epkg-nongnu-elpa-nongnu-recipe)
-              (t 'epkg-nongnu-elpa-git-recipe))))))
+               ((string-prefix-p "bzr::" value) 'epkg-nongnu-elpa-internal-recipe)
+               ((string-prefix-p "hg::"  value) 'epkg-nongnu-elpa-hg-recipe)
+               ((emir--url-to-class value 'epkg-nongnu-elpa-external-recipe))
+               ((string-match-p "git\\.\\(sv\\|savannah\\)\\.gnu\\.org" value)
+                'epkg-nongnu-elpa-gnu-recipe)
+               ((string-match-p "git\\.\\(sv\\|savannah\\)\\.nongnu\\.org" value)
+                'epkg-nongnu-elpa-nongnu-recipe)
+               (t 'epkg-nongnu-elpa-git-recipe))))))
     (when (and rcp (not (eq (type-of rcp) class)))
       (closql-delete rcp)
       (setq rcp nil))
