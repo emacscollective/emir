@@ -250,16 +250,16 @@ With a prefix argument, only import Drew's packages."
   "Mirror the package named NAME from URL using CLASS.
 Keys in PLIST must be supported by the CLASS constructor."
   (interactive
-   (let* ((url (emir-read-url "Add package from url"))
-          (class (emir--read-class url))
-          (name (magit-read-string
-                 "Package name"
-                 (and-let* ((name (emir--url-get url 'upstream-name)))
-                   (thread-last name
-                     (replace-regexp-in-string "\\`emacs-" "")
-                     (replace-regexp-in-string "\\`elisp-" "")
-                     (replace-regexp-in-string "[.-]el\\'" ""))))))
-     (list name url class)))
+    (let* ((url (emir-read-url "Add package from url"))
+           (class (emir--read-class url))
+           (name (magit-read-string
+                  "Package name"
+                  (and-let* ((name (emir--url-get url 'upstream-name)))
+                    (thread-last name
+                      (replace-regexp-in-string "\\`emacs-" "")
+                      (replace-regexp-in-string "\\`elisp-" "")
+                      (replace-regexp-in-string "[.-]el\\'" ""))))))
+      (list name url class)))
   (cond ((epkg name)
          (user-error "Package %s already exists" name))
         ((emir--config name :delayed)
@@ -560,14 +560,14 @@ With a prefix argument, update license information for all packages."
 (defun emir-join-provided (name feature reason)
   "Declare that the package NAME provides FEATURE because of REASON."
   (interactive
-   (let* ((name     (epkg-read-package "Package: "))
-          (pkg      (epkg name))
-          (features (oref pkg provided))
-          (feature  (intern (completing-read "Join provide: "
-                                             (mapcar #'car features))))
-          (reason   (read-string "Reason: " (nth 2 (assq feature features)))))
-     (list name feature
-           (and (not (equal reason "")) reason))))
+    (let* ((name     (epkg-read-package "Package: "))
+           (pkg      (epkg name))
+           (features (oref pkg provided))
+           (feature  (intern (completing-read "Join provide: "
+                                              (mapcar #'car features))))
+           (reason   (read-string "Reason: " (nth 2 (assq feature features)))))
+      (list name feature
+            (and (not (equal reason "")) reason))))
   (let* ((pkg (epkg name))
          (val (oref pkg provided))
          (elt (assq feature val)))
@@ -581,15 +581,15 @@ With a prefix argument, update license information for all packages."
 (defun emir-drop-provided (name feature reason)
   "Declare that the package NAME does not provide FEATURE because of REASON."
   (interactive
-   (let* ((name     (epkg-read-package "Package: "))
-          (pkg      (epkg name))
-          (features (oref pkg provided))
-          (feature  (intern (completing-read "Drop provide: "
-                                             (mapcar #'car features)
-                                             nil t)))
-          (reason   (read-string "Reason: " (nth 1 (assq feature features)))))
-     (list name feature
-           (and (not (equal reason "")) reason))))
+    (let* ((name     (epkg-read-package "Package: "))
+           (pkg      (epkg name))
+           (features (oref pkg provided))
+           (feature  (intern (completing-read "Drop provide: "
+                                              (mapcar #'car features)
+                                              nil t)))
+           (reason   (read-string "Reason: " (nth 1 (assq feature features)))))
+      (list name feature
+            (and (not (equal reason "")) reason))))
   (let* ((pkg (epkg name))
          (val (oref pkg provided))
          (elt (assq feature val)))
@@ -601,15 +601,15 @@ With a prefix argument, update license information for all packages."
 (defun emir-drop-required (name feature reason)
   "Declare that the package NAME does not require FEATURE because of REASON."
   (interactive
-   (let* ((name     (epkg-read-package "Package: "))
-          (pkg      (epkg name))
-          (features (oref pkg required))
-          (feature  (intern (completing-read "Drop required: "
-                                             (mapcar #'car features)
-                                             nil t)))
-          (reason   (read-string "Reason: " (nth 3 (assq feature features)))))
-     (list name feature
-           (and (not (equal reason "")) reason))))
+    (let* ((name     (epkg-read-package "Package: "))
+           (pkg      (epkg name))
+           (features (oref pkg required))
+           (feature  (intern (completing-read "Drop required: "
+                                              (mapcar #'car features)
+                                              nil t)))
+           (reason   (read-string "Reason: " (nth 3 (assq feature features)))))
+      (list name feature
+            (and (not (equal reason "")) reason))))
   (let* ((pkg (epkg name))
          (val (oref pkg required))
          (elt (assq feature val)))
@@ -680,10 +680,10 @@ With a prefix argument, update license information for all packages."
 (defun emir-remove-package (name)
   "Remove the package named NAME."
   (interactive
-   (let ((name (epkg-read-package "Remove package: ")))
-     (unless (y-or-n-p (format "Really REMOVE (not shelve) %s?" name))
-       (user-error "Abort"))
-     (list name)))
+    (let ((name (epkg-read-package "Remove package: ")))
+      (unless (y-or-n-p (format "Really REMOVE (not shelve) %s?" name))
+        (user-error "Abort"))
+      (list name)))
   (let ((pkg (epkg name)))
     (unless (epkg-builtin-package-p pkg)
       (emir--remove-module-worktree name)
@@ -747,15 +747,15 @@ With a prefix argument, update license information for all packages."
 (defun emir-migrate-package (name url class)
   "Change the upstream repository from which to get the package named NAME."
   (interactive
-   (let* ((name (epkg-read-package "Migrate package: "))
-          (url (emir-read-url
-                "New repository url"
-                (nth 4 (or
-                        (assoc name (emir-melpa--migrated-packages))
-                        (assoc name (emir-gnu-elpa--migrated-packages))
-                        (assoc name (emir-nongnu-elpa--migrated-packages))))))
-          (class (emir--read-class url)))
-     (list name url class)))
+    (let* ((name (epkg-read-package "Migrate package: "))
+           (url (emir-read-url
+                 "New repository url"
+                 (nth 4 (or
+                         (assoc name (emir-melpa--migrated-packages))
+                         (assoc name (emir-gnu-elpa--migrated-packages))
+                         (assoc name (emir-nongnu-elpa--migrated-packages))))))
+           (class (emir--read-class url)))
+      (list name url class)))
   (let ((pkg (epkg name)))
     (unless pkg
       (user-error "Package does not %s exist yet" name))
