@@ -1374,10 +1374,10 @@ because some of these packages are also available from Melpa.")))
     (if (equal method "WAIT")
         (ghub-wait resource nil :auth 'emir)
       (ghub-request method resource params
-                    :silent t
-                    :auth 'emir
-                    :callback callback
-                    :errorback errorback))))
+        :silent t
+        :auth 'emir
+        :callback callback
+        :errorback errorback))))
 
 (cl-defmethod emir-gh-init ((pkg epkg-package))
   (when (oref pkg mirrored)
@@ -1474,23 +1474,23 @@ because some of these packages are also available from Melpa.")))
              (or per-page 100)))
            (len (length pages))
            (run (lambda (&optional data _headers _status _req)
-                 (setq result (nconc result (cdar data)))
-                 (cond
-                  (pages
-                   (message "Fetching page...%s/%s" (cl-incf page) len)
-                   (ghub-graphql
-                    (gsexp-encode
-                     (ghub--graphql-prepare-query
-                      (cons 'query (pop pages))))
-                    nil :callback run :auth 'emir))
-                  (t
-                   (message "Fetching page...done")
-                   (dolist (elt result)
-                     (setcar elt (base64-decode-string
-                                  (string-replace
-                                   "_" "="
-                                   (substring (symbol-name (car elt)) 1)))))
-                   (funcall callback result))))))
+                  (setq result (nconc result (cdar data)))
+                  (cond
+                    (pages
+                     (message "Fetching page...%s/%s" (cl-incf page) len)
+                     (ghub-graphql
+                      (gsexp-encode
+                       (ghub--graphql-prepare-query
+                        (cons 'query (pop pages))))
+                      nil :callback run :auth 'emir))
+                    (t
+                     (message "Fetching page...done")
+                     (dolist (elt result)
+                       (setcar elt (base64-decode-string
+                                    (string-replace
+                                     "_" "="
+                                     (substring (symbol-name (car elt)) 1)))))
+                     (funcall callback result))))))
     (funcall run)))
 
 ;;; Urls
