@@ -1,6 +1,6 @@
 ;;; emir-gelpa.el --- Import [Non]GNU Elpa recipes  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2016-2025 Jonas Bernoulli
+;; Copyright (C) 2016-2026 Jonas Bernoulli
 
 ;; Author: Jonas Bernoulli <emacs.emir@jonas.bernoulli.dev>
 ;; Homepage: https://github.com/emacscollective/emir
