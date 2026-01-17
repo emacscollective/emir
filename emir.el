@@ -571,10 +571,10 @@ With a prefix argument, update license information for all packages."
   (let* ((pkg (epkg name))
          (val (oref pkg provided))
          (elt (assq feature val)))
-    (if elt
-        (progn (setf (nth 2 elt) reason)
-               (oset pkg provided val))
-      (oset pkg provided (cons (list feature nil reason) val))))
+    (cond (elt
+           (setf (nth 2 elt) reason)
+           (oset pkg provided val))
+          ((oset pkg provided (cons (list feature nil reason) val)))))
   (emir-stage name :dump))
 
 ;;;###autoload
