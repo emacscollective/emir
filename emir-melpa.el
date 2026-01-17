@@ -108,7 +108,7 @@
 
 (cl-defmethod emir--format-url ((rcp epkg-melpa-recipe) slot)
   (ignore-errors
-    (and-let* ((format (eieio-oref-default rcp slot)))
+    (and-let ((format (eieio-oref-default rcp slot)))
       (save-match-data
         (format-spec format `((?r . ,(oref rcp repo))))))))
 

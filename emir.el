@@ -256,7 +256,7 @@ Keys in PLIST must be supported by the CLASS constructor."
            (class (emir--read-class url))
            (name (magit-read-string
                   "Package name"
-                  (and-let* ((name (emir--url-get url 'upstream-name)))
+                  (and-let ((name (emir--url-get url 'upstream-name)))
                     (thread-last name
                       (replace-regexp-in-string "\\`emacs-" "")
                       (replace-regexp-in-string "\\`elisp-" "")
@@ -401,7 +401,7 @@ With a prefix argument, update even if there are no new commits."
        `((stargazers totalCount)
          isArchived
          nameWithOwner
-         ,@(and-let* ((forced (oref pkg upstream-branch)))
+         ,@(and-let ((forced (oref pkg upstream-branch)))
              `(((forced ref)
                 [(qualifiedName ,(concat "refs/heads/" forced))]
                 name)))
@@ -1019,7 +1019,7 @@ dump the Epkg database.  If optional SORT is non-nil, then sort the
         (unless default
           (setq default
                 (or (magit-remote-head "origin")
-                    (and-let* ; Use cached value when gitlab takes a nap.
+                    (and-let ; Use cached value when gitlab takes a nap.
                         ((ref (magit-git-string "symbolic-ref"
                                                 "refs/remotes/origin/HEAD")))
                       (substring ref 20))))
@@ -1225,7 +1225,7 @@ because some of these packages are also available from Melpa.")))
       (emir--format-url pkg 'homepage-format)))
 
 (cl-defmethod emir--wikipage ((pkg epkg-package))
-  (and-let*
+  (and-let
       ((page (or (and (epkg-wiki-package-p pkg) (elx-wikipage))
                  (emir--config pkg :wikipage)
                  (let* ((norm (lambda (string)
@@ -1340,11 +1340,11 @@ because some of these packages are also available from Melpa.")))
                               ((equal file "lisp/use-package/bind-key.el")
                                "bind-key")
                               ;; Properly specified packages:
-                              ((and-let* ((elt (assoc (thread-first file
-                                                        file-name-directory
-                                                        directory-file-name
-                                                        file-name-nondirectory)
-                                                      builtins-alist)))
+                              ((and-let ((elt (assoc (thread-first file
+                                                       file-name-directory
+                                                       directory-file-name
+                                                       file-name-nondirectory)
+                                                     builtins-alist)))
                                  (symbol-name (cdr elt))))
                               ((lm-header "Package"))
                               ((thread-first file
@@ -1526,9 +1526,9 @@ because some of these packages are also available from Melpa.")))
       (oset pkg url (concat "hg::" url)))))
 
 (cl-defmethod emir--format-url ((pkg epkg-package) slot)
-  (and-let* ((format (if (stringp slot)
-                         slot
-                       (eieio-oref-default pkg slot))))
+  (and-let ((format (if (stringp slot)
+                        slot
+                      (eieio-oref-default pkg slot))))
     (save-match-data
       (format-spec format
                    `((?m . ,(or (oref pkg mirror-name)
