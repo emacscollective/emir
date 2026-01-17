@@ -8,16 +8,17 @@
 
 ;; Package-Version: 3.3.2
 ;; Package-Requires: (
-;;     (emacs  "30.1")
-;;     (compat "30.1")
-;;     (borg    "4.4")
-;;     (elx     "2.3")
-;;     (emacsql "4.3")
-;;     (epkg    "4.1")
-;;     (ghub    "5.0")
-;;     (llama   "1.0")
-;;     (magit   "4.5")
-;;     (org     "9.7"))
+;;     (emacs   "30.1")
+;;     (compat  "30.1")
+;;     (cond-let "0.2")
+;;     (borg     "4.4")
+;;     (elx      "2.3")
+;;     (emacsql  "4.3")
+;;     (epkg     "4.1")
+;;     (ghub     "5.0")
+;;     (llama    "1.0")
+;;     (magit    "4.5")
+;;     (org      "9.7"))
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -45,6 +46,7 @@
 (require 'borg)
 (require 'cl-lib)
 (require 'closql)
+(require 'cond-let)
 (require 'eieio)
 (require 'elx)
 (require 'emacsql)
@@ -1652,4 +1654,13 @@ because some of these packages are also available from Melpa.")))
 (require 'emir-gelpa)
 (require 'emir-melpa)
 (require 'emir-utils)
+;; Local Variables:
+;; read-symbol-shorthands: (
+;;   ("and$"      . "cond-let--and$")
+;;   ("and-let"   . "cond-let--and-let")
+;;   ("if-let"    . "cond-let--if-let")
+;;   ("when$"     . "cond-let--when$")
+;;   ("when-let"  . "cond-let--when-let")
+;;   ("while-let" . "cond-let--while-let"))
+;; End:
 ;;; emir.el ends here
