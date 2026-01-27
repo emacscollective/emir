@@ -159,10 +159,18 @@
             (error "`%s's type is `:core' but branch `externals/%s' also exists"
                    name name))))))
   (pcase-dolist (`(,name . ,spec) alist)
-    (let ((branch (format "%s/%s" (if (eq elpa 'gnu) "externals" "elpa") name)))
-      (when (and (plist-member spec :url)
-                 (not (magit-branch-p (concat "refs/heads/" branch))))
-        (error "`%s's type is `:url' but branch `%s' is missing" name branch)))))
+    (when (plist-member spec :url)
+      (let* ((url (plist-get spec :url))
+             (branch (format "%s/%s"
+                             (if (eq elpa 'gnu) "externals" "elpa")
+                             (if (and url (symbolp url))
+                                 ;; `url' is a symbol identifying another
+                                 ;; package, whose branch is to be used.
+                                 url
+                               name))))
+        (unless (magit-branch-p (concat "refs/heads/" branch))
+          (error "`%s's type is `:url' but branch `%s' is missing"
+                 name branch))))))
 
 (defun emir-gelpa--released-p (elpa name)
   ;; See section "Public incubation" in "<gnu>/README".
