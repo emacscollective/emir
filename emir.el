@@ -958,10 +958,10 @@ dump the Epkg database.  If optional SORT is non-nil, then sort the
 (cl-defmethod emir-pull ((pkg epkg-subtree-package) &optional _force)
   (with-emir-repository pkg
     (let ((name (oref pkg name))
-          (branch (or (oref pkg upstream-branch)
-                      (magit-remote-head (oref pkg url))))) ; FIXME
+          (branch "master")
+          (upstream (concat "origin/" (oref pkg branch))))
       (magit-git "fetch" "origin")
-      (magit-git "checkout" (concat "origin/" branch))
+      (magit-git "checkout" upstream)
       (let ((time (current-time)))
         (message "Filtering subtree of %s... (%s)" name
                  (format-time-string "%T"))
@@ -1008,10 +1008,9 @@ dump the Epkg database.  If optional SORT is non-nil, then sort the
 ;;;; Update
 
 (defun emir--update-branch (pkg &optional default unset-forced)
-  (unless (or (cl-typep pkg 'epkg-file-package)     ; no upstream repository
-              (cl-typep pkg 'epkg-wiki-package)     ; constant name
-              (cl-typep pkg 'epkg-gnu-elpa-package) ; constant name
-              (cl-typep pkg 'epkg-subtree-package)) ; no tracked upstream
+  (unless (cl-typep pkg '(or epkg-file-package       ; no upstream repository
+                             epkg-wiki-package       ; constant name
+                             epkg-gnu-elpa-package)) ; constant name
     (with-emir-repository pkg
       (let ((name (oref pkg name))
             (forced (oref pkg upstream-branch))
@@ -1058,7 +1057,8 @@ dump the Epkg database.  If optional SORT is non-nil, then sort the
   (magit-git "config" "remote.origin.fetch"
              (format "+refs/heads/%s:refs/remotes/origin/%s" new new))
   (magit-git "fetch" "origin")
-  (magit-git "update-ref" "-d" (concat "refs/remotes/origin/" old))
+  (when old
+    (magit-git "update-ref" "-d" (concat "refs/remotes/origin/" old)))
   (magit-git "branch" "master" (concat "--set-upstream-to=origin/" new))
   (magit-git "remote" "set-head" "origin" new)
   (oset pkg branch new))
