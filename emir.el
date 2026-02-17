@@ -1513,10 +1513,13 @@ because some of these packages are also available from Melpa.")))
                     conflict url)))
     (when-let ((url-format (oref pkg url-format)))
       (pcase-dolist (`(,slot . ,value) (emir--match-url url-format url))
-        (when (and (eq slot 'upstream-name)
-                   (string-suffix-p ".git" value))
-          (setq value (substring value 0 -4)))
-        (eieio-oset pkg slot value))))
+        (pcase slot
+          ('repo
+           (oset pkg upstream-name value))
+          ((and 'upstream-name (guard (string-suffix-p ".git" value)))
+           (oset pkg upstream-name (substring value 0 -4)))
+          (_
+           (eieio-oset pkg slot value))))))
   (when-let ((url (emir--format-url pkg 'url-format)))
     (oset pkg url url)))
 
@@ -1535,6 +1538,7 @@ because some of these packages are also available from Melpa.")))
                                 (oref pkg name)))
                      (?n . ,(or (oref pkg upstream-name)
                                 (oref pkg name)))
+                     (?r . ,(oref pkg upstream-name))
                      (?u . ,(oref pkg upstream-user))
                      (?l . ,(oref pkg library)))))))
 
@@ -1560,9 +1564,10 @@ because some of these packages are also available from Melpa.")))
                                ;; epkg-*elpa-recipe
                                (?r . repo)))))
             (push slot slots)
-            (replace-match (if (memq char '(?u ?r))
-                               "\\(.+\\)"
-                             "\\([^/]+?\\)")
+            (replace-match (pcase char
+                             (?u "\\(.+\\)")
+                             (?r "\\([^.]+\\)")
+                             (_  "\\([^/]+?\\)"))
                            t t)))
         (and (string-match (concat "\\`" (buffer-string) "\\'") url)
              (let ((i 0))
