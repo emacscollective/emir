@@ -1538,36 +1538,40 @@ because some of these packages are also available from Melpa.")))
                      (?u . ,(oref pkg upstream-user))
                      (?l . ,(oref pkg library)))))))
 
+(defun emir--url-matcher (format)
+  (let (slots)
+    (cons (thread-last format
+            (regexp-quote)
+            (replace-regexp-in-string "\\(git@\\([^:/]*\\)\\:\\)"
+                                      "\\\\(?:https://\\2/\\\\|\\1\\\\)")
+            ;; If the format ends with ".git", that means that we output
+            ;; that when formatting the url.  When matching an url, this
+            ;; suffix is always treated as optional.
+            (replace-regexp-in-string "\\(\\\\.git\\)\\'"
+                                      "\\\\(\\\\.git\\\\)?")
+            (replace-regexp-in-string
+             "%\\(.\\)"
+             (lambda (match)
+               (pcase-let ((`(,char . ,slot)
+                            (assq (aref match 1)
+                                  '(;; epkg-package
+                                    (?m . mirror-name)
+                                    (?n . upstream-name)
+                                    (?u . upstream-user)
+                                    ;; epkg-*elpa-recipe
+                                    (?r . repo)))))
+                 (push slot slots)
+                 (if (memq char '(?u ?r))
+                     "\\\\(.+\\\\)"
+                   "\\\\([^/]+?\\\\)"))))
+            (format "\\`%s\\'"))
+          (nreverse slots))))
+
 (defun emir--match-url (format url)
-  (with-temp-buffer
-    (thread-last format
-      (regexp-quote)
-      (replace-regexp-in-string "\\(git@\\([^:/]*\\)\\:\\)"
-                                "\\\\(?:https://\\2/\\\\|\\1\\\\)")
-      (replace-regexp-in-string "\\(\\\\.git\\)\\'"
-                                "\\\\(\\\\.git\\\\)?")
-      (insert))
-    (goto-char (point-min))
-    (let (slots)
-      (save-match-data
-        (while (re-search-forward "%\\(.\\)" nil t)
-          (pcase-let ((`(,char . ,slot)
-                       (assq (string-to-char (match-string 1))
-                             '(;; epkg-package
-                               (?m . mirror-name)
-                               (?n . upstream-name)
-                               (?u . upstream-user)
-                               ;; epkg-*elpa-recipe
-                               (?r . repo)))))
-            (push slot slots)
-            (replace-match (if (memq char '(?u ?r))
-                               "\\(.+\\)"
-                             "\\([^/]+?\\)")
-                           t t)))
-        (and (string-match (concat "\\`" (buffer-string) "\\'") url)
-             (let ((i 0))
-               (mapcar (##cons % (match-string (cl-incf i) url))
-                       (nreverse slots))))))))
+  (pcase-let ((`(,regexp . ,slots) (emir--url-matcher format)))
+    (and (string-match regexp url)
+         (let ((i 0))
+           (mapcar (##cons % (match-string (cl-incf i) url)) slots)))))
 
 (defun emir--url-to-class (url &optional base-class)
   (cl-find-if (lambda (class)
