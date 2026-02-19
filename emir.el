@@ -1513,9 +1513,6 @@ because some of these packages are also available from Melpa.")))
                     conflict url)))
     (when-let ((url-format (oref pkg url-format)))
       (pcase-dolist (`(,slot . ,value) (emir--match-url url-format url))
-        (when (and (eq slot 'upstream-name)
-                   (string-suffix-p ".git" value))
-          (setq value (substring value 0 -4)))
         (eieio-oset pkg slot value))))
   (when-let ((url (emir--format-url pkg 'url-format)))
     (oset pkg url url)))
@@ -1540,15 +1537,19 @@ because some of these packages are also available from Melpa.")))
 
 (defun emir--url-matcher (format)
   (let (slots)
-    (cons (thread-last format
-            (regexp-quote)
-            (replace-regexp-in-string "\\(git@\\([^:/]*\\)\\:\\)"
+    (cons (thread-last
+            ;; Whether the format ends with ".git" controls whether
+            ;; the return value of `emir--format-url' does as well.
+            ;; Here we always treat that suffix as optional.
+            (concat (regexp-quote (if (string-suffix-p ".git" format)
+                                      (substring format 0 -4)
+                                    format))
+                    "\\(\\.git\\)?")
+            ;; Likewise always allow https, even when we prefer ssh.
+            (replace-regexp-in-string "\\`\\(git@\\([^:/]*\\)\\:\\)"
                                       "\\\\(?:https://\\2/\\\\|\\1\\\\)")
-            ;; If the format ends with ".git", that means that we output
-            ;; that when formatting the url.  When matching an url, this
-            ;; suffix is always treated as optional.
-            (replace-regexp-in-string "\\(\\\\.git\\)\\'"
-                                      "\\\\(\\\\.git\\\\)?")
+            ;; Map %-specifiers to slots (or keywords, which do not
+            ;; correspond to slots).
             (replace-regexp-in-string
              "%\\(.\\)"
              (lambda (match)
@@ -1562,7 +1563,7 @@ because some of these packages are also available from Melpa.")))
                                     (?r . repo)))))
                  (push slot slots)
                  (if (memq char '(?u ?r))
-                     "\\\\(.+\\\\)"
+                     "\\\\(.+?\\\\)"
                    "\\\\([^/]+?\\\\)"))))
             (format "\\`%s\\'"))
           (nreverse slots))))
