@@ -1532,6 +1532,8 @@ because some of these packages are also available from Melpa.")))
                                 (oref pkg name)))
                      (?n . ,(or (oref pkg upstream-name)
                                 (oref pkg name)))
+                     (?r . ,(or (oref pkg upstream-name)
+                                (oref pkg name)))
                      (?u . ,(oref pkg upstream-user))
                      (?l . ,(oref pkg library)))))))
 
