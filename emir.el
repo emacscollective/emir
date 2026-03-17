@@ -1449,7 +1449,7 @@ because some of these packages are also available from Melpa.")))
   (emir-gh pkg "POST" "/repos/emacsmirror/%m/transfer"
            '((new_owner . "emacsattic"))))
 
-(defun emir-gh-foreach-query (query callback &optional per-page packages)
+(defun emir-gh-foreach-query (query callback &optional per-page packages msg)
   (let* ((result nil)
          (page 0)
          (pages
@@ -1475,17 +1475,18 @@ because some of these packages are also available from Melpa.")))
                       (take packages (epkgs nil [github*])))
                      ((mapcar #'epkg packages))))
            (or per-page 100)))
-         (len (length pages)))
+         (len (length pages))
+         (msg (or msg "Fetching page...")))
     (named-let run (data _headers _status _req)
       (setq result (nconc result (cdar data)))
       (cond
         (pages
-         (message "Fetching page...%s/%s" (cl-incf page) len)
+         (message "%s%s/%s" msg (cl-incf page) len)
          (ghub-graphql
           (gsexp-encode (ghub--graphql-prepare-query (cons 'query (pop pages))))
           nil :callback #'run :auth 'emir))
         (t
-         (message "Fetching page...done")
+         (message "%sdone" msg)
          (dolist (elt result)
            (setcar elt (base64-decode-string
                         (string-replace
