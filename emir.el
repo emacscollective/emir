@@ -1477,12 +1477,12 @@ because some of these packages are also available from Melpa.")))
            (or per-page 100)))
          (len (length pages))
          (msg (or msg "Fetching page...")))
-    (named-let run (data _headers _status _req)
+    (named-let run (data)
       (setq result (nconc result (cdar data)))
       (cond
         (pages
          (message "%s%s/%s" msg (cl-incf page) len)
-         (ghub-graphql
+         (ghub-query
           (gsexp-encode (ghub--graphql-prepare-query (cons 'query (pop pages))))
           nil :callback #'run :auth 'emir))
         (t
