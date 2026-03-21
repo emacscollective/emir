@@ -1491,7 +1491,7 @@ because some of these packages are also available from Melpa.")))
          (message "%s%s/%s" msg (cl-incf page) len)
          (ghub-query
           (gsexp-encode (ghub--graphql-prepare-query (cons 'query (pop pages))))
-          nil :callback #'run :auth 'emir))
+          nil :callback #'run :noerror t :auth 'emir))
         (t
          (message "%sdone" msg)
          (dolist (elt result)
