@@ -450,6 +450,16 @@ With a prefix argument, update even if there are no new commits."
      50 nil "Listing updated packages; fetching page...")))
 
 ;;;###autoload
+(defun emir-update-elpa-packages (&optional from recreate)
+  "Update all mirrored packages that are maintained on [Non]GNU ELPA.
+With a prefix argument, read a package, and only update that and later
+packages in alphabetic order.  If optional RECREATE is non-nil, update
+each package, regardless of whether any new commits were fetched."
+  (interactive (list (and current-prefix-arg
+                          (epkg-read-package "Limit to packages after: "))))
+  (emir--update-packages [gnu-elpa nongnu-elpa] from recreate))
+
+;;;###autoload
 (defun emir-update-wiki-packages (&optional from recreate)
   "Update all mirrored packages that are distributed on the Emacswiki.
 With a prefix argument, read a package, and only update that and later
@@ -477,7 +487,8 @@ packages in alphabetic order.  If optional RECREATE is non-nil, update
 each package, regardless of whether any new commits were fetched."
   (interactive (list (and current-prefix-arg
                           (epkg-read-package "Limit to packages after: "))))
-  (emir--update-packages [mirrored* !github* !wiki !subtree*]
+  (emir--update-packages [mirrored* !github* !gnu-elpa !nongnu-elpa
+                          !wiki !subtree*]
                          from recreate))
 
 (defun emir--update-packages (types from recreate)
