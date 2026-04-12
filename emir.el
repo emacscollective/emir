@@ -501,7 +501,7 @@ each package, regardless of whether any new commits were fetched."
     (dolist (pkg pkgs)
       (cl-incf i)
       (let ((name (oref pkg name)))
-        (cond ((and from (string< from name))
+        (cond ((and from (string< name from))
                (push name skipped))
               ((and (emir--config name :suspended)
                     (not recreate))
