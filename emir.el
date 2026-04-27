@@ -929,11 +929,15 @@ dump the Epkg database.  If optional SORT is non-nil, then sort the
 
 (cl-defmethod emir-pull ((pkg epkg-mirrored-package) &optional force)
   (with-emir-repository pkg
-    (when (= (apply #'magit-call-process "timeout" "3m" "git"
-                    "fetch" "origin"
-                    (and force '("--tags" "--prune-tags" "--force")))
-             124)
-      (error "Fetch timeout (%s)" (epkg--package-type pkg)))
+    (pcase (apply #'magit-call-process "timeout" "3m" "git"
+                  "fetch" "origin"
+                  (and force '("--tags" "--prune-tags" "--force")))
+      (0)
+      (124 (error "Fetch timeout (%s)" (epkg--package-type pkg)))
+      (_ (signal 'magit-git-error
+                 (magit-process-error-summary
+                  (process-buffer magit-this-process)
+                  (process-get magit-this-process 'section)))))
     (let ((upstream (concat "origin/" (oref pkg branch))))
       (cond
         ((oref pkg patched)
