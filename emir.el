@@ -370,7 +370,9 @@ With a prefix argument, update even if there are no new commits."
   (setq emir--force-push nil)
   (let* ((force (and interactive (>= interactive 4)))
          (pkg (epkg name))
-         (tip (oref pkg hash)))
+         (tip (oref pkg hash))
+         (magit-show-process-buffer-hint nil)
+         (magit-process-display-mode-line-error nil))
     (condition-case err
         (with-emir-repository pkg
           (emir--assert-clean-worktree)
