@@ -390,11 +390,14 @@ If optional RECREATE is non-nil, only recreate metadata."
               (unless (epkg-builtin-package-p pkg)
                 (emir-stage name (and interactive :dump)))
               (emir-gh-update pkg)
-              (emir-push pkg))
-            t))
+              (emir-push pkg))))
       (error
        (message "Update error (%s): %s" name (error-message-string err))
-       nil))))
+       nil)
+      (:success
+       (when-let ((buf (magit-get-mode-buffer 'magit-process-mode)))
+         (kill-buffer buf))
+       t))))
 
 ;;;###autoload
 (defun emir-update-github-packages ()
@@ -1190,8 +1193,6 @@ because some of these packages are also available from Melpa.")))
                  (emir--features pkg)))
       (oset pkg required required)
       (oset pkg provided provided))
-    (when-let ((buf (magit-get-mode-buffer 'magit-process-mode)))
-      (kill-buffer buf))
     t))
 
 ;;; Extract
