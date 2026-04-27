@@ -362,9 +362,10 @@ With a prefix argument, only show which packages would be added."
 (defvar emir--force-push nil)
 
 ;;;###autoload
-(defun emir-update-package (name &optional interactive)
+(defun emir-update-package (name &optional interactive recreate)
   "Update the package named NAME.
-With a prefix argument, update even if there are no new commits."
+With a prefix argument, update even if there are no new commits.
+If optional RECREATE is non-nil, only recreate metadata."
   (interactive (list (epkg-read-package "Update package: ")
                      (prefix-numeric-value current-prefix-arg)))
   (setq emir--force-push nil)
@@ -374,21 +375,23 @@ With a prefix argument, update even if there are no new commits."
          (magit-show-process-buffer-hint nil)
          (magit-process-display-mode-line-error nil))
     (condition-case err
-        (with-emir-repository pkg
-          (emir--assert-clean-worktree)
-          (when (and (cl-typep pkg 'epkg-mirrored-package)
-                     (or interactive
-                         (not (cl-typep pkg 'epkg-github-package))))
-            (emir--update-branch pkg))
-          (when (or force (cl-typep pkg 'epkg-mirrored-package))
-            (emir-pull pkg force))
-          (emir-update pkg)
-          (when (or force (not (equal (oref pkg hash) tip)))
-            (unless (epkg-builtin-package-p pkg)
-              (emir-stage name (and interactive :dump)))
-            (emir-gh-update pkg)
-            (emir-push pkg))
-          t)
+        (if recreate
+            (emir-update pkg t)
+          (with-emir-repository pkg
+            (emir--assert-clean-worktree)
+            (when (and (cl-typep pkg 'epkg-mirrored-package)
+                       (or interactive
+                           (not (cl-typep pkg 'epkg-github-package))))
+              (emir--update-branch pkg))
+            (when (or force (cl-typep pkg 'epkg-mirrored-package))
+              (emir-pull pkg force))
+            (emir-update pkg)
+            (when (or force (not (equal (oref pkg hash) tip)))
+              (unless (epkg-builtin-package-p pkg)
+                (emir-stage name (and interactive :dump)))
+              (emir-gh-update pkg)
+              (emir-push pkg))
+            t))
       (error
        (message "Update error (%s): %s" name (error-message-string err))
        nil))))
@@ -511,14 +514,7 @@ each package, regardless of whether any new commits were fetched."
                (message "Skipping suspended %s...done" name))
               ((let ((msg (format "Updating %s (%s/%s)..." name i total)))
                  (message "%s" msg)
-                 (if (if recreate
-                         (condition-case err
-                             (emir-update (epkg name) t)
-                           (error
-                            (message "Update error (%s): %s"
-                                     name (error-message-string err))
-                            nil))
-                       (emir-update-package name))
+                 (if (emir-update-package name)
                      (message "%sdone" msg)
                    (push name failed)
                    (message "%sfailed" msg)))))))
