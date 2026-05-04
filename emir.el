@@ -1427,8 +1427,8 @@ because some of these packages are also available from Melpa.")))
                             (name  . ,(oref pkg upstream-name)))
                           :auth 'emir
                           :synchronous t))
-          (any (##equal (let-alist % .owner.login) "emacsmirror")
-               .repository.parent.forks)))
+          (seq-some (##equal (let-alist % .owner.login) "emacsmirror")
+                    .repository.parent.forks)))
       (cl-call-next-method)
     (emir-gh pkg "POST" "/repos/%u/%n/forks"
              `((organization . "emacsmirror")
