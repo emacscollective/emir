@@ -57,12 +57,12 @@
         (or (> date 2015)
             (assoc "Drew Adams" authors)
             (assoc "Drew Adams" maintainers)
-            (seq-some (lambda (dep)
-                        (let ((p (epkg dep)))
-                          (if (epkg-wiki-package-p p)
-                              (emir-keep-wiki-package-p p)
-                            (not (epkg-shelved-package-p p)))))
-                      dependants))))))
+            (any (lambda (dep)
+                   (let ((p (epkg dep)))
+                     (if (epkg-wiki-package-p p)
+                         (emir-keep-wiki-package-p p)
+                       (not (epkg-shelved-package-p p)))))
+                 dependants))))))
 
 (defun epkg--package-type (pkg)
   "Return the class name abbreviation for PKG."

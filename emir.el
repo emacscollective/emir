@@ -9,7 +9,7 @@
 ;; Package-Version: 3.5.1
 ;; Package-Requires: (
 ;;     (emacs   "30.1")
-;;     (compat  "30.1")
+;;     (compat  "31.0")
 ;;     (borg     "4.5")
 ;;     (cond-let "1.0")
 ;;     (elx      "2.3")
@@ -421,7 +421,7 @@ If optional RECREATE is non-nil, only recreate metadata."
        (let (skipped failed update)
          (let ((i 0) (n (length data)))
            (pcase-dolist (`(,name . ,data) data)
-             (cl-incf i)
+             (incf i)
              (let ((msg (format "Updating status of %-20s (%s/%s)..." name i n)))
                (message "%s" msg)
                (cond
@@ -446,7 +446,7 @@ If optional RECREATE is non-nil, only recreate metadata."
                     (message "%sdone" msg)))))))
          (let ((i 0) (n (length update)))
            (dolist (name (nreverse update))
-             (cl-incf i)
+             (incf i)
              (let ((msg (format "Updating package %s (%s/%s)..." name i n)))
                (message "%s" msg)
                (if (emir-update-package name)
@@ -507,7 +507,7 @@ each package, regardless of whether any new commits were fetched."
          (failed nil)
          (i 0))
     (dolist (pkg pkgs)
-      (cl-incf i)
+      (incf i)
       (let ((name (oref pkg name)))
         (cond ((and from (string< name from))
                (push name skipped))
@@ -754,7 +754,7 @@ With a prefix argument, update license information for all packages."
          (failed nil)
          (i 0))
     (dolist (name pkgs)
-      (cl-incf i)
+      (incf i)
       (let ((msg (format "Setup module for %s (%s/%s)..." name i total)))
         (message "%s" msg)
         (if (emir-setup-module name)
@@ -1427,8 +1427,8 @@ because some of these packages are also available from Melpa.")))
                             (name  . ,(oref pkg upstream-name)))
                           :auth 'emir
                           :synchronous t))
-          (seq-some (##equal (let-alist % .owner.login) "emacsmirror")
-                    .repository.parent.forks)))
+          (any (##equal (let-alist % .owner.login) "emacsmirror")
+               .repository.parent.forks)))
       (cl-call-next-method)
     (emir-gh pkg "POST" "/repos/%u/%n/forks"
              `((organization . "emacsmirror")
@@ -1505,7 +1505,7 @@ because some of these packages are also available from Melpa.")))
       (setq result (nconc result (cdr data)))
       (cond
         (pages
-         (message "%s%s/%s" msg (cl-incf page) len)
+         (message "%s%s/%s" msg (incf page) len)
          (ghub-query
           (gsexp-encode (ghub--graphql-prepare-query (cons 'query (pop pages))))
           nil :callback #'run :noerror t :auth 'emir))
@@ -1595,7 +1595,7 @@ because some of these packages are also available from Melpa.")))
   (pcase-let ((`(,regexp . ,slots) (emir--url-matcher format)))
     (and (string-match regexp url)
          (let ((i 0))
-           (mapcar (##cons % (match-string (cl-incf i) url)) slots)))))
+           (mapcar (##cons % (match-string (incf i) url)) slots)))))
 
 (defun emir--url-to-class (url &optional base-class)
   (cl-find-if (lambda (class)
