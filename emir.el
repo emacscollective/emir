@@ -87,7 +87,7 @@
 ;; To force it to use the latest tag, use something like "git describe
 ;; --long --match 'emacs-30.0*'".  Except when we are very close to a
 ;; tag, the count never-the-less tends to be off by several magnitudes.
-(defconst emir-emacs-reference "emacs-30.1-0-g8ac894e2246")
+(defconst emir-emacs-reference "emacs-30.1-181559-g311f1fe2ba2") ;aka 31.0.60
 
 (defconst emir-emacs-repository "~/src/emacs/emacs/master")
 (defconst emir-gnu-elpa-repository (expand-file-name "gnu-elpa/" epkg-repository))
@@ -1345,14 +1345,15 @@ because some of these packages are also available from Melpa.")))
             (and (string-suffix-p ".el" file)
                  (if (or (string-match-p finder-no-scan-regexp file)
                          (member file
-                                 '(;; Pending [[notmuch-tree:thread:000000000001545a][#62751]]:
-                                   ;; - Old versions:
-                                   "lisp/obsolete/otodo-mode.el"
-                                   ;; - Moved to GNU Elpa:
+                                 '(;; Moved to GNU Elpa:
                                    "lisp/obsolete/crisp.el"
+                                   "lisp/obsolete/idlwave.el"
+                                   "lisp/obsolete/idlw-complete-structtag.el"
+                                   "lisp/obsolete/idlw-help.el"
+                                   "lisp/obsolete/idlw-shell.el"
+                                   "lisp/obsolete/idlw-toolbar.el"
                                    "lisp/obsolete/landmark.el"
-                                   "lisp/obsolete/package-x.el"
-                                   "lisp/emacs-lisp/package-x.el")))
+                                   "lisp/obsolete/package-x.el")))
                      (prog1 nil (message "Skipping %s...done" file))
                    (message "Importing %s..." file)
                    (with-temp-buffer
@@ -1360,9 +1361,17 @@ because some of these packages are also available from Melpa.")))
                      (emacs-lisp-mode)
                      (let ((package
                             (cond
-                              ;; Pending [[notmuch-tree:thread:000000000001545a][#62751]]:
-                              ((equal file "lisp/use-package/bind-key.el")
-                               "bind-key")
+                              ;; Pending debbug#:
+                              ((equal file "lisp/calendar/diary-icalendar.el")
+                               "icalendar")
+                              ((equal file "lisp/calendar/diary-lib.el")
+                               "calendar")
+                              ((string-match-p "lisp/calendar/icalendar-.+\\.el" file)
+                               "icalendar")
+                              ((equal file "lisp/textmodes/markdown-ts-mode-x.el")
+                               "markdown-ts-mode-x")
+                              ((equal file "lisp/emacs-lisp/package-activate.el")
+                               "package")
                               ;; Properly specified packages:
                               ((and-let ((elt (assoc (thread-first file
                                                        file-name-directory
