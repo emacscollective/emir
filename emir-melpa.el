@@ -24,7 +24,6 @@
 ;;; Code:
 
 (require 'emir)
-(require 'package-build)
 (require 'url)
 
 (defvar url-http-end-of-headers)
