@@ -1333,64 +1333,62 @@ because some of these packages are also available from Melpa.")))
              (re-search-forward "^(defvar finder--builtins-alist")
              (goto-char (match-beginning 0))
              (eval (nth 2 (read (current-buffer)))))))
-      (mapcar
-       (##cons (car %) (mapcar #'cdr (cdr %)))
-       (seq-group-by
-        #'car
-        (sort
-         (mapcan
-          (lambda (file)
-            (cond
-              ((not (string-suffix-p ".el" file))
-               nil)
-              ((or (string-match-p finder-no-scan-regexp file)
-                   (member file
-                           '(;; Moved to GNU Elpa:
-                             "lisp/obsolete/crisp.el"
-                             "lisp/obsolete/idlwave.el"
-                             "lisp/obsolete/idlw-complete-structtag.el"
-                             "lisp/obsolete/idlw-help.el"
-                             "lisp/obsolete/idlw-shell.el"
-                             "lisp/obsolete/idlw-toolbar.el"
-                             "lisp/obsolete/landmark.el"
-                             "lisp/obsolete/package-x.el")))
-               (message "Skipping %s...done" file)
-               nil)
-              (t
-               (message "Importing %s..." file)
-               (with-temp-buffer
-                 (insert-file-contents file)
-                 (emacs-lisp-mode)
-                 (let ((package
-                        (cond
-                          ;; Pending debbug#:
-                          ((equal file "lisp/calendar/diary-icalendar.el")
-                           "icalendar")
-                          ((equal file "lisp/calendar/diary-lib.el")
-                           "calendar")
-                          ((string-match-p "lisp/calendar/icalendar-.+\\.el" file)
-                           "icalendar")
-                          ((equal file "lisp/textmodes/markdown-ts-mode-x.el")
-                           "markdown-ts-mode-x")
-                          ((equal file "lisp/emacs-lisp/package-activate.el")
-                           "package")
-                          ;; Properly specified packages:
-                          ((and$ (assoc (thread-first file
-                                          file-name-directory
-                                          directory-file-name
-                                          file-name-nondirectory)
-                                        builtins-alist)
-                                 (symbol-name (cdr $))))
-                          ((lm-header "Package"))
-                          ((thread-first file
-                             file-name-nondirectory
-                             file-name-sans-extension)))))
-                   (prog1 (mapcar (##list package file %)
-                                  (or (elx-provided)
-                                      (list nil)))
-                     (message "Importing %s...done" file)))))))
-          (magit-git-items "ls-tree" "-z" "-r" "--name-only" "HEAD" "lisp/"))
-         :key #'car))))))
+      (thread$
+        (magit-git-items "ls-tree" "-z" "-r" "--name-only" "HEAD" "lisp/")
+        (mapcan (lambda (file)
+                  (cond
+                    ((not (string-suffix-p ".el" file))
+                     nil)
+                    ((or (string-match-p finder-no-scan-regexp file)
+                         (member file
+                                 '(;; Moved to GNU Elpa:
+                                   "lisp/obsolete/crisp.el"
+                                   "lisp/obsolete/idlwave.el"
+                                   "lisp/obsolete/idlw-complete-structtag.el"
+                                   "lisp/obsolete/idlw-help.el"
+                                   "lisp/obsolete/idlw-shell.el"
+                                   "lisp/obsolete/idlw-toolbar.el"
+                                   "lisp/obsolete/landmark.el"
+                                   "lisp/obsolete/package-x.el")))
+                     (message "Skipping %s...done" file)
+                     nil)
+                    (t
+                     (message "Importing %s..." file)
+                     (with-temp-buffer
+                       (insert-file-contents file)
+                       (emacs-lisp-mode)
+                       (let ((package
+                              (cond
+                                ;; Pending debbug#:
+                                ((equal file "lisp/calendar/diary-icalendar.el")
+                                 "icalendar")
+                                ((equal file "lisp/calendar/diary-lib.el")
+                                 "calendar")
+                                ((string-match-p "lisp/calendar/icalendar-.+\\.el" file)
+                                 "icalendar")
+                                ((equal file "lisp/textmodes/markdown-ts-mode-x.el")
+                                 "markdown-ts-mode-x")
+                                ((equal file "lisp/emacs-lisp/package-activate.el")
+                                 "package")
+                                ;; Properly specified packages:
+                                ((and$ (assoc (thread-first file
+                                                file-name-directory
+                                                directory-file-name
+                                                file-name-nondirectory)
+                                              builtins-alist)
+                                       (symbol-name (cdr $))))
+                                ((lm-header "Package"))
+                                ((thread-first file
+                                   file-name-nondirectory
+                                   file-name-sans-extension)))))
+                         (prog1 (mapcar (##list package file %)
+                                        (or (elx-provided)
+                                            (list nil)))
+                           (message "Importing %s...done" file)))))))
+                $)
+        (sort $ :key #'car)
+        (mapcar (##cons (car %) (mapcar #'cdr (cdr %))) $)
+        (seq-group-by #'car $)))))
 
 ;;; Github
 
@@ -1696,8 +1694,10 @@ because some of these packages are also available from Melpa.")))
 ;; Local Variables:
 ;; read-symbol-shorthands: (
 ;;   ("and$"      . "cond-let--and$")
+;;   ("and>"      . "cond-let--and>")
 ;;   ("and-let"   . "cond-let--and-let")
 ;;   ("if-let"    . "cond-let--if-let")
+;;   ("thread$"   . "cond-let--thread$")
 ;;   ("when$"     . "cond-let--when$")
 ;;   ("when-let"  . "cond-let--when-let")
 ;;   ("while-let" . "cond-let--while-let"))
