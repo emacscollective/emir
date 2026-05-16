@@ -792,7 +792,7 @@ With a prefix argument, update license information for all packages."
     (emir--remove-module-worktree name)
     (emir--stash-module-gitdir name)
     (emir-add pkg t)
-    (emir-melpa-migrate-recipe name "Update %s's repository")
+    (emir-melpa-migrate-recipe name "Update upstream of %s")
     (emir-commit (format "Migrate \"%s\" package" name) name :dump :sort)))
 
 (defun emir--gh-maybe-migrate (pkg new)
