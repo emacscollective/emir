@@ -378,6 +378,8 @@ If optional RECREATE is non-nil, only recreate metadata."
             (emir-update pkg t)
           (with-emir-repository pkg
             (emir--assert-clean-worktree)
+            (unless (equal (magit-get-current-branch) "master")
+              (magit-git "checkout" "master"))
             (when (and (cl-typep pkg 'epkg-mirrored-package)
                        (or interactive
                            (not (cl-typep pkg 'epkg-github-package))))
@@ -1679,12 +1681,7 @@ because some of these packages are also available from Melpa.")))
   (cond ((not (zerop (magit-git-exit-code "diff" "--quiet")))
          (error "Unstaged changes"))
         ((not (zerop (magit-git-exit-code "diff" "--quiet" "--cached")))
-         (error "Uncommitted changes"))
-        ;; This may happen due to an earlier failed push.
-        ;; ((not (magit-rev-eq "HEAD" "mirror/master"))
-        ;;  (error "Unpushed changes"))
-        ((not (equal (magit-get-current-branch) "master"))
-         (error "Wrong branch checked out"))))
+         (error "Uncommitted changes"))))
 
 ;;; _
 (provide 'emir)
