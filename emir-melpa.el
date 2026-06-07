@@ -137,20 +137,20 @@
   (message "Importing Melpa downloads...done"))
 
 (defun emir-melpa-migrate-recipe (name msg &optional redirected)
-  (let ((default-directory emir-melpa-repository)
-        (file (concat "recipes/" name))
-        (pkg (epkg name))
-        (rcp (epkg-get-recipe 'melpa name)))
+  (let* ((default-directory emir-melpa-repository)
+         (file (concat "recipes/" name))
+         (pkg (epkg name))
+         (fetcher (emir--epkg-to-fetcher pkg)))
     (when (file-exists-p file)
       (with-temp-file file
         (insert-file-contents file)
         (save-excursion
           (if (re-search-forward (format ":fetcher ?\\([a-z]+\\)") nil t)
-              (replace-match (symbol-name (emir--epkg-to-fetcher pkg)) t t nil 1)
+              (replace-match (symbol-name fetcher) t t nil 1)
             (message "WARNING: Cannot find `:fetcher'")))
         (if (re-search-forward (format ":\\(repo\\|url\\) ?\"[^\"]+\"") nil t)
             (replace-match
-             (if (cl-typep rcp 'epkg--platform-recipe)
+             (if (memq fetcher package-recipe--forge-fetchers)
                  (format ":repo \"%s\"" (emir--format-url pkg "%u/%n"))
                (format ":url \"%s\"" (oref pkg url)))
              t t)
