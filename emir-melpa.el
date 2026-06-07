@@ -146,18 +146,7 @@
         (insert-file-contents file)
         (save-excursion
           (if (re-search-forward (format ":fetcher ?\\([a-z]+\\)") nil t)
-              (let ((fetcher (substring (symbol-name (eieio-object-class pkg))
-                                        5 -8)))
-                (pcase fetcher
-                  ("orphaned"
-                   (setq fetcher "github"))
-                  ((or "gnu" "nongnu" "subtree")
-                   (setq fetcher "git"))
-                  ("bitbucket"
-                   (setq fetcher "hg")))
-                (unless (fboundp (intern (format "epkg-melpa-%s-recipe" fetcher)))
-                  (error "%s isn't a valid Melpa fetcher" fetcher))
-                (replace-match fetcher t t nil 1))
+              (replace-match (symbol-name (emir--epkg-to-fetcher pkg)) t t nil 1)
             (message "WARNING: Cannot find `:fetcher'")))
         (if (re-search-forward (format ":\\(repo\\|url\\) ?\"[^\"]+\"") nil t)
             (replace-match
@@ -173,6 +162,19 @@
                                   "\n\nThe old url redirects to the new url."))
                      "--" file)
         (message "WARNING: Recipe is unmodified")))))
+
+(defun emir--epkg-to-fetcher (pkg)
+  (let ((fetcher (substring (symbol-name (eieio-object-class pkg)) 5 -8)))
+    (pcase fetcher
+      ("orphaned"
+       (setq fetcher "github"))
+      ((or "gnu" "nongnu" "subtree")
+       (setq fetcher "git"))
+      ("bitbucket"
+       (setq fetcher "hg")))
+    (unless (fboundp (intern (format "epkg-melpa-%s-recipe" fetcher)))
+      (error "%s isn't a valid Melpa fetcher" fetcher))
+    (intern fetcher)))
 
 ;;; Queries
 
