@@ -155,7 +155,7 @@
                (format ":url \"%s\"" (oref pkg url)))
              t t)
           (message "WARNING: Cannot find `:repo' or `:url'")))
-      (package-recipe--validate file name)
+      (package-recipe-lookup name)
       (if (magit-anything-unstaged-p nil file)
           (magit-git "commit" "--gpg-sign" "-m"
                      (concat (format msg name)
