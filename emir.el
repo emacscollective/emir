@@ -335,9 +335,9 @@ With a prefix argument, only show which packages would be added."
                      ((not (cdr pkgs))
                       (car pkgs))
                      (interactive
-                      (assoc (completing-read (format "Mirror %s as: " url)
-                                              pkgs nil t)
-                             pkgs))))
+                       (assoc (completing-read (format "Mirror %s as: " url)
+                                               pkgs nil t)
+                              pkgs))))
                  (seq-group-by
                   #'cadr
                   (cl-remove-if
@@ -1523,8 +1523,8 @@ because some of these packages are also available from Melpa.")))
         (pages
          (message "%s%s/%s" msg (incf page) len)
          (ghub-query
-          (gsexp-encode (ghub--graphql-prepare-query (cons 'query (pop pages))))
-          nil :callback #'run :noerror t :auth 'emir))
+           (gsexp-encode (ghub--graphql-prepare-query (cons 'query (pop pages))))
+           nil :callback #'run :noerror t :auth 'emir))
         (t
          (message "%sdone" msg)
          (dolist (elt result)
