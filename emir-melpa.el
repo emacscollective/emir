@@ -164,17 +164,25 @@
                      "--" file)
         (message "WARNING: Recipe is unmodified")))))
 
-(defun emir-melpa-adjust-recipe (name msg)
+(defun emir-melpa-adjust-recipe (name)
   (let ((default-directory emir-melpa-repository)
-        (rcp (concat "recipes/" name)))
-    (when (file-exists-p rcp)
-      (let ((msg (ignore-errors
-                   (read-string
-                    "Also remove from Melpa with message (empty to skip): "
-                    (format (or msg "Remove recipe for %s") name)))))
-        (unless (equal msg "")
-          (magit-git "rm" rcp)
-          (magit-git "commit" "-m" msg "--" rcp))))))
+        (file (concat "recipes/" name)))
+    (cond-let
+      ((not (file-exists-p file)))
+      [[pkg (epkg name)]]
+      ((not pkg)
+       (magit-git "rm" "--force" file)
+       (magit-git "commit" "--gpg-sign" "-m"
+                  (format "Remove recipe for %s" name)
+                  "--" file))
+      ((cl-typep pkg 'epkg-shelved-package)
+       (emir-melpa-migrate-recipe
+        name (format "Get %s from emacsattic" name)))
+      ((cl-typep pkg 'epkg-orphaned-package)
+       (emir-melpa-migrate-recipe
+        name (format "Get %s from emacsorphanage" name)))
+      ((emir-melpa-migrate-recipe
+        name (format "Update upstream of %s" name))))))
 
 (defun emir--epkg-to-fetcher (pkg)
   (let ((fetcher (substring (symbol-name (eieio-object-class pkg)) 5 -8)))

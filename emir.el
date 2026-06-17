@@ -660,7 +660,7 @@ With a prefix argument, update license information for all packages."
 ;;;; Shelve
 
 ;;;###autoload
-(defun emir-shelve-package (name &optional melpa-msg)
+(defun emir-shelve-package (name)
   "Shelve the package named NAME."
   (interactive (list (epkg-read-package "Shelve package: " nil [mirrored*])))
   (let ((pkg (epkg name)))
@@ -686,7 +686,7 @@ With a prefix argument, update license information for all packages."
       (emir-gh-shelve pkg))
     (with-emir-repository t
       (emir-commit (format "Shelve %S package" name) name :dump))
-    (emir-melpa-adjust-recipe name melpa-msg)))
+    (emir-melpa-adjust-recipe name)))
 
 ;;;###autoload
 (defun emir-shelve-archived-github-packages ()
@@ -702,7 +702,7 @@ With a prefix argument, update license information for all packages."
                  (message "Skipping %s needed by %s..." name dependants))
                 (t
                  (message "Shelve %s..." name)
-                 (emir-shelve-package name "Remove archived %S package")
+                 (emir-shelve-package name)
                  (message "Shelve %s...done" name))))))))
 
 ;;;; Remove
