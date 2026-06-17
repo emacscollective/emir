@@ -147,6 +147,22 @@ repository specified by variable `epkg-repository'."
   emir-emacs-repository)
 
 ;;; Commands
+;;;; Menu
+
+;;;###autoload
+(transient-define-prefix emir-menu ()
+  "Menu offering Emir commands."
+  [["Misc"
+    ("i" "Import recipes"  emir-import-recipes)
+    ("r" "Show report"     emir-report)]
+   ["Update packages"
+    ("g" "github" emir-update-github-packages)
+    ("e" "elpa"   emir-update-elpa-packages)
+    ("w" "wiki"   emir-update-wiki-packages)
+    ("s" "slow"   emir-update-slow-packages)
+    ("o" "other"  emir-update-other-packages)
+    ("p" "one"    emir-update-package)]])
+
 ;;;; Import
 
 ;;;###autoload
