@@ -164,6 +164,18 @@
                      "--" file)
         (message "WARNING: Recipe is unmodified")))))
 
+(defun emir-melpa-adjust-recipe (name msg)
+  (let ((default-directory emir-melpa-repository)
+        (rcp (concat "recipes/" name)))
+    (when (file-exists-p rcp)
+      (let ((msg (ignore-errors
+                   (read-string
+                    "Also remove from Melpa with message (empty to skip): "
+                    (format (or msg "Remove recipe for %s") name)))))
+        (unless (equal msg "")
+          (magit-git "rm" rcp)
+          (magit-git "commit" "-m" msg "--" rcp))))))
+
 (defun emir--epkg-to-fetcher (pkg)
   (let ((fetcher (substring (symbol-name (eieio-object-class pkg)) 5 -8)))
     (pcase fetcher

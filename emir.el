@@ -686,16 +686,7 @@ With a prefix argument, update license information for all packages."
       (emir-gh-shelve pkg))
     (with-emir-repository t
       (emir-commit (format "Shelve %S package" name) name :dump))
-    (let ((default-directory emir-melpa-repository)
-          (rcp (concat "recipes/" name)))
-      (when (file-exists-p rcp)
-        (let ((msg (ignore-errors
-                     (read-string
-                      "Also remove from Melpa with message (empty to skip): "
-                      (format (or melpa-msg "Remove recipe for %s") name)))))
-          (unless (equal msg "")
-            (magit-git "rm" rcp)
-            (magit-git "commit" "-m" msg "--" rcp)))))))
+    (emir-melpa-adjust-recipe name melpa-msg)))
 
 ;;;###autoload
 (defun emir-shelve-archived-github-packages ()
