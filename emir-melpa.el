@@ -187,7 +187,7 @@
 (defun emir--epkg-to-fetcher (pkg)
   (let ((fetcher (substring (symbol-name (eieio-object-class pkg)) 5 -8)))
     (pcase fetcher
-      ("orphaned"
+      ((or "orphaned" "shelved")
        (setq fetcher "github"))
       ((or "gnu" "nongnu" "subtree")
        (setq fetcher "git"))
