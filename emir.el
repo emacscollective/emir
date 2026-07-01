@@ -6,7 +6,7 @@
 ;; Homepage: https://github.com/emacscollective/emir
 ;; Keywords: local
 
-;; Package-Version: 3.5.2
+;; Package-Version: 3.6.0
 ;; Package-Requires: (
 ;;     (emacs        "30.1")
 ;;     (compat       "31.0")
@@ -17,8 +17,8 @@
 ;;     (epkg          "4.2")
 ;;     (ghub          "5.2")
 ;;     (llama         "1.0")
-;;     (magit         "4.5")
-;;     (package-build "4.0"))
+;;     (magit         "4.6")
+;;     (package-build "5.0"))
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
