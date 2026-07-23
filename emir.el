@@ -449,7 +449,7 @@ If optional RECREATE is non-nil, only recreate metadata."
                   (message "%sdone" msg))
                  ((emir--config name :suspended)
                   (push name skipped)
-                  (message "%skipped" msg))
+                  (message "%sskipped" msg))
                  ((let ((pkg (epkg name)))
                     (let-alist data
                       ;; These updates are performed silently.
