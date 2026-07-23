@@ -86,9 +86,9 @@
 ;; Emacs' history, including very recent history, is littered with so
 ;; many twig merges, "git describe" cannot make sense of it anymore.
 ;; To force it to use the latest tag, use something like "git describe
-;; --long --match 'emacs-30.0*'".  Except when we are very close to a
+;; --long --match 'emacs-31.0*'".  Except when we are very close to a
 ;; tag, the count never-the-less tends to be off by several magnitudes.
-(defconst emir-emacs-reference "emacs-30.1-181559-g311f1fe2ba2") ;aka 31.0.60
+(defconst emir-emacs-reference "emacs-31.0.91-0-g57581b8bc2f")
 
 (defconst emir-emacs-repository "~/src/emacs/emacs/master")
 (defconst emir-gnu-elpa-repository (expand-file-name "gnu-elpa/" epkg-repository))
@@ -1373,17 +1373,16 @@ because some of these packages are also available from Melpa.")))
                        (emacs-lisp-mode)
                        (let ((package
                               (cond
-                                ;; Pending debbug#:
-                                ((equal file "lisp/calendar/diary-icalendar.el")
-                                 "icalendar")
-                                ((equal file "lisp/calendar/diary-lib.el")
-                                 "calendar")
+                                ;; Pending debbug#809976:
+                                ;; 1.
                                 ((string-match-p "lisp/calendar/icalendar-.+\\.el" file)
                                  "icalendar")
-                                ((equal file "lisp/textmodes/markdown-ts-mode-x.el")
-                                 "markdown-ts-mode-x")
-                                ((equal file "lisp/emacs-lisp/package-activate.el")
-                                 "package")
+                                ;; 2.
+                                ((equal file "lisp/calendar/diary-lib.el")
+                                 "calendar")
+                                ;; 3.
+                                ((equal file "lisp/calendar/diary-icalendar.el")
+                                 "icalendar")
                                 ;; Properly specified packages:
                                 ((and$ (assoc (thread-first file
                                                 file-name-directory
