@@ -1401,8 +1401,8 @@ because some of these packages are also available from Melpa.")))
                            (message "Importing %s...done" file)))))))
                 $)
         (sort $ :key #'car)
-        (mapcar (##cons (car %) (mapcar #'cdr (cdr %))) $)
-        (seq-group-by #'car $)))))
+        (seq-group-by #'car $)
+        (mapcar (##cons (car %) (mapcar #'cdr (cdr %))) $)))))
 
 ;;; Github
 
