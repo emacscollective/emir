@@ -536,7 +536,7 @@ each package, regardless of whether any new commits were fetched."
                (message "Skipping suspended %s...done" name))
               ((let ((msg (format "Updating %s (%s/%s)..." name i total)))
                  (message "%s" msg)
-                 (if (emir-update-package name)
+                 (if (emir-update-package name nil recreate)
                      (message "%sdone" msg)
                    (push name failed)
                    (message "%sfailed" msg)))))))
