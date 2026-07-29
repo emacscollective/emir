@@ -1195,6 +1195,7 @@ dump the Epkg database.  If optional SORT is non-nil, then sort the
             (oset pkg updated     (emir--updated pkg))
             (oset pkg authors     (emir--authors))
             (oset pkg maintainers (emir--maintainers))
+            (oset pkg assisted-by (emir--assisted-by))
             (oset pkg commentary  (elx-commentary nil t))
             (oset pkg homepage    (emir--homepage pkg))
             (oset pkg wikipage    (emir--wikipage pkg))
@@ -1292,6 +1293,9 @@ because some of these packages are also available from Melpa.")))
                                   (list name email))
                                 (elx-maintainers))
                         :test #'equal :key #'car))
+
+(defun emir--assisted-by ()
+  (lm-header "Assisted-by"))
 
 (cl-defmethod emir--features ((pkg epkg-package))
   (with-emir-repository pkg
