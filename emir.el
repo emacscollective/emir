@@ -86,9 +86,9 @@
 ;; Emacs' history, including very recent history, is littered with so
 ;; many twig merges, "git describe" cannot make sense of it anymore.
 ;; To force it to use the latest tag, use something like "git describe
-;; --long --match 'emacs-31.0*'".  Except when we are very close to a
+;; --long --match 'emacs-31*'".  Except when we are very close to a
 ;; tag, the count never-the-less tends to be off by several magnitudes.
-(defconst emir-emacs-reference "emacs-31.0.91-64-g254594306c7")
+(defconst emir-emacs-reference "emacs-31.1-0-ga360712c9d2")
 
 (defconst emir-emacs-repository "~/src/emacs/emacs/master")
 (defconst emir-gnu-elpa-repository (expand-file-name "gnu-elpa/" epkg-repository))
