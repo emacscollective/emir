@@ -151,7 +151,7 @@
         (if (re-search-forward (format ":\\(repo\\|url\\) ?\"[^\"]+\"") nil t)
             (replace-match
              (if (memq fetcher package-recipe--forge-fetchers)
-                 (format ":repo \"%s\"" (emir--format-url pkg "%u/%n"))
+                 (format ":repo \"%s\"" (emir--format-url pkg "%r"))
                (format ":url \"%s\"" (oref pkg url)))
              t t)
           (message "WARNING: Cannot find `:repo' or `:url'")))
