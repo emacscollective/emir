@@ -138,7 +138,8 @@
 
 (defun emir-melpa-migrate-recipe (name msg &optional redirected)
   (let* ((default-directory emir-melpa-repository)
-         (file (concat "recipes/" name))
+         (package-build-recipes-dir (expand-file-name "recipes/"))
+         (file (expand-file-name name package-build-recipes-dir))
          (pkg (epkg name))
          (fetcher (emir--epkg-to-fetcher pkg)))
     (when (file-exists-p file)
