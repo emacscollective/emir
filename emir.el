@@ -6,7 +6,7 @@
 ;; Homepage: https://github.com/emacscollective/emir
 ;; Keywords: local
 
-;; Package-Version: 3.6.2
+;; Package-Version: 3.6.3
 ;; Package-Requires: (
 ;;     (emacs        "30.1")
 ;;     (compat       "31.0")
