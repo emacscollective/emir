@@ -25,9 +25,6 @@
 
 (require 'emir)
 
-(unless (boundp 'eieio--unbound) ; New name since Emacs 28.1.
-  (defvaralias 'eieio--unbound 'eieio-unbound nil))
-
 ;;;###autoload
 (defun emir-report ()
   "Open the main maintenance report file."
