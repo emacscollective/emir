@@ -951,18 +951,19 @@ dump the Epkg database.  If optional SORT is non-nil, then sort the
         (124 (error "Fetch timeout (%s)" (epkg--package-type pkg)))
         (_ (signal 'magit-git-error
                    (list (magit-process-error-summary process-buf section))))))
-    (let ((upstream (concat "origin/" (oref pkg branch))))
+    (let ((upstream (concat "origin/" (oref pkg branch)))
+          (slop (oref pkg assisted-by)))
       (cond
         ((oref pkg patched)
          (magit-git "rebase" "@{upstream}"))
         ((not (zerop (magit-git-exit-code "merge" "--ff-only" upstream)))
-         (unless (or force
+         (unless (or force slop
                      (zerop (magit-git-exit-code "merge-base" "master" upstream)))
            (error "History completely rewritten"))
          (pcase-let* ((`(,ours ,theirs) (magit-rev-diff-count "master" upstream))
-                      (msg (format "history rewritten (master %s, %s %s)"
-                                   ours upstream theirs)))
-           (cond ((or force
+                      (msg (format "%shistory rewritten (master %s, %s %s)"
+                                   (if slop "slop " "") ours upstream theirs)))
+           (cond ((or force slop
                       (< (+ ours theirs) emir-rewrite-threshold)
                       (member (oref pkg upstream-user)
                               emir-rewrite-always-update))
