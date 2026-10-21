@@ -1,4 +1,4 @@
-;;; emir-utils.el --- Non-essential utilities  -*- lexical-binding:t -*-
+;;; emir-utils.el --- Secondary utilities  -*- lexical-binding:t -*-
 
 ;; Copyright (C) 2016-2026 Jonas Bernoulli
 
@@ -21,9 +21,16 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this file.  If not, see <https://www.gnu.org/licenses/>.
 
+;;; Commentary:
+
+;; This library implements little used tools dealing with the database
+;; and Emacswiki complications.
+
 ;;; Code:
 
 (require 'emir)
+
+;;; Emacswiki
 
 (defun emir-remove-obsolete-wiki-branches ()
   "Remove branches corresponding to shelved and removed packages."
@@ -39,6 +46,7 @@
           (message "Removing %s...done" branch))))))
 
 (defun emir-keep-wiki-package-p (pkg)
+  ;; Used in "issues.org".
   (with-slots (name url downloads authors maintainers) pkg
     (with-epkg-repository pkg
       (let ((date (string-to-number
@@ -53,6 +61,8 @@
                               (emir-keep-wiki-package-p p)
                             (not (epkg-shelved-package-p p)))))
                       dependants))))))
+
+;;; Database
 
 (defun emir--list-tables (db)
   "Return a list of all tables in DB."
