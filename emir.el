@@ -849,10 +849,26 @@ dump the Epkg database.  If optional SORT is non-nil, then sort the
     (magit-git "add" ".gitmodules" "epkg.sql"
                "ewiki" "gnu-elpa" "nongnu-elpa" "melpa")))
 
+;;;; Miscellaneous
+
 (defun emir-dump-database ()
   "Dump the Epkg database as SQL statements to a file."
   (interactive)
   (emacsql-sqlite-dump-database (oref (epkg-db) connection)))
+
+(defun emir-enable-sql-logging ()
+  "Enable logging Epkg SQL queries."
+  (interactive)
+  (let ((conn (oref (epkg-db) connection)))
+    (emacsql-enable-debugging conn)
+    (switch-to-buffer-other-window (oref conn log-buffer))))
+
+;;;###autoload
+(defun emir-report ()
+  "Open the main maintenance report file."
+  (interactive)
+  (find-file-other-frame
+   (expand-file-name "compare.org" emir-stats-repository)))
 
 ;;; Git
 ;;;; Import

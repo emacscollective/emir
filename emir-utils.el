@@ -25,13 +25,6 @@
 
 (require 'emir)
 
-;;;###autoload
-(defun emir-report ()
-  "Open the main maintenance report file."
-  (interactive)
-  (find-file-other-frame
-   (expand-file-name "compare.org" emir-stats-repository)))
-
 (defun emir-remove-obsolete-wiki-branches ()
   "Remove branches corresponding to shelved and removed packages."
   (interactive)
@@ -148,13 +141,6 @@
     (emir-import-nongnu-elpa-recipes '("--fetch" "--all"))
     (emir-import-melpa-recipes '("--fetch" "--all")))
   (message "Recreating Epkg database...done"))
-
-(defun emir-enable-sql-logging ()
-  "Enable logging Epkg SQL queries."
-  (interactive)
-  (let ((conn (oref (epkg-db) connection)))
-    (emacsql-enable-debugging conn)
-    (switch-to-buffer-other-window (oref conn log-buffer))))
 
 ;;; _
 (provide 'emir-utils)
