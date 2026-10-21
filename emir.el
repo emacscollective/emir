@@ -964,7 +964,7 @@ dump the Epkg database.  If optional SORT is non-nil, then sort the
                 (apply #'magit-process-file "timeout" nil process-buf nil args))
               process-buf (current-buffer) default-directory section)
         (0)
-        (124 (error "Fetch timeout (%s)" (epkg--package-type pkg)))
+        (124 (error "Fetch timeout (%s)" (closql--abbrev-class pkg)))
         (_ (signal 'magit-git-error
                    (list (magit-process-error-summary process-buf section))))))
     (let ((upstream (concat "origin/" (oref pkg branch)))
